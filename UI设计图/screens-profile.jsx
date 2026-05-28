@@ -13,7 +13,7 @@ const MineScreen = () => (
       background:'linear-gradient(180deg, #FFD3E3 0%, #FFE4EE 60%, transparent 100%)',
     }}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18}}>
-        <div className="font-display italic" style={{fontSize:14, color:'#A93C68'}}>Salon de Elysée</div>
+        <div className="font-display italic" style={{fontSize:14, color:'#A93C68'}}>Salon de Elysia</div>
         <div style={{display:'flex', gap:8}}>
           <button style={iconBtn}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A93C68" strokeWidth="1.6"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 1-0.7 3l2 1.5-2 3.5-2.3-1A7 7 0 0 1 13 21l-0.3 2h-3l-0.3-2a7 7 0 0 1-3-1l-2.3 1-2-3.5 2-1.5A7 7 0 0 1 3.6 13l-2-0.5v-1l2-0.5A7 7 0 0 1 4.7 8l-2-1.5 2-3.5L7 4A7 7 0 0 1 10 3l0.3-2h3l0.3 2a7 7 0 0 1 3 1L19 3l2 3.5-2 1.5"/></svg></button>
         </div>

@@ -1,0 +1,136 @@
+// 系统设置 · Settings
+import router from '@ohos.router';
+import { ElysiaTheme } from '../common/Theme';
+import { TopBar, RoseDivider } from '../common/Components';
+import { AppRoute, Routes } from '../app/AppRoute';
+import { SessionStorage } from '../common/storage/SessionStorage';
+import { PreferenceStorage } from '../common/storage/PreferenceStorage';
+
+@Entry
+@Component
+struct SettingsPage {
+  @State pushEnabled: boolean = true;
+  @State evalReminder: boolean = true;
+  @State dndMode: boolean = false;
+  @State homeworkReminder: boolean = true;
+  @State darkMode: boolean = false;
+  @State biometric: boolean = false;
+  @State showLogoutConfirm: boolean = false;
+
+  aboutToAppear(): void {
+    PreferenceStorage.get().getBoolean('push', true).then((v: boolean) => { this.pushEnabled = v; });
+    PreferenceStorage.get().getBoolean('darkMode', false).then((v: boolean) => { this.darkMode = v; });
+  }
+
+  private togglePref(key: string, value: boolean): void {
+    PreferenceStorage.get().putBoolean(key, value);
+  }
+
+  private logout(): void {
+    SessionStorage.get().clear().then(() => { AppRoute.clearTo(Routes.Login); });
+  }
+
+  @Builder ToggleRow(label: string, desc: string, isOn: boolean, onChange: (v: boolean) => void) {
+    Row() {
+      Column() {
+        Text(label).fontSize(14).fontColor(ElysiaTheme.INK)
+        if (desc.length > 0) {
+          Text(desc).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
+        }
+      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+      Toggle({ type: ToggleType.Switch, isOn: isOn })
+        .selectedColor(ElysiaTheme.ROSE_500)
+        .onChange((on: boolean) => { onChange(on); })
+    }.width('100%').padding({ top: 12, bottom: 12 })
+    .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
+  }
+
+  @Builder LinkRow(label: string, hint: string) {
+    Row() {
+      Text(label).fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
+      Text(hint).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+      Text(' ›').fontSize(14).fontColor(ElysiaTheme.INK_MUTE)
+    }.width('100%').padding({ top: 14, bottom: 14 })
+    .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
+  }
+
+  build() {
+    Stack() {
+      Column().width('100%').height('100%')
+        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+
+      Column() {
+        Blank().height(40)
+        TopBar({ title: 'Settings', subtitle: '系 统 设 置', onBack: () => router.back() })
+
+        Scroll() {
+          Column({ space: 14 }) {
+            Column() {
+              Text('通知').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              this.ToggleRow('消息推送', '接收系统通知', this.pushEnabled, (v: boolean) => { this.pushEnabled = v; this.togglePref('push', v); })
+              this.ToggleRow('评教提醒', '评教开放时提醒', this.evalReminder, (v: boolean) => { this.evalReminder = v; })
+              this.ToggleRow('勿扰模式', '22:00-08:00 不推送', this.dndMode, (v: boolean) => { this.dndMode = v; })
+              this.ToggleRow('作业截止提醒', '截止前 24h 提醒', this.homeworkReminder, (v: boolean) => { this.homeworkReminder = v; })
+            }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
+            .border({ width: 1, color: '#66FFB3CE' })
+
+            Column() {
+              Text('外观').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              this.LinkRow('主题', '玫瑰学院风')
+              this.LinkRow('字体大小', '标准')
+              this.ToggleRow('深色模式', '', this.darkMode, (v: boolean) => { this.darkMode = v; this.togglePref('darkMode', v); })
+            }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
+            .border({ width: 1, color: '#66FFB3CE' })
+
+            Column() {
+              Text('安全与存储').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              this.ToggleRow('生物识别登录', '指纹/面容', this.biometric, (v: boolean) => { this.biometric = v; })
+              this.LinkRow('清除缓存', '12.3 MB')
+              this.LinkRow('检查更新', 'V1.0.0')
+            }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
+            .border({ width: 1, color: '#66FFB3CE' })
+
+            Column() {
+              this.LinkRow('用户协议', '')
+              this.LinkRow('隐私政策', '')
+              this.LinkRow('关于', 'Elysia · 教学管理系统')
+            }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
+            .border({ width: 1, color: '#66FFB3CE' })
+
+            Text('退出登录')
+              .fontSize(14).fontColor('#D8546B').fontWeight(FontWeight.Medium)
+              .width('100%').textAlign(TextAlign.Center)
+              .padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
+              .border({ width: 1, color: '#40D8546B' })
+              .onClick(() => { this.showLogoutConfirm = true; })
+
+            Blank().height(40)
+          }.padding({ left: 16, right: 16 })
+        }.scrollBar(BarState.Off).layoutWeight(1)
+      }
+
+      if (this.showLogoutConfirm) {
+        Column() {
+          Column({ space: 14 }) {
+            Text('确认退出登录？').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text('退出后需重新登录').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+            Row({ space: 12 }) {
+              Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
+                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
+                .backgroundColor('#E0FFFFFF').borderRadius(999)
+                .onClick(() => { this.showLogoutConfirm = false; })
+              Text('退出').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
+                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
+                .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
+                .onClick(() => { this.logout(); })
+            }.margin({ top: 8 })
+          }.padding(24).backgroundColor(Color.White).borderRadius(22)
+          .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
+        }.width('100%').height('100%')
+        .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+        .backgroundColor('#66000000')
+        .onClick(() => { this.showLogoutConfirm = false; })
+      }
+    }.width('100%').height('100%')
+  }
+}

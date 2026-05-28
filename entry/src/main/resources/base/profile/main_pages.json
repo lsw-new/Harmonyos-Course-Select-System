@@ -1,5 +1,42 @@
 {
   "src": [
-    "pages/Index"
+    "pages/LoginPage",
+    "pages/RegisterPage",
+    "pages/ForgotPage",
+
+    "pages/HomePage",
+    "pages/TodayPage",
+    "pages/NoticesPage",
+    "pages/NoticeDetailPage",
+
+    "pages/SchedulePage",
+    "pages/CourseDetailPage",
+    "pages/SelectionPage",
+
+    "pages/GradesPage",
+    "pages/ExamPage",
+    "pages/RosterPage",
+
+    "pages/EvalPage",
+    "pages/LeavePage",
+    "pages/FeedbackPage",
+    "pages/PracticePage",
+
+    "pages/MinePage",
+    "pages/AccountPage",
+    "pages/EditInfoPage",
+    "pages/PasswordPage",
+    "pages/SettingsPage",
+
+    "pages/AdminLoginPage",
+    "pages/AdminDashboardPage",
+    "pages/AdminStudentsPage",
+    "pages/AdminCoursesPage",
+    "pages/AdminSelectionPage",
+    "pages/AdminGradesPage",
+    "pages/AdminNoticePage",
+    "pages/AdminEvalPage",
+    "pages/AdminApprovalsPage",
+    "pages/AdminProfilePage"
   ]
 }

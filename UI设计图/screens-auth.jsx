@@ -12,7 +12,7 @@ const LoginScreen = () => (
           Bonjour,
         </div>
         <div className="font-display italic" style={{fontSize:32, color:'#A93C68', marginTop:-4}}>
-          Élysée.
+          Elysia.
         </div>
         <div style={{fontSize:11, letterSpacing:'0.4em', color:'#7A5266', marginTop:10}}>
           欢迎回到 · 教学管理学生端

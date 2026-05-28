@@ -1,0 +1,142 @@
+// 发布通知 · Annonce
+import router from '@ohos.router';
+import { ElysiaTheme } from '../common/Theme';
+import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill } from '../common/Components';
+import { AdminRepository } from '../repositories/AdminRepository';
+import { HttpError } from '../common/http/HttpError';
+
+@Entry
+@Component
+struct AdminNoticePage {
+  @State title: string = '';
+  @State content: string = '';
+  @State publisher: string = '教务处';
+  @State category: string = '教务';
+  @State urgency: string = 'normal';
+  @State receiverType: string = 'all';
+  @State submitting: boolean = false;
+  @State errorMsg: string = '';
+  @State successMsg: string = '';
+  @State showConfirm: boolean = false;
+
+  private urgencyLabels: string[] = ['普通', '重要', '紧急'];
+  private urgencyKeys: string[] = ['normal', 'important', 'urgent'];
+  private receiverLabels: string[] = ['全体', '学生', '教师', '自定义'];
+  private receiverKeys: string[] = ['all', 'students', 'teachers', 'custom'];
+
+  private publish(): void {
+    if (this.title.trim().length === 0) { this.errorMsg = '请填写标题'; return; }
+    if (this.content.trim().length === 0) { this.errorMsg = '请填写正文'; return; }
+    this.errorMsg = '';
+    this.showConfirm = true;
+  }
+
+  private confirmPublish(): void {
+    this.showConfirm = false;
+    this.submitting = true;
+    AdminRepository.get().publishNotice({
+      title: this.title, content: this.content, publisher: this.publisher,
+      category: this.category,
+      urgency: this.urgency as 'normal' | 'important' | 'urgent',
+      receiverType: this.receiverType as 'all' | 'students' | 'teachers' | 'custom',
+      receiverScope: []
+    }).then(() => {
+      this.submitting = false;
+      this.successMsg = '通知已发布';
+      this.title = '';
+      this.content = '';
+    }).catch((e: object) => {
+      this.submitting = false;
+      this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '发布失败';
+    });
+  }
+
+  build() {
+    Stack() {
+      Column().width('100%').height('100%')
+        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+
+      Column() {
+        Blank().height(40)
+        TopBar({ title: 'Annonce', subtitle: '发 布 通 知', onBack: () => router.back() })
+
+        Scroll() {
+          Column({ space: 14 }) {
+            ElysiaInput({ placeholder: '通知标题', value: $title, leadingIcon: '✎' })
+
+            TextArea({ placeholder: '通知正文', text: this.content })
+              .height(160).fontSize(13).fontColor(ElysiaTheme.INK)
+              .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+              .onChange((v: string) => { this.content = v; })
+
+            ElysiaInput({ placeholder: '发布单位', value: $publisher, leadingIcon: '◉' })
+
+            // 紧急程度
+            Column({ space: 6 }) {
+              Text('紧急程度').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+              Row({ space: 8 }) {
+                ForEach(this.urgencyLabels, (label: string, idx: number) => {
+                  Text(label).fontSize(12)
+                    .fontColor(this.urgency === this.urgencyKeys[idx] ? Color.White : ElysiaTheme.ROSE_700)
+                    .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+                    .backgroundColor(this.urgency === this.urgencyKeys[idx] ? ElysiaTheme.ROSE_500 : '#FFE9F1')
+                    .borderRadius(999)
+                    .onClick(() => { this.urgency = this.urgencyKeys[idx]; })
+                }, (label: string, idx: number) => `u-${idx}`)
+              }
+            }.width('100%').alignItems(HorizontalAlign.Start)
+
+            // 接收对象
+            Column({ space: 6 }) {
+              Text('接收对象').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+              Row({ space: 8 }) {
+                ForEach(this.receiverLabels, (label: string, idx: number) => {
+                  Text(label).fontSize(12)
+                    .fontColor(this.receiverType === this.receiverKeys[idx] ? Color.White : ElysiaTheme.ROSE_700)
+                    .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+                    .backgroundColor(this.receiverType === this.receiverKeys[idx] ? ElysiaTheme.ROSE_500 : '#FFE9F1')
+                    .borderRadius(999)
+                    .onClick(() => { this.receiverType = this.receiverKeys[idx]; })
+                }, (label: string, idx: number) => `r-${idx}`)
+              }
+            }.width('100%').alignItems(HorizontalAlign.Start)
+
+            if (this.errorMsg.length > 0) {
+              Text(this.errorMsg).fontSize(12).fontColor('#D8546B')
+            }
+            if (this.successMsg.length > 0) {
+              Text(this.successMsg).fontSize(12).fontColor('#7BB07B')
+            }
+
+            PrimaryButton({ text: this.submitting ? '发布中...' : '发布通知', onTap: () => this.publish() })
+
+            Blank().height(40)
+          }.padding({ left: 16, right: 16 })
+        }.scrollBar(BarState.Off).layoutWeight(1)
+      }
+
+      if (this.showConfirm) {
+        Column() {
+          Column({ space: 14 }) {
+            Text('确认发布？').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text('通知将发送给所选接收对象').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+            Row({ space: 12 }) {
+              Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
+                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
+                .backgroundColor('#E0FFFFFF').borderRadius(999)
+                .onClick(() => { this.showConfirm = false; })
+              Text('确认发布').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
+                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
+                .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
+                .onClick(() => { this.confirmPublish(); })
+            }.margin({ top: 8 })
+          }.padding(24).backgroundColor(Color.White).borderRadius(22)
+          .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
+        }.width('100%').height('100%')
+        .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+        .backgroundColor('#66000000')
+        .onClick(() => { this.showConfirm = false; })
+      }
+    }.width('100%').height('100%')
+  }
+}

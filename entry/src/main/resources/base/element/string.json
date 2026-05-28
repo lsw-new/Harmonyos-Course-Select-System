@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "module description"
+      "value": "Salon de Elysia 教学管理学生端"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "description"
+      "value": "Elysia 入口能力"
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "教学管理"
     }
   ]
 }
