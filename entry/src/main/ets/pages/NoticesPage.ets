@@ -1,33 +1,39 @@
 // 通知公告 · Notices
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, RoseIcon } from '../common/Components';
+import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
+import { StudentTabBar } from '../common/widgets/TabBars';
+import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
+import { CourseRepository } from '../repositories/CourseRepository';
+import { Notice } from '../models/Notice';
 
-interface NoticeItem {
-  tag: string;
-  unread: boolean;
-  title: string;
-  body: string;
-  time: string;
-}
+// EXACT category values from mockNotices.ets
+const CATEGORIES: string[] = ['全部', '教务', '学工', '生活'];
 
 @Entry
 @Component
 struct NoticesPage {
   @State activeFilter: number = 0;
-  private filters: string[] = ['全部·12', '教务·5', '学生处·3', '图书馆·2', '学院·2'];
+  @State notices: Notice[] = [];
+  @State loading: boolean = true;
+  @State errorMsg: string = '';
 
-  private notices: NoticeItem[] = [
-    { tag: '教务处', unread: true, title: '2025-2026 学年第一学期期中教学检查通知',
-      body: '各教学单位、全体同学：根据校历安排，本周起开展期中教学检查工作...', time: '10·18 · 09:24' },
-    { tag: '学生处', unread: true, title: '关于做好秋季校园安全自查的通知',
-      body: '秋冬交替时节，宿舍用电安全尤为重要，请同学们...', time: '10·15 · 14:00' },
-    { tag: '图书馆', unread: false, title: '《玫瑰与少女》主题书展开放借阅',
-      body: '十月馆藏新品 56 册已上架二楼东厅，欢迎品鉴...', time: '10·12' },
-    { tag: '软件学院', unread: false, title: '鸿蒙开发综合实践项目验收说明',
-      body: '第十周起项目验收正式开始，请各小组按时提交...', time: '10·10' },
-    { tag: '教务处', unread: false, title: '重修与缓考申请提交截止提醒',
-      body: '本学期缓考申请将于 10·25 24:00 关闭通道...', time: '10·08' }
-  ];
+  aboutToAppear(): void {
+    this.loadData();
+  }
+
+  private loadData(): void {
+    this.loading = true;
+    this.errorMsg = '';
+    const cat = this.activeFilter === 0 ? undefined : CATEGORIES[this.activeFilter];
+    CourseRepository.get().getNotices(cat).then((res: Notice[]) => {
+      this.notices = res;
+      this.loading = false;
+    }).catch((e: object) => {
+      this.errorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
+  }
 
   build() {
     Stack() {
@@ -43,7 +49,7 @@ struct NoticesPage {
 
         Scroll() {
           Row({ space: 6 }) {
-            ForEach(this.filters, (t: string, i?: number) => {
+            ForEach(CATEGORIES, (t: string, i?: number) => {
               Button(t)
                 .height(28)
                 .padding({ left: 12, right: 12 })
@@ -57,7 +63,10 @@ struct NoticesPage {
                 } : { angle: 0, colors: [['#00FFFFFF', 0]] })
                 .borderRadius(999)
                 .border({ width: (i === this.activeFilter) ? 0 : 1, color: '#80FFB3CE' })
-                .onClick(() => { this.activeFilter = i ?? 0; })
+                .onClick(() => {
+                  this.activeFilter = i ?? 0;
+                  this.loadData();
+                })
             })
           }
         }
@@ -65,23 +74,42 @@ struct NoticesPage {
         .scrollBar(BarState.Off)
         .padding({ left: 16, right: 16, bottom: 10 })
 
-        List({ space: 10 }) {
-          ForEach(this.notices, (n: NoticeItem) => {
-            ListItem() {
-              this.NoticeCard(n)
-            }
-          })
+        if (this.loading) {
+          LoadingState({ tip: '正在加载通知...' })
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+        } else if (this.notices.length === 0) {
+          EmptyState({ title: '暂无通知' })
+        } else {
+          List({ space: 10 }) {
+            ForEach(this.notices, (n: Notice) => {
+              ListItem() {
+                this.NoticeCard(n)
+              }
+            }, (n: Notice) => n.id)
+          }
+          .listDirection(Axis.Vertical)
+          .scrollBar(BarState.Off)
+          .padding({ left: 16, right: 16 })
+          .layoutWeight(1)
         }
-        .listDirection(Axis.Vertical)
-        .scrollBar(BarState.Off)
-        .padding({ left: 16, right: 16 })
-        .layoutWeight(1)
       }
+      .width('100%').height('100%')
+
+      Column() {
+        Blank().layoutWeight(1)
+        StudentTabBar({
+          active: 'pub',
+          onTap: (id: string, route: string) => {
+            if (id !== 'pub') AppRoute.go(route, { replace: true });
+          }
+        })
+      }.width('100%').height('100%')
     }
     .width('100%').height('100%')
   }
 
-  @Builder NoticeCard(n: NoticeItem) {
+  @Builder NoticeCard(n: Notice) {
     Stack({ alignContent: Alignment.TopEnd }) {
       Row() {
         Stack() {
@@ -97,8 +125,8 @@ struct NoticesPage {
 
         Column() {
           Row() {
-            Pill({ text: n.tag })
-            Text('  ' + n.time)
+            Pill({ text: n.category })
+            Text('  ' + n.publishedAt.slice(5, 10))
               .fontSize(10)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.INK_MUTE)
@@ -110,7 +138,7 @@ struct NoticesPage {
             .fontColor(ElysiaTheme.INK)
             .margin({ top: 5 })
             .maxLines(2)
-          Text(n.body)
+          Text(n.summary)
             .fontSize(11)
             .fontColor(ElysiaTheme.INK_SOFT)
             .margin({ top: 4 })
@@ -123,7 +151,7 @@ struct NoticesPage {
       .width('100%')
       .padding(14)
 
-      if (n.unread) {
+      if (!n.isRead) {
         Stack()
           .width(8).height(8)
           .borderRadius(4)
@@ -136,5 +164,10 @@ struct NoticesPage {
     .borderRadius(22)
     .border({ width: 1, color: '#66FFB3CE' })
     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
+    .onClick(() => {
+      let p: Record<string, Object> = { 'id': n.id };
+      let opts: NavigateOptions = { params: p };
+      AppRoute.go(Routes.NoticeDetail, opts);
+    })
   }
 }

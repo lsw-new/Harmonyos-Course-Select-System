@@ -1,17 +1,17 @@
 // 课程管理 · Cours
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, ElysiaInput } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { AdminCourseItem } from '../models/Admin';
 import { AppRoute } from '../app/AppRoute';
-import { LoadingState, EmptyState } from '../common/widgets/StateViews';
+import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 
 @Entry
 @Component
 struct AdminCoursesPage {
   @State loading: boolean = true;
+  @State errorMsg: string = '';
   @State query: string = '';
   @State courses: AdminCourseItem[] = [];
   @State activeCategory: string = '全部';
@@ -22,11 +22,15 @@ struct AdminCoursesPage {
 
   private loadData(): void {
     this.loading = true;
+    this.errorMsg = '';
     const cat = this.activeCategory === '全部' ? undefined : this.activeCategory;
     AdminRepository.get().getCourses(this.query, cat).then((list: AdminCourseItem[]) => {
       this.courses = list;
       this.loading = false;
-    }).catch(() => { this.loading = false; });
+    }).catch((e: object) => {
+      this.errorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
   }
 
   private statusLabel(s: string): string {
@@ -60,13 +64,15 @@ struct AdminCoursesPage {
                   .backgroundColor(this.activeCategory === this.categories[idx] ? ElysiaTheme.ROSE_500 : '#FFE9F1')
                   .borderRadius(999)
                   .onClick(() => { this.activeCategory = this.categories[idx]; this.loadData(); })
-              }, (label: string, idx: number) => `cat-${idx}`)
+              }, (label: string, idx: number) => this.categories[idx])
             }
           }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off)
         }.padding({ left: 16, right: 16 })
 
         if (this.loading) {
           LoadingState({})
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.courses.length === 0) {
           EmptyState({ title: '无匹配课程' })
         } else {

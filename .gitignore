@@ -2,6 +2,8 @@
 /oh_modules
 /local.properties
 /.idea
+/.claude/settings.local.json
+/.mcp.json
 **/build
 /.hvigor
 .cxx

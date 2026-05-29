@@ -1,17 +1,17 @@
 // 学生管理 · Étudiants
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, ElysiaInput } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { StudentAdminItem } from '../models/Admin';
 import { AppRoute } from '../app/AppRoute';
-import { LoadingState, EmptyState } from '../common/widgets/StateViews';
+import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 
 @Entry
 @Component
 struct AdminStudentsPage {
   @State loading: boolean = true;
+  @State errorMsg: string = '';
   @State query: string = '';
   @State students: StudentAdminItem[] = [];
   @State activeCollege: string = '全部';
@@ -21,10 +21,14 @@ struct AdminStudentsPage {
 
   private loadData(): void {
     this.loading = true;
+    this.errorMsg = '';
     AdminRepository.get().getStudents(this.query, this.activeCollege).then((list: StudentAdminItem[]) => {
       this.students = list;
       this.loading = false;
-    }).catch(() => { this.loading = false; });
+    }).catch((e: object) => {
+      this.errorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
   }
 
   private statusColor(s: string): string {
@@ -72,6 +76,8 @@ struct AdminStudentsPage {
 
         if (this.loading) {
           LoadingState({})
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.students.length === 0) {
           EmptyState({ title: '无匹配学生' })
         } else {

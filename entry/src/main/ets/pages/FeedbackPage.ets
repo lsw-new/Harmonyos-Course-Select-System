@@ -1,11 +1,11 @@
 // 意见反馈 · Feedback
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill } from '../common/Components';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { FeedbackItem } from '../models/Misc';
 import { HttpError } from '../common/http/HttpError';
-import { LoadingState, EmptyState } from '../common/widgets/StateViews';
+import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
+import { AppRoute } from '../app/AppRoute';
 
 @Entry
 @Component
@@ -19,16 +19,26 @@ struct FeedbackPage {
   @State errorMsg: string = '';
   @State successMsg: string = '';
   @State loading: boolean = true;
+  @State historyErrorMsg: string = '';
   @State history: FeedbackItem[] = [];
 
   private catLabels: string[] = ['Bug', '建议', '服务', '其他'];
   private catKeys: string[] = ['bug', 'suggestion', 'service', 'other'];
 
   aboutToAppear(): void {
+    this.loadHistory();
+  }
+
+  private loadHistory(): void {
+    this.loading = true;
+    this.historyErrorMsg = '';
     ProfileRepository.get().getFeedback().then((list: FeedbackItem[]) => {
       this.history = list;
       this.loading = false;
-    }).catch(() => { this.loading = false; });
+    }).catch((e: object) => {
+      this.historyErrorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
   }
 
   private submit(): void {
@@ -36,6 +46,7 @@ struct FeedbackPage {
     if (this.title.trim().length === 0) { this.errorMsg = '请填写标题'; return; }
     if (this.content.trim().length === 0) { this.errorMsg = '请填写内容'; return; }
     this.errorMsg = '';
+    this.successMsg = '';
     this.submitting = true;
     ProfileRepository.get().submitFeedback({
       category: this.category as 'bug' | 'suggestion' | 'service' | 'other',
@@ -65,7 +76,7 @@ struct FeedbackPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Feedback', subtitle: '意 见 反 馈', onBack: () => router.back() })
+        TopBar({ title: 'Feedback', subtitle: '意 见 反 馈', onBack: () => AppRoute.back() })
 
         Row({ space: 0 }) {
           Text('提交反馈').fontSize(13)
@@ -73,13 +84,19 @@ struct FeedbackPage {
             .fontWeight(this.activeTab === 0 ? FontWeight.Bold : FontWeight.Normal)
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
             .border({ width: { bottom: 2 }, color: this.activeTab === 0 ? ElysiaTheme.ROSE_500 : '#00000000' })
-            .onClick(() => { this.activeTab = 0; })
+            .onClick(() => {
+              this.activeTab = 0;
+              this.successMsg = '';
+            })
           Text('历史反馈').fontSize(13)
             .fontColor(this.activeTab === 1 ? ElysiaTheme.ROSE_700 : ElysiaTheme.INK_MUTE)
             .fontWeight(this.activeTab === 1 ? FontWeight.Bold : FontWeight.Normal)
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
             .border({ width: { bottom: 2 }, color: this.activeTab === 1 ? ElysiaTheme.ROSE_500 : '#00000000' })
-            .onClick(() => { this.activeTab = 1; })
+            .onClick(() => {
+              this.activeTab = 1;
+              this.successMsg = '';
+            })
         }.width('100%').padding({ left: 16 })
 
         Scroll() {
@@ -113,7 +130,9 @@ struct FeedbackPage {
               PrimaryButton({ text: this.submitting ? '提交中...' : '提交反馈', onTap: () => this.submit() })
             } else {
               if (this.loading) {
-                LoadingState({})
+                LoadingState({ tip: '正在加载...' })
+              } else if (this.historyErrorMsg.length > 0) {
+                ErrorState({ message: this.historyErrorMsg, onRetry: () => this.loadHistory() })
               } else if (this.history.length === 0) {
                 EmptyState({ title: '暂无反馈记录' })
               } else {

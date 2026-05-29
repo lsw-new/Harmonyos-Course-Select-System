@@ -1,24 +1,42 @@
 // 仪表盘 · Tableau
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, RoseDivider, GlowCard } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { AdminDashboardSummary, DashboardStatCard, TrendPoint, DistributionItem, ApprovalItem } from '../models/Admin';
 import { AppRoute, Routes } from '../app/AppRoute';
-import { LoadingState } from '../common/widgets/StateViews';
+import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 
 @Entry
 @Component
 struct AdminDashboardPage {
   @State loading: boolean = true;
+  @State errorMsg: string = '';
   @State dashboard: AdminDashboardSummary | null = null;
 
   aboutToAppear(): void {
+    this.loadData();
+  }
+
+  private loadData(): void {
+    this.loading = true;
+    this.errorMsg = '';
     AdminRepository.get().getDashboard().then((d: AdminDashboardSummary) => {
       this.dashboard = d;
       this.loading = false;
-    }).catch(() => { this.loading = false; });
+    }).catch((e: object) => {
+      this.errorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
+  }
+
+  private trendBarHeight(value: number): number {
+    if (this.dashboard === null) return 0;
+    const trend: TrendPoint[] = this.dashboard!.selectionTrend;
+    if (trend.length === 0) return 0;
+    const maxV: number = Math.max(...trend.map((pt: TrendPoint) => pt.value));
+    if (maxV <= 0) return 0;
+    return value / maxV * 80;
   }
 
   build() {
@@ -32,6 +50,8 @@ struct AdminDashboardPage {
 
         if (this.loading) {
           LoadingState({})
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.dashboard !== null) {
           Scroll() {
             Column({ space: 14 }) {
@@ -58,7 +78,7 @@ struct AdminDashboardPage {
                 Row({ space: 4 }) {
                   ForEach(this.dashboard!.selectionTrend, (p: TrendPoint) => {
                     Column() {
-                      Column().width(24).height(p.value / 6).backgroundColor(ElysiaTheme.ROSE_500).borderRadius(4)
+                      Column().width(24).height(this.trendBarHeight(p.value)).backgroundColor(ElysiaTheme.ROSE_500).borderRadius(4)
                       Text(p.label).fontSize(9).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 4 })
                     }.alignItems(HorizontalAlign.Center)
                   }, (p: TrendPoint) => p.label)
@@ -95,6 +115,7 @@ struct AdminDashboardPage {
                     if (a.isUrgent) { Pill({ text: '紧急', color: '#D8546B', bg: '#FFF0F0' }) }
                   }.width('100%').padding({ top: 8, bottom: 8 })
                   .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
+                  .onClick(() => AppRoute.go(Routes.AdminApprovals))
                 }, (a: ApprovalItem) => a.id)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: '#66FFB3CE' })

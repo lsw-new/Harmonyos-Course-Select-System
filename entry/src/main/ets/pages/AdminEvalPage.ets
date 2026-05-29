@@ -1,22 +1,44 @@
 // 评教管理 · Évaluation
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, RoseDivider } from '../common/Components';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { EvaluationStats } from '../models/Admin';
-import { LoadingState } from '../common/widgets/StateViews';
+import { LoadingState, ErrorState } from '../common/widgets/StateViews';
+import { AppRoute } from '../app/AppRoute';
+
+class TemplateState {
+  name: string;
+  enabled: boolean;
+
+  constructor(name: string, enabled: boolean) {
+    this.name = name;
+    this.enabled = enabled;
+  }
+}
 
 @Entry
 @Component
 struct AdminEvalPage {
   @State loading: boolean = true;
   @State stats: EvaluationStats | null = null;
+  @State errorMsg: string = '';
+  @State templates: TemplateState[] = [];
 
   aboutToAppear(): void {
+    this.templates = [
+      new TemplateState('理工类课程通用评教问卷', true),
+      new TemplateState('人文社科类课程评教问卷', true),
+      new TemplateState('语言类课程评教问卷', true),
+      new TemplateState('实践类课程评教问卷', false),
+      new TemplateState('体育类课程评教问卷（草稿）', false),
+    ];
     AdminRepository.get().getEvaluationStats().then((s: EvaluationStats) => {
       this.stats = s;
       this.loading = false;
-    }).catch(() => { this.loading = false; });
+    }).catch((e: object) => {
+      this.errorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
   }
 
   private statusLabel(s: string): string {
@@ -38,10 +60,12 @@ struct AdminEvalPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Évaluation', subtitle: '评 教 管 理', onBack: () => router.back() })
+        TopBar({ title: 'Évaluation', subtitle: '评 教 管 理', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.aboutToAppear() })
         } else if (this.stats !== null) {
           Scroll() {
             Column({ space: 14 }) {
@@ -93,11 +117,18 @@ struct AdminEvalPage {
               // 问卷模板
               Column() {
                 Text('问卷模板').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
-                this.TemplateRow('理工类课程通用评教问卷', true)
-                this.TemplateRow('人文社科类课程评教问卷', true)
-                this.TemplateRow('语言类课程评教问卷', true)
-                this.TemplateRow('实践类课程评教问卷', false)
-                this.TemplateRow('体育类课程评教问卷（草稿）', false)
+                ForEach(this.templates, (tmpl: TemplateState, idx: number) => {
+                  Row() {
+                    Text(tmpl.name).fontSize(13).fontColor(ElysiaTheme.INK).layoutWeight(1)
+                    Toggle({ type: ToggleType.Switch, isOn: tmpl.enabled })
+                      .selectedColor(ElysiaTheme.ROSE_500)
+                      .onChange((v: boolean) => {
+                        this.templates[idx].enabled = v;
+                        this.templates = this.templates.slice();
+                      })
+                  }.width('100%').padding({ top: 10, bottom: 10 })
+                  .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
+                }, (tmpl: TemplateState, idx: number) => `tmpl-${idx}`)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: '#66FFB3CE' })
 
@@ -115,14 +146,5 @@ struct AdminEvalPage {
       Text(`${percent}%`).fontSize(9).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 4 })
       Text(label).fontSize(9).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
     }.alignItems(HorizontalAlign.Center).layoutWeight(1)
-  }
-
-  @Builder TemplateRow(name: string, enabled: boolean) {
-    Row() {
-      Text(name).fontSize(13).fontColor(ElysiaTheme.INK).layoutWeight(1)
-      Toggle({ type: ToggleType.Switch, isOn: enabled })
-        .selectedColor(ElysiaTheme.ROSE_500)
-    }.width('100%').padding({ top: 10, bottom: 10 })
-    .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
   }
 }

@@ -1,17 +1,66 @@
 // 登录页 · Login
-import router from '@ohos.router';
 import { ElysiaTheme, Gradients } from '../common/Theme';
 import {
   Monogram, Sparkle, RoseIcon, ElysiaInput,
   PrimaryButton, GhostButton, RoseDivider
 } from '../common/Components';
+import { AppRoute, Routes } from '../app/AppRoute';
+import { ValidatorUtils } from '../common/utils/ValidatorUtils';
+import { AuthRepository } from '../repositories/AuthRepository';
+import { SessionStorage } from '../common/storage/SessionStorage';
+import { HttpError } from '../common/http/HttpError';
+import { LoginResult } from '../models/User';
 
 @Entry
 @Component
 struct LoginPage {
-  @State studentId: string = '20231104';
+  @State studentId: string = '';
   @State password: string = '';
   @State remember: boolean = true;
+  @State errorMsg: string = '';
+  @State submitting: boolean = false;
+
+  aboutToAppear(): void {
+    SessionStorage.get().getRememberId().then((id: string) => {
+      if (id.length > 0) {
+        this.studentId = id;
+      }
+    });
+  }
+
+  private doLogin(): void {
+    if (this.submitting) {
+      return;
+    }
+    const r1 = ValidatorUtils.required(this.studentId, '学号');
+    if (!r1.ok) {
+      this.errorMsg = r1.message ?? '';
+      return;
+    }
+    const r2 = ValidatorUtils.required(this.password, '密码');
+    if (!r2.ok) {
+      this.errorMsg = r2.message ?? '';
+      return;
+    }
+    this.errorMsg = '';
+    this.submitting = true;
+    AuthRepository.get().login({
+      studentId: this.studentId,
+      password: this.password,
+      remember: this.remember
+    }).then((res: LoginResult) => {
+      const s = SessionStorage.get();
+      const rememberOp = this.remember
+        ? s.saveRememberId(this.studentId)
+        : s.clearRememberId();
+      return rememberOp.then(() => s.setStudentSession(res.token, res.user));
+    }).then(() => {
+      AppRoute.clearTo(Routes.Home);
+    }).catch((e: object) => {
+      this.submitting = false;
+      this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '登录失败';
+    });
+  }
 
   build() {
     Stack() {
@@ -94,26 +143,32 @@ struct LoginPage {
                 .fontColor(ElysiaTheme.ROSE_700)
                 .fontFamily(ElysiaTheme.FONT_DISPLAY)
                 .onClick(() => {
-                  router.pushUrl({ url: 'pages/ForgotPage' });
+                  AppRoute.go(Routes.Forgot);
                 })
             }
             .width('100%')
             .padding({ left: 4, right: 4, top: 2 })
+
+            if (this.errorMsg.length > 0) {
+              Text(this.errorMsg)
+                .fontSize(12)
+                .fontColor('#D8546B')
+                .width('100%')
+                .padding({ left: 4 })
+            }
           }
           .width('100%')
 
           // 登录按钮
           Column({ space: 10 }) {
             PrimaryButton({
-              text: '登 录 · ENTER',
-              onTap: () => {
-                router.pushUrl({ url: 'pages/HomePage' });
-              }
+              text: this.submitting ? '登录中...' : '登 录 · ENTER',
+              onTap: () => { this.doLogin(); }
             })
             GhostButton({
               text: '注册新账号 · Register',
               onTap: () => {
-                router.pushUrl({ url: 'pages/RegisterPage' });
+                AppRoute.go(Routes.Register);
               }
             })
           }

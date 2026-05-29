@@ -1,9 +1,10 @@
 // 发布通知 · Annonce
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill } from '../common/Components';
+import { TopBar, PrimaryButton, ElysiaInput } from '../common/Components';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { HttpError } from '../common/http/HttpError';
+import { AppRoute } from '../app/AppRoute';
+import promptAction from '@ohos.promptAction';
 
 @Entry
 @Component
@@ -14,6 +15,7 @@ struct AdminNoticePage {
   @State category: string = '教务';
   @State urgency: string = 'normal';
   @State receiverType: string = 'all';
+  @State scopeText: string = '';
   @State submitting: boolean = false;
   @State errorMsg: string = '';
   @State successMsg: string = '';
@@ -25,6 +27,7 @@ struct AdminNoticePage {
   private receiverKeys: string[] = ['all', 'students', 'teachers', 'custom'];
 
   private publish(): void {
+    if (this.submitting) return;
     if (this.title.trim().length === 0) { this.errorMsg = '请填写标题'; return; }
     if (this.content.trim().length === 0) { this.errorMsg = '请填写正文'; return; }
     this.errorMsg = '';
@@ -34,17 +37,25 @@ struct AdminNoticePage {
   private confirmPublish(): void {
     this.showConfirm = false;
     this.submitting = true;
+
+    let receiverScope: string[] = [];
+    if (this.receiverType === 'custom') {
+      receiverScope = this.scopeText.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+    }
+
     AdminRepository.get().publishNotice({
       title: this.title, content: this.content, publisher: this.publisher,
       category: this.category,
       urgency: this.urgency as 'normal' | 'important' | 'urgent',
       receiverType: this.receiverType as 'all' | 'students' | 'teachers' | 'custom',
-      receiverScope: []
+      receiverScope: receiverScope
     }).then(() => {
       this.submitting = false;
       this.successMsg = '通知已发布';
       this.title = '';
       this.content = '';
+      this.scopeText = '';
+      promptAction.showToast({ message: '通知已发布' });
     }).catch((e: object) => {
       this.submitting = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '发布失败';
@@ -58,16 +69,23 @@ struct AdminNoticePage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Annonce', subtitle: '发 布 通 知', onBack: () => router.back() })
+        TopBar({ title: 'Annonce', subtitle: '发 布 通 知', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column({ space: 14 }) {
-            ElysiaInput({ placeholder: '通知标题', value: $title, leadingIcon: 'edit' })
+            ElysiaInput({
+              placeholder: '通知标题',
+              value: $title,
+              leadingIcon: 'edit'
+            })
 
             TextArea({ placeholder: '通知正文', text: this.content })
               .height(160).fontSize(13).fontColor(ElysiaTheme.INK)
               .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
-              .onChange((v: string) => { this.content = v; })
+              .onChange((v: string) => {
+                this.content = v;
+                if (this.successMsg.length > 0) { this.successMsg = ''; }
+              })
 
             ElysiaInput({ placeholder: '发布单位', value: $publisher, leadingIcon: 'public' })
 
@@ -98,6 +116,13 @@ struct AdminNoticePage {
                     .borderRadius(999)
                     .onClick(() => { this.receiverType = this.receiverKeys[idx]; })
                 }, (label: string, idx: number) => `r-${idx}`)
+              }
+              if (this.receiverType === 'custom') {
+                ElysiaInput({
+                  placeholder: '输入接收范围，逗号分隔（如：CS2101,CS2102）',
+                  value: $scopeText,
+                  leadingIcon: 'public'
+                })
               }
             }.width('100%').alignItems(HorizontalAlign.Start)
 

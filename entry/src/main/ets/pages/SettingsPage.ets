@@ -1,7 +1,7 @@
 // 系统设置 · Settings
-import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, RoseDivider } from '../common/Components';
+import { TopBar } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
@@ -20,7 +20,11 @@ struct SettingsPage {
 
   aboutToAppear(): void {
     PreferenceStorage.get().getBoolean('push', true).then((v: boolean) => { this.pushEnabled = v; });
+    PreferenceStorage.get().getBoolean('evalReminder', true).then((v: boolean) => { this.evalReminder = v; });
+    PreferenceStorage.get().getBoolean('dndMode', false).then((v: boolean) => { this.dndMode = v; });
+    PreferenceStorage.get().getBoolean('homeworkReminder', true).then((v: boolean) => { this.homeworkReminder = v; });
     PreferenceStorage.get().getBoolean('darkMode', false).then((v: boolean) => { this.darkMode = v; });
+    PreferenceStorage.get().getBoolean('biometric', false).then((v: boolean) => { this.biometric = v; });
   }
 
   private togglePref(key: string, value: boolean): void {
@@ -46,13 +50,14 @@ struct SettingsPage {
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
   }
 
-  @Builder LinkRow(label: string, hint: string) {
+  @Builder LinkRow(label: string, hint: string, onTap?: () => void) {
     Row() {
       Text(label).fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
       Text(hint).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
       AppIcon({ name: 'forward', iconSize: 14, dim: true, mLeft: 6 })
     }.width('100%').padding({ top: 14, bottom: 14 })
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
+    .onClick(() => { if (onTap !== undefined) onTap(); })
   }
 
   build() {
@@ -62,39 +67,72 @@ struct SettingsPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Settings', subtitle: '系 统 设 置', onBack: () => router.back() })
+        TopBar({ title: 'Settings', subtitle: '系 统 设 置', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column({ space: 14 }) {
             Column() {
               Text('通知').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.ToggleRow('消息推送', '接收系统通知', this.pushEnabled, (v: boolean) => { this.pushEnabled = v; this.togglePref('push', v); })
-              this.ToggleRow('评教提醒', '评教开放时提醒', this.evalReminder, (v: boolean) => { this.evalReminder = v; })
-              this.ToggleRow('勿扰模式', '22:00-08:00 不推送', this.dndMode, (v: boolean) => { this.dndMode = v; })
-              this.ToggleRow('作业截止提醒', '截止前 24h 提醒', this.homeworkReminder, (v: boolean) => { this.homeworkReminder = v; })
+              this.ToggleRow('消息推送', '接收系统通知', this.pushEnabled, (v: boolean) => {
+                this.pushEnabled = v;
+                this.togglePref('push', v);
+              })
+              this.ToggleRow('评教提醒', '评教开放时提醒', this.evalReminder, (v: boolean) => {
+                this.evalReminder = v;
+                this.togglePref('evalReminder', v);
+              })
+              this.ToggleRow('勿扰模式', '22:00-08:00 不推送', this.dndMode, (v: boolean) => {
+                this.dndMode = v;
+                this.togglePref('dndMode', v);
+              })
+              this.ToggleRow('作业截止提醒', '截止前 24h 提醒', this.homeworkReminder, (v: boolean) => {
+                this.homeworkReminder = v;
+                this.togglePref('homeworkReminder', v);
+              })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
 
             Column() {
               Text('外观').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.LinkRow('主题', '玫瑰学院风')
-              this.LinkRow('字体大小', '标准')
-              this.ToggleRow('深色模式', '', this.darkMode, (v: boolean) => { this.darkMode = v; this.togglePref('darkMode', v); })
+              this.LinkRow('主题', '玫瑰学院风', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.LinkRow('字体大小', '标准', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.ToggleRow('深色模式', '', this.darkMode, (v: boolean) => {
+                this.darkMode = v;
+                this.togglePref('darkMode', v);
+              })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
 
             Column() {
               Text('安全与存储').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.ToggleRow('生物识别登录', '指纹/面容', this.biometric, (v: boolean) => { this.biometric = v; })
-              this.LinkRow('清除缓存', '12.3 MB')
-              this.LinkRow('检查更新', 'V1.0.0')
+              this.ToggleRow('生物识别登录', '指纹/面容', this.biometric, (v: boolean) => {
+                this.biometric = v;
+                this.togglePref('biometric', v);
+              })
+              this.LinkRow('清除缓存', '12.3 MB', () => {
+                PreferenceStorage.get().putBoolean('cacheCleared', true);
+                promptAction.showToast({ message: '缓存已清除' });
+              })
+              this.LinkRow('检查更新', 'V1.0.0', () => {
+                promptAction.showToast({ message: '已是最新版本' });
+              })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
 
             Column() {
-              this.LinkRow('用户协议', '')
-              this.LinkRow('隐私政策', '')
-              this.LinkRow('关于', 'Elysia · 教学管理系统')
+              this.LinkRow('用户协议', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.LinkRow('隐私政策', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.LinkRow('关于', 'Elysia · 教学管理系统', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
 

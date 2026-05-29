@@ -1,11 +1,11 @@
 // 请假申请 · Leave
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill } from '../common/Components';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { LeaveRequest } from '../models/Misc';
 import { HttpError } from '../common/http/HttpError';
-import { LoadingState, EmptyState } from '../common/widgets/StateViews';
+import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
+import { AppRoute } from '../app/AppRoute';
 
 @Entry
 @Component
@@ -19,6 +19,7 @@ struct LeavePage {
   @State errorMsg: string = '';
   @State successMsg: string = '';
   @State loading: boolean = true;
+  @State historyErrorMsg: string = '';
   @State history: LeaveRequest[] = [];
 
   private typeLabels: string[] = ['病假', '事假', '公假', '其他'];
@@ -29,10 +30,15 @@ struct LeavePage {
   }
 
   private loadHistory(): void {
+    this.loading = true;
+    this.historyErrorMsg = '';
     ProfileRepository.get().getLeaveRequests().then((list: LeaveRequest[]) => {
       this.history = list;
       this.loading = false;
-    }).catch(() => { this.loading = false; });
+    }).catch((e: object) => {
+      this.historyErrorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
   }
 
   private submit(): void {
@@ -46,6 +52,7 @@ struct LeavePage {
       return;
     }
     this.errorMsg = '';
+    this.successMsg = '';
     this.submitting = true;
     ProfileRepository.get().submitLeave({
       type: this.leaveType as 'sick' | 'personal' | 'public' | 'other',
@@ -87,7 +94,7 @@ struct LeavePage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Leave', subtitle: '请 假 申 请', onBack: () => router.back() })
+        TopBar({ title: 'Leave', subtitle: '请 假 申 请', onBack: () => AppRoute.back() })
 
         Row({ space: 0 }) {
           Text('新建申请').fontSize(13)
@@ -95,13 +102,19 @@ struct LeavePage {
             .fontWeight(this.activeTab === 0 ? FontWeight.Bold : FontWeight.Normal)
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
             .border({ width: { bottom: 2 }, color: this.activeTab === 0 ? ElysiaTheme.ROSE_500 : '#00000000' })
-            .onClick(() => { this.activeTab = 0; })
+            .onClick(() => {
+              this.activeTab = 0;
+              this.successMsg = '';
+            })
           Text('我的申请').fontSize(13)
             .fontColor(this.activeTab === 1 ? ElysiaTheme.ROSE_700 : ElysiaTheme.INK_MUTE)
             .fontWeight(this.activeTab === 1 ? FontWeight.Bold : FontWeight.Normal)
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
             .border({ width: { bottom: 2 }, color: this.activeTab === 1 ? ElysiaTheme.ROSE_500 : '#00000000' })
-            .onClick(() => { this.activeTab = 1; })
+            .onClick(() => {
+              this.activeTab = 1;
+              this.successMsg = '';
+            })
         }.width('100%').padding({ left: 16 })
 
         Scroll() {
@@ -136,7 +149,9 @@ struct LeavePage {
               PrimaryButton({ text: this.submitting ? '提交中...' : '提交申请', onTap: () => this.submit() })
             } else {
               if (this.loading) {
-                LoadingState({})
+                LoadingState({ tip: '正在加载...' })
+              } else if (this.historyErrorMsg.length > 0) {
+                ErrorState({ message: this.historyErrorMsg, onRetry: () => this.loadHistory() })
               } else if (this.history.length === 0) {
                 EmptyState({ title: '暂无申请记录' })
               } else {

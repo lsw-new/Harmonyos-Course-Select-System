@@ -1,23 +1,34 @@
 // 实践与公服 · Practice
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, Pill } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { PracticeEntry } from '../models/Misc';
-import { LoadingState } from '../common/widgets/StateViews';
+import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
+import { AppRoute } from '../app/AppRoute';
+import promptAction from '@ohos.promptAction';
 
 @Entry
 @Component
 struct PracticePage {
   @State loading: boolean = true;
+  @State errorMsg: string = '';
   @State entries: PracticeEntry[] = [];
 
   aboutToAppear(): void {
+    this.loadData();
+  }
+
+  private loadData(): void {
+    this.loading = true;
+    this.errorMsg = '';
     ProfileRepository.get().getPracticeEntries().then((list: PracticeEntry[]) => {
       this.entries = list;
       this.loading = false;
-    }).catch(() => { this.loading = false; });
+    }).catch((e: object) => {
+      this.errorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
   }
 
   build() {
@@ -27,10 +38,14 @@ struct PracticePage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Practice', subtitle: '实 践 与 公 服', onBack: () => router.back() })
+        TopBar({ title: 'Practice', subtitle: '实 践 与 公 服', onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({})
+          LoadingState({ tip: '正在加载...' })
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+        } else if (this.entries.length === 0) {
+          EmptyState({ title: '暂无实践项目' })
         } else {
           Scroll() {
             Column({ space: 14 }) {
@@ -81,5 +96,16 @@ struct PracticePage {
     .borderRadius(14).border({ width: 1, color: '#66FFB3CE' })
     .opacity(item.available ? 1.0 : 0.6)
     .margin({ bottom: 8 })
+    .onClick(() => {
+      if (item.available) {
+        if (item.url !== undefined && item.url.length > 0) {
+          AppRoute.go(item.url);
+        } else {
+          promptAction.showToast({ message: '该功能正在建设中' });
+        }
+      } else {
+        promptAction.showToast({ message: '该功能正在建设中' });
+      }
+    })
   }
 }

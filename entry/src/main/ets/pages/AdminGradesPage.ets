@@ -1,11 +1,11 @@
 // 成绩审核 · Notes
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, Pill, PrimaryButton } from '../common/Components';
+import { TopBar, Pill } from '../common/Components';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { GradeAuditItem } from '../models/Admin';
-import { LoadingState, EmptyState } from '../common/widgets/StateViews';
+import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
+import { AppRoute } from '../app/AppRoute';
 
 @Entry
 @Component
@@ -14,6 +14,7 @@ struct AdminGradesPage {
   @State items: GradeAuditItem[] = [];
   @State activeStatus: string = '全部';
   @State errorMsg: string = '';
+  @State approvingId: string = '';
   private statuses: string[] = ['全部', 'pendingAudit', 'inputting', 'published', 'appealed'];
   private statusLabels: string[] = ['全部', '待审核', '录入中', '已发布', '异议'];
 
@@ -21,17 +22,24 @@ struct AdminGradesPage {
 
   private loadData(): void {
     this.loading = true;
+    this.errorMsg = '';
     const s = this.activeStatus === '全部' ? undefined : this.activeStatus;
     AdminRepository.get().getGradeAudits(s).then((list: GradeAuditItem[]) => {
       this.items = list;
       this.loading = false;
-    }).catch(() => { this.loading = false; });
+    }).catch((e: object) => {
+      this.errorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
   }
 
   private approve(id: string): void {
+    this.approvingId = id;
     AdminRepository.get().approveGrade(id).then(() => {
+      this.approvingId = '';
       this.loadData();
     }).catch((e: object) => {
+      this.approvingId = '';
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '审核失败';
     });
   }
@@ -57,7 +65,7 @@ struct AdminGradesPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Notes', subtitle: '成 绩 管 理', onBack: () => router.back() })
+        TopBar({ title: 'Notes', subtitle: '成 绩 管 理', onBack: () => AppRoute.back() })
 
         Scroll() {
           Row({ space: 8 }) {
@@ -72,12 +80,10 @@ struct AdminGradesPage {
           }
         }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).padding({ left: 16, right: 16 }).margin({ top: 8 })
 
-        if (this.errorMsg.length > 0) {
-          Text(this.errorMsg).fontSize(12).fontColor('#D8546B').padding({ left: 16, top: 6 })
-        }
-
         if (this.loading) {
           LoadingState({})
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.items.length === 0) {
           EmptyState({ title: '暂无成绩记录' })
         } else {
@@ -98,7 +104,9 @@ struct AdminGradesPage {
                     if (item.status === 'pendingAudit') {
                       Text('审核通过').fontSize(11).fontColor(Color.White)
                         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
-                        .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
+                        .backgroundColor(this.approvingId === item.id ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_500)
+                        .borderRadius(999)
+                        .enabled(this.approvingId !== item.id)
                         .onClick(() => { this.approve(item.id); })
                     }
                   }.width('100%')

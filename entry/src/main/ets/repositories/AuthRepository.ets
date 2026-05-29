@@ -3,8 +3,8 @@
 import { BaseRepository } from './BaseRepository';
 import { LoginRequest, RegisterRequest, ResetPasswordRequest, ChangePasswordRequest, LoginResult, AccountInfo, LoginHistoryItem } from '../models/User';
 import { AdminLoginRequest, AdminProfile, AdminLoginResult } from '../models/Admin';
-import { mockStudentProfile, mockAccountInfo, mockLoginHistory } from '../mock/mockUser';
-import { mockAdminProfile } from '../mock/mockAdmin';
+import { mockStudentProfile, mockAccountInfo, mockLoginHistory, TEST_STUDENT_ID, TEST_STUDENT_PASSWORD } from '../mock/mockUser';
+import { mockAdminProfile, TEST_ADMIN_ID, TEST_ADMIN_PASSWORD } from '../mock/mockAdmin';
 
 export class AuthRepository extends BaseRepository {
   private static _instance?: AuthRepository;
@@ -19,7 +19,7 @@ export class AuthRepository extends BaseRepository {
     if (req.studentId.trim().length === 0 || req.password.length === 0) {
       return this.reject('学号或密码不能为空');
     }
-    if (req.password === 'wrong') {
+    if (req.studentId.trim() !== TEST_STUDENT_ID || req.password !== TEST_STUDENT_PASSWORD) {
       return this.reject('学号或密码错误');
     }
     return this.delay<LoginResult>({
@@ -53,7 +53,7 @@ export class AuthRepository extends BaseRepository {
   }
 
   async changePassword(req: ChangePasswordRequest): Promise<boolean> {
-    if (req.oldPassword !== 'demo1234') {
+    if (req.oldPassword !== TEST_STUDENT_PASSWORD) {
       return this.reject('原密码错误');
     }
     if (req.newPassword !== req.confirmPassword) {
@@ -79,7 +79,7 @@ export class AuthRepository extends BaseRepository {
     if (req.captcha.length !== 4) {
       return this.reject('图形验证码错误');
     }
-    if (req.password === 'wrong') {
+    if (req.adminId.trim() !== TEST_ADMIN_ID || req.password !== TEST_ADMIN_PASSWORD) {
       return this.reject('工号或密码错误');
     }
     return this.delay<AdminLoginResult>({

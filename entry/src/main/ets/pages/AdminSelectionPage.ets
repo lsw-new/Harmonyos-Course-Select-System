@@ -1,22 +1,32 @@
 // 选课管理 · Sélection
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, RoseDivider } from '../common/Components';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { SelectionRound } from '../models/Admin';
-import { LoadingState } from '../common/widgets/StateViews';
+import { AppRoute } from '../app/AppRoute';
+import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 
 @Entry
 @Component
 struct AdminSelectionPage {
   @State loading: boolean = true;
+  @State errorMsg: string = '';
   @State rounds: SelectionRound[] = [];
 
   aboutToAppear(): void {
+    this.loadData();
+  }
+
+  private loadData(): void {
+    this.loading = true;
+    this.errorMsg = '';
     AdminRepository.get().getSelectionRounds().then((list: SelectionRound[]) => {
       this.rounds = list;
       this.loading = false;
-    }).catch(() => { this.loading = false; });
+    }).catch((e: object) => {
+      this.errorMsg = e instanceof Error ? e.message : '加载失败';
+      this.loading = false;
+    });
   }
 
   private statusLabel(s: string): string {
@@ -38,10 +48,14 @@ struct AdminSelectionPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Sélection', subtitle: '选 课 管 理', onBack: () => router.back() })
+        TopBar({ title: 'Sélection', subtitle: '选 课 管 理', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+        } else if (this.rounds.length === 0) {
+          EmptyState({ title: '暂无选课轮次' })
         } else {
           Scroll() {
             Column({ space: 14 }) {

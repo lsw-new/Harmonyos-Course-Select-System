@@ -1,7 +1,11 @@
 // 我的课表 · Schedule
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, RoseIcon, ElysiaTabBar } from '../common/Components';
+import { TopBar } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
+import { LoadingState, ErrorState } from '../common/widgets/StateViews';
+import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
+import { CourseRepository } from '../repositories/CourseRepository';
+import { ScheduleItem } from '../models/Course';
 
 function generateWeekNumbers(): number[] {
   let weeks: number[] = [];
@@ -11,34 +15,33 @@ function generateWeekNumbers(): number[] {
   return weeks;
 }
 
-interface Lesson {
-  day: number;
-  p1: number;
-  p2: number;
-  name: string;
-  room: string;
-  teacher: string;
-  hue: string;
-}
-
 @Entry
 @Component
 struct SchedulePage {
   @State currentWeek: number = 9;
+  @State schedule: ScheduleItem[] = [];
+  @State loading: boolean = true;
+  @State errorMsg: string = '';
 
   private days: string[] = ['一', '二', '三', '四', '五', '六', '日'];
 
-  private lessons: Lesson[] = [
-    { day: 0, p1: 1, p2: 2, name: '鸿蒙开发', room: '软305', teacher: '林', hue: 'rose' },
-    { day: 0, p1: 3, p2: 4, name: '软件经济学', room: '一教207', teacher: '苏', hue: 'lav' },
-    { day: 1, p1: 1, p2: 2, name: '数据库原理', room: '软208', teacher: '李', hue: 'gold' },
-    { day: 1, p1: 5, p2: 6, name: '近代史纲要', room: '二教102', teacher: '周', hue: 'rose' },
-    { day: 2, p1: 3, p2: 4, name: '操作系统', room: '软301', teacher: '王', hue: 'lav' },
-    { day: 3, p1: 1, p2: 2, name: '鸿蒙开发', room: '软305', teacher: '林', hue: 'rose' },
-    { day: 3, p1: 5, p2: 6, name: '体育·网球', room: '网球场', teacher: '陈', hue: 'gold' },
-    { day: 4, p1: 3, p2: 4, name: '毛中特', room: '一教305', teacher: '郑', hue: 'rose' },
-    { day: 5, p1: 1, p2: 2, name: '计网实验', room: '软实验室', teacher: '孙', hue: 'lav' }
-  ];
+  aboutToAppear(): void {
+    this.loadSchedule();
+  }
+
+  private loadSchedule(): void {
+    this.loading = true;
+    this.errorMsg = '';
+    CourseRepository.get().getSchedule(undefined, this.currentWeek)
+      .then((res: ScheduleItem[]) => {
+        this.schedule = res;
+        this.loading = false;
+      })
+      .catch((e: object) => {
+        this.errorMsg = e instanceof Error ? e.message : '加载失败';
+        this.loading = false;
+      });
+  }
 
   build() {
     Stack() {
@@ -50,7 +53,7 @@ struct SchedulePage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Schedule', subtitle: '我 的 课 表' })
+        TopBar({ title: 'Schedule', subtitle: '我 的 课 表', onBack: () => AppRoute.back() })
 
         // 周次切换
         Column() {
@@ -74,13 +77,23 @@ struct SchedulePage {
               .width(34).height(34)
               .backgroundColor('#A6FFFFFF')
               .border({ width: 1, color: '#99FFB3CE' })
-              .onClick(() => { if (this.currentWeek > 1) this.currentWeek--; })
+              .onClick(() => {
+                if (this.currentWeek > 1) {
+                  this.currentWeek--;
+                  this.loadSchedule();
+                }
+              })
             Button({ type: ButtonType.Circle }) { AppIcon({ name: 'forward', iconSize: 16 }) }
               .width(34).height(34)
               .backgroundColor('#A6FFFFFF')
               .border({ width: 1, color: '#99FFB3CE' })
               .margin({ left: 6 })
-              .onClick(() => { if (this.currentWeek < 18) this.currentWeek++; })
+              .onClick(() => {
+                if (this.currentWeek < 18) {
+                  this.currentWeek++;
+                  this.loadSchedule();
+                }
+              })
           }
 
           // 周次滚动条
@@ -101,8 +114,11 @@ struct SchedulePage {
                   } : { angle: 0, colors: [['#00FFFFFF', 0]] })
                   .borderRadius(999)
                   .border({ width: w === this.currentWeek ? 0 : 1, color: '#80FFB3CE' })
-                  .onClick(() => { this.currentWeek = w; })
-              })
+                  .onClick(() => {
+                    this.currentWeek = w;
+                    this.loadSchedule();
+                  })
+              }, (w: number) => `week-${w}`)
             }
           }
           .scrollable(ScrollDirection.Horizontal)
@@ -112,96 +128,100 @@ struct SchedulePage {
         .width('100%')
         .padding({ left: 16, right: 16 })
 
-        // 课表网格
-        Scroll() {
-          Column() {
-            // 表头
-            Row() {
-              Blank().width(24)
-              ForEach(this.days, (d: string, i?: number) => {
-                Column() {
-                  Text(d)
-                    .fontSize(9)
-                    .fontColor(ElysiaTheme.INK_MUTE)
-                  Text(`${20 + (i || 0)}`)
-                    .fontSize(13)
-                    .fontStyle(FontStyle.Italic)
-                    .fontColor((i === 0) ? ElysiaTheme.ROSE_500 : ElysiaTheme.ROSE_700)
-                    .fontFamily(ElysiaTheme.FONT_DISPLAY)
-                }
-                .layoutWeight(1)
-                .alignItems(HorizontalAlign.Center)
-              })
-            }
-            .width('100%')
-            .margin({ bottom: 6 })
-
-            // 6 行 × 7 列
-            ForEach([0, 1, 2, 3, 4, 5], (row: number) => {
+        if (this.loading) {
+          LoadingState({ tip: '正在加载课表...' })
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadSchedule() })
+        } else {
+          // 课表网格
+          Scroll() {
+            Column() {
+              // 表头
               Row() {
-                // 节次列
-                Column() {
-                  Text(`${row * 2 + 1}`)
-                    .fontSize(10)
-                    .fontStyle(FontStyle.Italic)
-                    .fontColor(ElysiaTheme.ROSE_700)
-                    .fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('·')
-                    .fontSize(10)
-                    .fontColor(ElysiaTheme.ROSE_300)
-                  Text(`${row * 2 + 2}`)
-                    .fontSize(10)
-                    .fontStyle(FontStyle.Italic)
-                    .fontColor(ElysiaTheme.ROSE_700)
-                    .fontFamily(ElysiaTheme.FONT_DISPLAY)
-                }
-                .width(24)
-                .justifyContent(FlexAlign.Center)
-
-                // 7 列
-                ForEach([0, 1, 2, 3, 4, 5, 6], (col: number) => {
-                  Stack() {
-                    this.LessonCell(row * 2 + 1, col)
+                Blank().width(24)
+                ForEach(this.days, (d: string, i?: number) => {
+                  Column() {
+                    Text(d)
+                      .fontSize(9)
+                      .fontColor(ElysiaTheme.INK_MUTE)
+                    Text(`${20 + (i ?? 0)}`)
+                      .fontSize(13)
+                      .fontStyle(FontStyle.Italic)
+                      .fontColor((i === 0) ? ElysiaTheme.ROSE_500 : ElysiaTheme.ROSE_700)
+                      .fontFamily(ElysiaTheme.FONT_DISPLAY)
                   }
                   .layoutWeight(1)
-                  .height(64)
-                  .margin({ left: 2, right: 2 })
-                })
+                  .alignItems(HorizontalAlign.Center)
+                }, (d: string) => d)
               }
               .width('100%')
-              .margin({ bottom: 4 })
-              .alignItems(VerticalAlign.Center)
-            })
+              .margin({ bottom: 6 })
+
+              // 6 行 × 7 列 (weekday 1=Mon..7=Sun → col index 0=Mon..6=Sun)
+              ForEach([0, 1, 2, 3, 4, 5], (row: number) => {
+                Row() {
+                  // 节次列
+                  Column() {
+                    Text(`${row * 2 + 1}`)
+                      .fontSize(10)
+                      .fontStyle(FontStyle.Italic)
+                      .fontColor(ElysiaTheme.ROSE_700)
+                      .fontFamily(ElysiaTheme.FONT_DISPLAY)
+                    Text('·')
+                      .fontSize(10)
+                      .fontColor(ElysiaTheme.ROSE_300)
+                    Text(`${row * 2 + 2}`)
+                      .fontSize(10)
+                      .fontStyle(FontStyle.Italic)
+                      .fontColor(ElysiaTheme.ROSE_700)
+                      .fontFamily(ElysiaTheme.FONT_DISPLAY)
+                  }
+                  .width(24)
+                  .justifyContent(FlexAlign.Center)
+
+                  // 7 列 (col 0=Mon..6=Sun → weekday = col+1)
+                  ForEach([0, 1, 2, 3, 4, 5, 6], (col: number) => {
+                    Stack() {
+                      this.LessonCell(row * 2 + 1, col + 1)
+                    }
+                    .layoutWeight(1)
+                    .height(64)
+                    .margin({ left: 2, right: 2 })
+                  }, (col: number) => `col-${row}-${col}`)
+                }
+                .width('100%')
+                .margin({ bottom: 4 })
+                .alignItems(VerticalAlign.Center)
+              }, (row: number) => `row-${row}`)
+            }
           }
+          .scrollBar(BarState.Off)
+          .layoutWeight(1)
+          .padding({ left: 12, right: 12, top: 8 })
         }
-        .scrollBar(BarState.Off)
-        .layoutWeight(1)
-        .padding({ left: 12, right: 12, top: 8 })
 
-        Blank().height(80)
+        Blank().height(20)
       }
-
-      ElysiaTabBar({ active: 'home' })
     }
     .width('100%').height('100%')
   }
 
-  @Builder LessonCell(period: number, day: number) {
-    if (this.findLesson(period, day) !== undefined) {
+  @Builder LessonCell(period: number, weekday: number) {
+    if (this.findLesson(period, weekday) !== undefined) {
       Column() {
-        Text(this.findLesson(period, day)!.name)
+        Text(this.findLesson(period, weekday)!.courseName)
           .fontSize(9)
           .fontWeight(FontWeight.Bold)
-          .fontColor(this.hueText(this.findLesson(period, day)!.hue))
+          .fontColor(this.hueText(this.findLesson(period, weekday)!.courseType))
           .maxLines(2)
-        Text(this.findLesson(period, day)!.room)
+        Text(this.findLesson(period, weekday)!.classroom)
           .fontSize(8)
-          .fontColor(this.hueText(this.findLesson(period, day)!.hue))
+          .fontColor(this.hueText(this.findLesson(period, weekday)!.courseType))
           .opacity(0.75)
           .margin({ top: 3 })
-        Text(this.findLesson(period, day)!.teacher)
+        Text(this.findLesson(period, weekday)!.teacher)
           .fontSize(8)
-          .fontColor(this.hueText(this.findLesson(period, day)!.hue))
+          .fontColor(this.hueText(this.findLesson(period, weekday)!.courseType))
           .opacity(0.6)
           .margin({ top: 1 })
       }
@@ -211,7 +231,15 @@ struct SchedulePage {
       .borderRadius(10)
       .linearGradient({
         angle: 160,
-        colors: this.hueBg(this.findLesson(period, day)!.hue)
+        colors: this.hueBg(this.findLesson(period, weekday)!.courseType)
+      })
+      .onClick(() => {
+        const lesson: ScheduleItem | undefined = this.findLesson(period, weekday);
+        if (lesson !== undefined) {
+          let p: Record<string, Object> = { 'id': lesson.courseId };
+          let opts: NavigateOptions = { params: p };
+          AppRoute.go(Routes.CourseDetail, opts);
+        }
       })
     } else {
       Column()
@@ -222,19 +250,21 @@ struct SchedulePage {
     }
   }
 
-  findLesson(period: number, day: number): Lesson | undefined {
-    return this.lessons.find(l => l.day === day && l.p1 === period);
+  findLesson(period: number, weekday: number): ScheduleItem | undefined {
+    return this.schedule.find(
+      (s: ScheduleItem) => s.weekday === weekday && s.periodStart === period
+    );
   }
 
-  hueText(hue: string): string {
-    if (hue === 'lav') return '#6F47A8';
-    if (hue === 'gold') return ElysiaTheme.GOLD_700;
+  hueText(courseType: string): string {
+    if (courseType === '选修') return '#6F47A8';
+    if (courseType === '公选') return ElysiaTheme.GOLD_700;
     return ElysiaTheme.ROSE_700;
   }
 
-  hueBg(hue: string): Array<[string, number]> {
-    if (hue === 'lav') return [[ElysiaTheme.LAV_200, 0], [ElysiaTheme.LAV_300, 1]];
-    if (hue === 'gold') return [['#FFF1D6', 0], [ElysiaTheme.GOLD_300, 1]];
+  hueBg(courseType: string): Array<[string, number]> {
+    if (courseType === '选修') return [[ElysiaTheme.LAV_200, 0], [ElysiaTheme.LAV_300, 1]];
+    if (courseType === '公选') return [['#FFF1D6', 0], [ElysiaTheme.GOLD_300, 1]];
     return [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.ROSE_300, 1]];
   }
 

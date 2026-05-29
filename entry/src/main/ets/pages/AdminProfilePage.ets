@@ -1,11 +1,12 @@
 // 管理员中心 · Madame
-import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, Pill, RoseDivider, Monogram } from '../common/Components';
+import { TopBar, Pill, Monogram } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
+import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { AdminProfile } from '../models/Admin';
 
 @Entry
@@ -18,11 +19,25 @@ struct AdminProfilePage {
 
   aboutToAppear(): void {
     const p = SessionStorage.get().getAdmin();
-    if (p) { this.profile = p; }
+    if (p !== undefined) { this.profile = p; }
+    PreferenceStorage.get().getBoolean('darkMode', false).then((v: boolean) => { this.darkMode = v; });
+    PreferenceStorage.get().getBoolean('push', true).then((v: boolean) => { this.pushEnabled = v; });
   }
 
   private logout(): void {
     SessionStorage.get().clear().then(() => { AppRoute.clearTo(Routes.AdminLogin); });
+  }
+
+  private onlineStatusLabel(s: string): string {
+    if (s === 'online') return '在线';
+    if (s === 'busy') return '忙碌';
+    return '离线';
+  }
+
+  private onlineStatusColor(s: string): string {
+    if (s === 'online') return '#7BB07B';
+    if (s === 'busy') return '#D8A04A';
+    return ElysiaTheme.INK_MUTE;
   }
 
   @Builder StatMini(label: string, value: string) {
@@ -32,7 +47,7 @@ struct AdminProfilePage {
     }.layoutWeight(1).alignItems(HorizontalAlign.Center)
   }
 
-  @Builder EntryRow(icon: string, label: string, hint: string) {
+  @Builder EntryRow(icon: string, label: string, hint: string, onTap?: () => void) {
     Row() {
       AppIcon({ name: icon, iconSize: 18, mRight: 10 })
       Text(label).fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
@@ -40,6 +55,7 @@ struct AdminProfilePage {
       AppIcon({ name: 'forward', iconSize: 14, dim: true, mLeft: 6 })
     }.width('100%').padding({ top: 12, bottom: 12 })
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
+    .onClick(() => { if (onTap !== undefined) onTap(); })
   }
 
   @Builder ToggleRow(icon: string, label: string, isOn: boolean, onChange: (v: boolean) => void) {
@@ -67,10 +83,21 @@ struct AdminProfilePage {
             // 头像卡片
             Column({ space: 6 }) {
               Monogram({ iconSize: 56 })
-              Text(this.profile?.name ?? '管理员').fontSize(18).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 8 })
-              Text(`${this.profile?.department ?? ''} · ${this.profile?.roleName ?? ''}`).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
-              Pill({ text: this.profile?.onlineStatus === 'online' ? '在线' : '离线',
-                color: this.profile?.onlineStatus === 'online' ? '#7BB07B' : ElysiaTheme.INK_MUTE, bg: '#FFF6FA' })
+              Text(this.profile !== null ? this.profile.name : '管理员')
+                .fontSize(18).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 8 })
+              Text(this.profile !== null
+                ? `${this.profile.department} · ${this.profile.roleName}`
+                : '— · —')
+                .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+              Pill({
+                text: this.profile !== null
+                  ? this.onlineStatusLabel(this.profile.onlineStatus)
+                  : '离线',
+                color: this.profile !== null
+                  ? this.onlineStatusColor(this.profile.onlineStatus)
+                  : ElysiaTheme.INK_MUTE,
+                bg: '#FFF6FA'
+              })
             }.width('100%').alignItems(HorizontalAlign.Center).padding(20)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
@@ -87,24 +114,50 @@ struct AdminProfilePage {
             // 系统管理
             Column() {
               Text('系统管理').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.EntryRow('students', '角色管理', '')
-              this.EntryRow('dashboard', '权限矩阵', '')
-              this.EntryRow('star', '我的权限', `${this.profile?.permissions.length ?? 0} 项`)
-              this.EntryRow('file', '操作日志', '')
-              this.EntryRow('calendar', '校历管理', '')
-              this.EntryRow('approve', '审批流配置', '')
-              this.EntryRow('mail', '消息模板', '')
-              this.EntryRow('lock', '安全策略', '')
+              this.EntryRow('students', '角色管理', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.EntryRow('dashboard', '权限矩阵', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.EntryRow('star', '我的权限', `${this.profile !== null ? this.profile.permissions.length : 0} 项`, () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.EntryRow('file', '操作日志', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.EntryRow('calendar', '校历管理', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.EntryRow('approve', '审批流配置', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.EntryRow('mail', '消息模板', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
+              this.EntryRow('lock', '安全策略', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
 
             // 偏好
             Column() {
               Text('偏好').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.ToggleRow('star', '夜间模式', this.darkMode, (v: boolean) => { this.darkMode = v; })
-              this.ToggleRow('bell', '消息推送', this.pushEnabled, (v: boolean) => { this.pushEnabled = v; })
-              this.EntryRow('info', '关于系统', 'V1.0.0')
-              this.EntryRow('unlock', '修改密码', '')
+              this.ToggleRow('star', '夜间模式', this.darkMode, (v: boolean) => {
+                this.darkMode = v;
+                PreferenceStorage.get().putBoolean('darkMode', v);
+              })
+              this.ToggleRow('bell', '消息推送', this.pushEnabled, (v: boolean) => {
+                this.pushEnabled = v;
+                PreferenceStorage.get().putBoolean('push', v);
+              })
+              this.EntryRow('info', '关于系统', 'V1.0.0', () => {
+                promptAction.showToast({ message: 'Elysia 教学管理系统 V1.0.0' });
+              })
+              this.EntryRow('unlock', '修改密码', '', () => {
+                promptAction.showToast({ message: '该功能正在建设中' });
+              })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
 

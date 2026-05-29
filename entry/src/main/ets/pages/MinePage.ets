@@ -1,8 +1,16 @@
 // 我的中心 · Mine
-import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
-import { Monogram, RoseDivider, Pill, ElysiaTabBar } from '../common/Components';
+import { Monogram, RoseDivider } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
+import { StudentTabBar } from '../common/widgets/TabBars';
+import { LoadingState, ErrorState } from '../common/widgets/StateViews';
+import { AppRoute, Routes } from '../app/AppRoute';
+import { SessionStorage } from '../common/storage/SessionStorage';
+import { PreferenceStorage } from '../common/storage/PreferenceStorage';
+import { ProfileRepository } from '../repositories/ProfileRepository';
+import { UserProfile } from '../models/User';
+import { HomeSummary } from '../models/Home';
 
 class QuickItem {
   icon: string = '';
@@ -28,34 +36,83 @@ interface MineEntry {
 @Entry
 @Component
 struct MinePage {
-  @State darkMode: boolean = true;
+  @State darkMode: boolean = false;
+  @State loading: boolean = true;
+  @State errorMsg: string = '';
+  @State profile: UserProfile | null = null;
+  @State unreadCount: number = 0;
+  @State showLogoutConfirm: boolean = false;
 
   private quickItems: QuickItem[] = [
-    new QuickItem('schedule', '课表', 'pages/SchedulePage'),
-    new QuickItem('grades', '成绩', 'pages/GradesPage'),
-    new QuickItem('selection', '选课', 'pages/SelectionPage'),
-    new QuickItem('roster', '学籍', 'pages/RosterPage'),
-    new QuickItem('exam', '考试', 'pages/ExamPage'),
-    new QuickItem('evaluation', '评教', 'pages/EvalPage'),
-    new QuickItem('notice', '通知', 'pages/NoticesPage'),
+    new QuickItem('schedule', '课表', Routes.Schedule),
+    new QuickItem('grades', '成绩', Routes.Grades),
+    new QuickItem('selection', '选课', Routes.Selection),
+    new QuickItem('roster', '学籍', Routes.Roster),
+    new QuickItem('exam', '考试', Routes.Exam),
+    new QuickItem('evaluation', '评教', Routes.Eval),
+    new QuickItem('notice', '通知', Routes.Notices),
     new QuickItem('more', '更多', '')
   ];
 
   private affairs: MineEntry[] = [
-    { icon: 'wallet', title: '我的账户', subtitle: '账号信息 · 状态 · 有效期', route: 'pages/AccountPage' },
-    { icon: 'edit', title: '修改个人信息', subtitle: '手机 · 邮箱 · 头像 · 联系人' },
-    { icon: 'lock', title: '修改密码', subtitle: '强度建议 · 8 位以上' },
-    { icon: 'leave', title: '我的请假', subtitle: '3 条记录', badge: '1' },
+    { icon: 'wallet', title: '我的账户', subtitle: '账号信息 · 状态 · 有效期', route: Routes.Account },
+    { icon: 'edit', title: '修改个人信息', subtitle: '手机 · 邮箱 · 头像 · 联系人', route: Routes.EditInfo },
+    { icon: 'lock', title: '修改密码', subtitle: '强度建议 · 8 位以上', route: Routes.Password },
+    { icon: 'leave', title: '我的请假', subtitle: '3 条记录', badge: '1', route: Routes.Leave },
     { icon: 'public', title: '办事大厅', subtitle: '课程替代 · 缓考 · 转专业…' }
   ];
 
   @State prefs: MineEntry[] = [
-    { icon: 'settings', title: '系统设置', subtitle: '消息 · 缓存 · 深色模式' },
-    { icon: 'feedback', title: '意见反馈', subtitle: '帮我们变得更好' },
+    { icon: 'settings', title: '系统设置', subtitle: '消息 · 缓存 · 深色模式', route: Routes.Settings },
+    { icon: 'feedback', title: '意见反馈', subtitle: '帮我们变得更好', route: Routes.Feedback },
     { icon: 'star', title: '夜间模式', subtitle: '减少屏幕灼伤', toggle: true },
     { icon: 'info', title: '关于', subtitle: 'v1.1.0 · 协议 · 隐私政策' },
     { icon: 'close', title: '退出登录', subtitle: '清除本地凭据', danger: true }
   ];
+
+  aboutToAppear(): void {
+    PreferenceStorage.get().getBoolean('darkMode', false).then((v: boolean) => {
+      this.darkMode = v;
+    });
+    this.loadData();
+  }
+
+  loadData(): void {
+    this.loading = true;
+    this.errorMsg = '';
+    const repo = ProfileRepository.get();
+    Promise.all([repo.getProfile(), repo.getHomeSummary()])
+      .then((res: [UserProfile, HomeSummary]) => {
+        this.profile = res[0];
+        this.unreadCount = res[1].unreadNoticeCount;
+        this.loading = false;
+      })
+      .catch((e: object) => {
+        this.errorMsg = e instanceof Error ? e.message : '加载失败';
+        this.loading = false;
+      });
+  }
+
+  private logout(): void {
+    SessionStorage.get().clear().then(() => {
+      AppRoute.clearTo(Routes.Login);
+    });
+  }
+
+  private handleEntryTap(it: MineEntry): void {
+    if (it.danger) {
+      this.showLogoutConfirm = true;
+      return;
+    }
+    if (it.toggle) {
+      return;
+    }
+    if (it.route && it.route.length > 0) {
+      AppRoute.go(it.route);
+    } else {
+      promptAction.showToast({ message: '该功能正在建设中' });
+    }
+  }
 
   build() {
     Stack() {
@@ -84,6 +141,7 @@ struct MinePage {
             .width(34).height(34)
             .backgroundColor('#A6FFFFFF')
             .border({ width: 1, color: '#99FFB3CE' })
+            .onClick(() => { AppRoute.go(Routes.Settings); })
           }
           .width('100%')
           .margin({ bottom: 18 })
@@ -92,16 +150,20 @@ struct MinePage {
           Row() {
             Monogram({ iconSize: 72 })
             Column() {
-              Text('Elysia · 同学')
+              Text(this.profile !== null ? `${this.profile.name} · 同学` : 'Elysia · 同学')
                 .fontSize(24)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)
                 .fontFamily(ElysiaTheme.FONT_DISPLAY)
-              Text('软件学院 · 软件工程 2304')
+              Text(this.profile !== null
+                ? `${this.profile.college} · ${this.profile.major} ${this.profile.className}`
+                : '软件学院 · 软件工程 2304')
                 .fontSize(11)
                 .fontColor(ElysiaTheme.INK_SOFT)
                 .margin({ top: 2 })
-              Text('SID · 20231104')
+              Text(this.profile !== null
+                ? `SID · ${this.profile.studentId}`
+                : 'SID · 20231104')
                 .fontSize(10)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.INK_MUTE)
@@ -117,7 +179,7 @@ struct MinePage {
           Row({ space: 6 }) {
             this.StatBlock('3.86', 'GPA')
             this.StatBlock('21.5', '学分')
-            this.StatBlock('06', '待评教')
+            this.StatBlock(this.unreadCount > 0 ? `${this.unreadCount}` : '00', '通知')
             this.StatBlock('02', '待办')
           }
           .width('100%')
@@ -133,54 +195,94 @@ struct MinePage {
           colors: [[ElysiaTheme.ROSE_200, 0], ['#FFE4EE', 0.6], ['#00FFFFFF', 1]]
         })
 
-        Scroll() {
-          Column() {
-            // 八宫格
-            Grid() {
-              ForEach(this.quickItems, (it: QuickItem) => {
-                GridItem() {
-                  Column() {
-                    Stack() {
-                      AppIcon({ name: it.icon, iconSize: 22 })
+        if (this.loading) {
+          LoadingState({ tip: '正在加载...' })
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+        } else {
+          Scroll() {
+            Column() {
+              // 八宫格
+              Grid() {
+                ForEach(this.quickItems, (it: QuickItem) => {
+                  GridItem() {
+                    Column() {
+                      Stack() {
+                        AppIcon({ name: it.icon, iconSize: 22 })
+                      }
+                      .width(46).height(46)
+                      .borderRadius(14)
+                      .linearGradient({
+                        angle: 135,
+                        colors: [[Color.White, 0], [ElysiaTheme.ROSE_100, 1]]
+                      })
+                      .border({ width: 1, color: '#80FFB3CE' })
+                      Text(it.label)
+                        .fontSize(10)
+                        .fontColor(ElysiaTheme.INK_SOFT)
+                        .margin({ top: 6 })
                     }
-                    .width(46).height(46)
-                    .borderRadius(14)
-                    .linearGradient({
-                      angle: 135,
-                      colors: [[Color.White, 0], [ElysiaTheme.ROSE_100, 1]]
+                    .onClick(() => {
+                      if (it.route.length > 0) AppRoute.go(it.route);
+                      else promptAction.showToast({ message: '该功能正在建设中' });
                     })
-                    .border({ width: 1, color: '#80FFB3CE' })
-                    Text(it.label)
-                      .fontSize(10)
-                      .fontColor(ElysiaTheme.INK_SOFT)
-                      .margin({ top: 6 })
                   }
-                  .onClick(() => {
-                    if (it.route) router.pushUrl({ url: it.route });
-                  })
-                }
-              })
+                }, (it: QuickItem) => it.label)
+              }
+              .columnsTemplate('1fr 1fr 1fr 1fr')
+              .columnsGap(10)
+              .rowsGap(10)
+              .margin({ top: 4, bottom: 6 })
+              .padding({ left: 16, right: 16 })
+
+              RoseDivider({ label: '我 的 事 务' })
+              this.EntryGroup(this.affairs)
+
+              RoseDivider({ label: '偏好与系统' })
+              this.EntryGroup(this.prefs)
+
+              Blank().height(120)
             }
-            .columnsTemplate('1fr 1fr 1fr 1fr')
-            .columnsGap(10)
-            .rowsGap(10)
-            .margin({ top: 4, bottom: 6 })
-            .padding({ left: 16, right: 16 })
-
-            RoseDivider({ label: '我 的 事 务' })
-            this.EntryGroup(this.affairs)
-
-            RoseDivider({ label: '偏好与系统' })
-            this.EntryGroup(this.prefs)
-
-            Blank().height(120)
           }
+          .scrollBar(BarState.Off)
+          .layoutWeight(1)
         }
-        .scrollBar(BarState.Off)
-        .layoutWeight(1)
       }
 
-      ElysiaTabBar({ active: 'mine' })
+      // Logout confirm dialog
+      if (this.showLogoutConfirm) {
+        Column() {
+          Column({ space: 14 }) {
+            Text('确认退出登录？').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text('退出后需重新登录').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+            Row({ space: 12 }) {
+              Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
+                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
+                .backgroundColor('#E0FFFFFF').borderRadius(999)
+                .onClick(() => { this.showLogoutConfirm = false; })
+              Text('退出').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
+                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
+                .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
+                .onClick(() => { this.logout(); })
+            }.margin({ top: 8 })
+          }.padding(24).backgroundColor(Color.White).borderRadius(22)
+          .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
+        }.width('100%').height('100%')
+        .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+        .backgroundColor('#66000000')
+        .onClick(() => { this.showLogoutConfirm = false; })
+      }
+
+      // Bottom tab bar
+      Column() {
+        Blank().layoutWeight(1)
+        StudentTabBar({
+          active: 'mine',
+          onTap: (id: string, route: string) => {
+            if (id !== 'mine') AppRoute.go(route, { replace: true });
+          }
+        })
+      }.width('100%').height('100%')
     }
     .width('100%').height('100%')
   }
@@ -245,17 +347,21 @@ struct MinePage {
           } else if (it.toggle) {
             Toggle({ type: ToggleType.Switch, isOn: this.darkMode })
               .selectedColor(ElysiaTheme.ROSE_500)
-              .onChange((v: boolean) => { this.darkMode = v; })
+              .onChange((v: boolean) => {
+                this.darkMode = v;
+                PreferenceStorage.get().putBoolean('darkMode', v);
+              })
           } else {
             AppIcon({ name: 'forward', iconSize: 14, dim: true })
           }
         }
         .width('100%')
         .padding({ top: 10, bottom: 10 })
+        .onClick(() => { this.handleEntryTap(it); })
         if (idx !== undefined && idx < items.length - 1) {
           Divider().strokeWidth(1).color('#80FFB3CE')
         }
-      })
+      }, (it: MineEntry) => it.title)
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 4, bottom: 4 })

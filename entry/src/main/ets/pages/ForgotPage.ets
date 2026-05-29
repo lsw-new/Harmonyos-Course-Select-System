@@ -1,8 +1,11 @@
 // 找回密码 · Forgot Password
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, ElysiaInput, PrimaryButton, Sparkle } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
+import { AppRoute, Routes } from '../app/AppRoute';
+import { ValidatorUtils } from '../common/utils/ValidatorUtils';
+import { AuthRepository } from '../repositories/AuthRepository';
+import { HttpError } from '../common/http/HttpError';
 
 @Entry
 @Component
@@ -12,6 +15,86 @@ struct ForgotPage {
   @State code: string = '';
   @State newPwd: string = '';
   @State method: number = 0; // 0 phone, 1 email
+  @State errorMsg: string = '';
+  @State successMsg: string = '';
+  @State submitting: boolean = false;
+  @State smsCountdown: number = 0;
+
+  private countdownTimer: number = -1;
+
+  private startCountdown(): void {
+    this.smsCountdown = 60;
+    this.countdownTimer = setInterval(() => {
+      this.smsCountdown -= 1;
+      if (this.smsCountdown <= 0) {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = -1;
+        this.smsCountdown = 0;
+      }
+    }, 1000);
+  }
+
+  private sendCode(): void {
+    if (this.smsCountdown > 0) {
+      return;
+    }
+    if (this.method === 0) {
+      const r = ValidatorUtils.phone(this.phone);
+      if (!r.ok) {
+        this.errorMsg = r.message ?? '手机号格式不正确';
+        return;
+      }
+      this.errorMsg = '';
+      AuthRepository.get().sendSms(this.phone).then((_res: boolean) => {
+        this.startCountdown();
+      }).catch((e: object) => {
+        this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '发送失败';
+      });
+    } else {
+      const r = ValidatorUtils.email(this.phone);
+      if (!r.ok) {
+        this.errorMsg = r.message ?? '邮箱格式不正确';
+        return;
+      }
+      this.errorMsg = '';
+      this.startCountdown();
+    }
+  }
+
+  private doReset(): void {
+    if (this.submitting) {
+      return;
+    }
+    const r1 = ValidatorUtils.required(this.sid, '学号');
+    if (!r1.ok) { this.errorMsg = r1.message ?? ''; return; }
+    if (this.method === 0) {
+      const r2 = ValidatorUtils.phone(this.phone);
+      if (!r2.ok) { this.errorMsg = r2.message ?? ''; return; }
+    } else {
+      const r2 = ValidatorUtils.email(this.phone);
+      if (!r2.ok) { this.errorMsg = r2.message ?? ''; return; }
+    }
+    const r3 = ValidatorUtils.required(this.code, '验证码');
+    if (!r3.ok) { this.errorMsg = r3.message ?? ''; return; }
+    const r4 = ValidatorUtils.password(this.newPwd);
+    if (!r4.ok) { this.errorMsg = r4.message ?? ''; return; }
+    this.errorMsg = '';
+    this.submitting = true;
+    AuthRepository.get().resetPassword({
+      account: this.sid,
+      contact: this.phone,
+      verifyCode: this.code,
+      newPassword: this.newPwd,
+      method: this.method === 0 ? 'phone' : 'email'
+    }).then((_res: boolean) => {
+      this.submitting = false;
+      this.successMsg = '密码重置成功，请登录';
+      AppRoute.go(Routes.Login, { replace: true });
+    }).catch((e: object) => {
+      this.submitting = false;
+      this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '重置失败';
+    });
+  }
 
   build() {
     Stack() {
@@ -20,7 +103,7 @@ struct ForgotPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Recover', subtitle: '找 回 密 码', onBack: () => router.back() })
+        TopBar({ title: 'Recover', subtitle: '找 回 密 码', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column() {
@@ -91,14 +174,33 @@ struct ForgotPage {
                 ElysiaInput({ placeholder: this.method === 0 ? '绑定手机号' : '校园邮箱', value: $phone })
                 Row({ space: 8 }) {
                   Column() { ElysiaInput({ placeholder: '6 位验证码', value: $code }) }.layoutWeight(1)
-                  Button('59 s').height(46).fontSize(11)
+                  Button(this.smsCountdown > 0 ? `${this.smsCountdown}s` : '获取验证码')
+                    .height(46).fontSize(11)
                     .backgroundColor('#B3FFFFFF')
-                    .fontColor(ElysiaTheme.ROSE_700)
+                    .fontColor(this.smsCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
                     .border({ width: 1, color: '#80FFB3CE' })
                     .borderRadius(14)
                     .padding({ left: 12, right: 12 })
+                    .onClick(() => { this.sendCode(); })
                 }
                 ElysiaInput({ placeholder: '新密码 ≥ 8 位', value: $newPwd, secure: true })
+              }
+
+              if (this.errorMsg.length > 0) {
+                Text(this.errorMsg)
+                  .fontSize(12)
+                  .fontColor('#D8546B')
+                  .width('100%')
+                  .padding({ left: 4 })
+                  .margin({ top: 8 })
+              }
+              if (this.successMsg.length > 0) {
+                Text(this.successMsg)
+                  .fontSize(12)
+                  .fontColor('#7BB07B')
+                  .width('100%')
+                  .padding({ left: 4 })
+                  .margin({ top: 8 })
               }
             }
             .width('100%')
@@ -108,7 +210,10 @@ struct ForgotPage {
             .border({ width: 1, color: '#66FFB3CE' })
             .margin({ top: 24 })
 
-            PrimaryButton({ text: '重 置 密 码 · RESET', onTap: () => router.back() })
+            PrimaryButton({
+              text: this.submitting ? '重置中...' : '重 置 密 码 · RESET',
+              onTap: () => { this.doReset(); }
+            })
           }
           .padding({ left: 26, right: 26, bottom: 30 })
         }

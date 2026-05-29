@@ -1,13 +1,13 @@
 // 通知详情 · Notice Detail
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, Pill, RoseDivider, GhostButton } from '../common/Components';
+import { TopBar, Pill, RoseDivider } from '../common/Components';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { Notice, NoticeAttachment } from '../models/Notice';
 import { AppRoute } from '../app/AppRoute';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { HttpError } from '../common/http/HttpError';
+import promptAction from '@ohos.promptAction';
 
 @Entry
 @Component
@@ -17,6 +17,12 @@ struct NoticeDetailPage {
   @State notice: Notice | null = null;
 
   aboutToAppear(): void {
+    this.loadData();
+  }
+
+  private loadData(): void {
+    this.loading = true;
+    this.errorMsg = '';
     const id: string = AppRoute.getParam<string>('id', '');
     if (id.length === 0) {
       this.errorMsg = '缺少通知 ID';
@@ -40,12 +46,12 @@ struct NoticeDetailPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Notice', subtitle: '通 知 详 情', onBack: () => router.back() })
+        TopBar({ title: 'Notice', subtitle: '通 知 详 情', onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({})
+          LoadingState({ tip: '正在加载通知...' })
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg })
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.notice !== null) {
           Scroll() {
             Column({ space: 14 }) {
@@ -62,7 +68,7 @@ struct NoticeDetailPage {
                   .margin({ top: 6 })
                 Text(`${this.notice!.publisher} · ${this.notice!.publishedAt}`)
                   .fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 4 })
-   }.width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(22)
+              }.width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(22)
               .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.LAV_200, 1]] })
 
               RoseDivider({ label: 'content' })
@@ -88,6 +94,7 @@ struct NoticeDetailPage {
                         }
                       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                       Text('下载').fontSize(11).fontColor(ElysiaTheme.ROSE_500)
+                        .onClick(() => promptAction.showToast({ message: '附件下载已开始' }))
                     }.width('100%').padding(12).backgroundColor('#FFF6FA').borderRadius(12)
                     .border({ width: 1, color: '#66FFB3CE' })
                   }, (att: NoticeAttachment) => att.id)

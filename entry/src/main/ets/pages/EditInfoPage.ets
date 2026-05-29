@@ -1,6 +1,6 @@
 // 修改资料 · Edit Profile
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
+import { AppRoute } from '../app/AppRoute';
 import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill } from '../common/Components';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { ValidatorUtils } from '../common/utils/ValidatorUtils';
@@ -81,7 +81,7 @@ struct EditInfoPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Edit', subtitle: '修 改 资 料', onBack: () => router.back() })
+        TopBar({ title: 'Edit', subtitle: '修 改 资 料', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})

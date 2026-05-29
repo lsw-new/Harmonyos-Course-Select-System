@@ -1,5 +1,4 @@
 // 课程详情 · Course Detail
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, Pill, GlowCard, GhostButton } from '../common/Components';
 import { CourseRepository } from '../repositories/CourseRepository';
@@ -46,12 +45,12 @@ struct CourseDetailPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Course', subtitle: '课 程 详 情', onBack: () => router.back() })
+        TopBar({ title: 'Course', subtitle: '课 程 详 情', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg })
+          ErrorState({ message: this.errorMsg, onRetry: () => this.aboutToAppear() })
         } else if (this.course !== null) {
           Scroll() {
             Column({ space: 14 }) {
@@ -119,7 +118,7 @@ struct CourseDetailPage {
   @Builder AssessBar(label: string, percent: number, color: string) {
     Column() {
       Column()
-        .width(36).height(percent * 1.2)
+        .width(36).height(Math.max(percent * 1.2, 4))
         .backgroundColor(color).borderRadius(6)
       Text(`${percent}%`).fontSize(11).fontColor(ElysiaTheme.INK).margin({ top: 4 })
       Text(label).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })

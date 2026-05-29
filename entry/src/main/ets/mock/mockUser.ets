@@ -51,3 +51,7 @@ export const mockLoginHistory: LoginHistoryItem[] = [
     durationMinutes: 47
   }
 ];
+
+// 测试登录凭据（学生端）· 与 mockStudentProfile 对应
+export const TEST_STUDENT_ID: string = '202221001234';
+export const TEST_STUDENT_PASSWORD: string = 'Elysia@2024';

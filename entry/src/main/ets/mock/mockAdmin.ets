@@ -129,3 +129,7 @@ export const mockApprovalDetail: ApprovalDetail = {
   ],
   attachments: ['mock://files/event-notice.pdf']
 };
+
+// 测试登录凭据（管理端）· 与 mockAdminProfile 对应
+export const TEST_ADMIN_ID: string = 'A20251001';
+export const TEST_ADMIN_PASSWORD: string = 'Admin@2024';

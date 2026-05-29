@@ -1,32 +1,43 @@
 // 我的成绩 · Grades
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, RoseDivider, Pill, RoseIcon, Sparkle } from '../common/Components';
-
-interface GradeRecord {
-  name: string;
-  code: string;
-  cls: string;
-  cred: number;
-  mid: string;
-  fin: string;
-  total: number | string;
-  gpa: string;
-}
+import { TopBar, RoseDivider, Pill } from '../common/Components';
+import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
+import { AppRoute } from '../app/AppRoute';
+import { AcademicRepository } from '../repositories/AcademicRepository';
+import { GradeRecord, GradeSummary } from '../models/Academic';
 
 @Entry
 @Component
 struct GradesPage {
   @State activeTerm: number = 0;
-  private terms: string[] = ['2025-1 当前', '2024-2', '2024-1', '2023-2', '2023-1', '所有学期'];
+  @State grades: GradeRecord[] = [];
+  @State summary?: GradeSummary = undefined;
+  @State loading: boolean = true;
+  @State errorMsg: string = '';
 
-  private grades: GradeRecord[] = [
-    { name: '鸿蒙应用开发综合实践', code: 'SE-4023', cls: '专业拓展', cred: 4.0, mid: '88', fin: '92', total: 91, gpa: '4.0' },
-    { name: '软件工程经济学', code: 'SE-3041', cls: '专业选修', cred: 2.0, mid: '85', fin: '90', total: 88, gpa: '3.7' },
-    { name: '操作系统', code: 'CS-3022', cls: '专业必修', cred: 3.5, mid: '82', fin: '88', total: 86, gpa: '3.5' },
-    { name: '近代史纲要', code: 'GE-1003', cls: '通识必修', cred: 2.0, mid: '90', fin: '91', total: 91, gpa: '4.0' },
-    { name: '体育 · 网球', code: 'PE-2011', cls: '集中实践', cred: 1.0, mid: '—', fin: '合格', total: '优秀', gpa: '—' },
-    { name: '宋词鉴赏与吟诵', code: 'GE-2031', cls: '通识选修', cred: 1.5, mid: '92', fin: '94', total: 93, gpa: '4.0' }
-  ];
+  // '全部' must come first; remaining terms are the EXACT strings in mockGrades
+  private terms: string[] = ['全部', '2025-2026-1', '2025-2026-2'];
+
+  aboutToAppear(): void {
+    this.loadData();
+  }
+
+  private loadData(): void {
+    this.loading = true;
+    this.errorMsg = '';
+    const term: string | undefined = this.activeTerm === 0 ? undefined : this.terms[this.activeTerm];
+    const repo = AcademicRepository.get();
+    Promise.all([repo.getGrades(term), repo.getGradeSummary(term)])
+      .then((res: [GradeRecord[], GradeSummary]) => {
+        this.grades = res[0];
+        this.summary = res[1];
+        this.loading = false;
+      })
+      .catch((e: object) => {
+        this.errorMsg = e instanceof Error ? e.message : '加载失败';
+        this.loading = false;
+      });
+  }
 
   build() {
     Stack() {
@@ -38,93 +49,108 @@ struct GradesPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Grades', subtitle: '我 的 成 绩' })
+        TopBar({ title: 'Grades', subtitle: '我 的 成 绩', onBack: () => AppRoute.back() })
 
+        // 学期切换 tabs
         Scroll() {
-          Column() {
-            // 学期切换
-            Scroll() {
-              Row({ space: 6 }) {
-                ForEach(this.terms, (t: string, i?: number) => {
-                  Button(t)
-                    .height(28)
-                    .padding({ left: 14, right: 14 })
-                    .fontSize(11)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(i === this.activeTerm ? Color.White : ElysiaTheme.ROSE_700)
-                    .backgroundColor(i === this.activeTerm ? '' : '#B3FFFFFF')
-                    .linearGradient(i === this.activeTerm ? {
-                      angle: 135,
-                      colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]]
-                    } : { angle: 0, colors: [['#00FFFFFF', 0]] })
-                    .borderRadius(999)
-                    .border({ width: i === this.activeTerm ? 0 : 1, color: '#80FFB3CE' })
-                    .onClick(() => { this.activeTerm = i ?? 0; })
+          Row({ space: 6 }) {
+            ForEach(this.terms, (t: string, i?: number) => {
+              Button(t)
+                .height(28)
+                .padding({ left: 14, right: 14 })
+                .fontSize(11)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(i === this.activeTerm ? Color.White : ElysiaTheme.ROSE_700)
+                .backgroundColor(i === this.activeTerm ? '' : '#B3FFFFFF')
+                .linearGradient(i === this.activeTerm ? {
+                  angle: 135,
+                  colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]]
+                } : { angle: 0, colors: [['#00FFFFFF', 0]] })
+                .borderRadius(999)
+                .border({ width: i === this.activeTerm ? 0 : 1, color: '#80FFB3CE' })
+                .onClick(() => {
+                  this.activeTerm = i ?? 0;
+                  this.loadData();
                 })
-              }
-            }
-            .scrollable(ScrollDirection.Horizontal)
-            .scrollBar(BarState.Off)
-            .padding({ left: 16, right: 16, bottom: 12 })
-
-            // 统计卡片
-            Column() {
-              Text('2025-2026 · AUTUMN')
-                .fontSize(10)
-                .fontColor(ElysiaTheme.ROSE_700)
-                .letterSpacing(4)
-              Row() {
-                Text('3.86')
-                  .fontSize(42)
-                  .fontStyle(FontStyle.Italic)
-                  .fontColor(ElysiaTheme.ROSE_700)
-                  .fontFamily(ElysiaTheme.FONT_DISPLAY)
-                Text('  学期 · GPA')
-                  .fontSize(11)
-                  .fontColor(ElysiaTheme.INK_SOFT)
-              }
-              .alignItems(VerticalAlign.Bottom)
-              .margin({ top: 4 })
-
-              Row({ space: 8 }) {
-                this.StatPill('已修学分', '21.5')
-                this.StatPill('加权平均', '89.7')
-                this.StatPill('累计 GPA', '3.82')
-              }
-              .width('100%')
-              .margin({ top: 14 })
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-            .padding(18)
-            .borderRadius(24)
-            .linearGradient({
-              angle: 135,
-              colors: [['#FFE4EE', 0], ['#F1E2FF', 0.5], ['#FFF1D6', 1]]
-            })
-            .margin({ left: 16, right: 16 })
-
-            RoseDivider({ label: `records · ${this.grades.length} 门` })
-
-            // 成绩列表
-            Column({ space: 10 }) {
-              ForEach(this.grades, (g: GradeRecord) => {
-                this.GradeCard(g)
-              })
-            }
-            .padding({ left: 16, right: 16 })
-
-            Text('— sweet rewards —')
-              .fontSize(11)
-              .fontStyle(FontStyle.Italic)
-              .fontColor(ElysiaTheme.INK_MUTE)
-              .letterSpacing(4)
-              .fontFamily(ElysiaTheme.FONT_DISPLAY)
-              .margin({ top: 16, bottom: 30 })
+            }, (t: string) => t)
           }
         }
+        .scrollable(ScrollDirection.Horizontal)
         .scrollBar(BarState.Off)
-        .layoutWeight(1)
+        .padding({ left: 16, right: 16, bottom: 12 })
+
+        if (this.loading) {
+          LoadingState({ tip: '正在加载成绩...' })
+        } else if (this.errorMsg.length > 0) {
+          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+        } else {
+          Scroll() {
+            Column() {
+              // 统计卡片
+              if (this.summary !== undefined) {
+                Column() {
+                  Text(`${this.summary!.term}`)
+                    .fontSize(10)
+                    .fontColor(ElysiaTheme.ROSE_700)
+                    .letterSpacing(4)
+                  Row() {
+                    Text(`${this.summary!.termGpa}`)
+                      .fontSize(42)
+                      .fontStyle(FontStyle.Italic)
+                      .fontColor(ElysiaTheme.ROSE_700)
+                      .fontFamily(ElysiaTheme.FONT_DISPLAY)
+                    Text('  学期 · GPA')
+                      .fontSize(11)
+                      .fontColor(ElysiaTheme.INK_SOFT)
+                  }
+                  .alignItems(VerticalAlign.Bottom)
+                  .margin({ top: 4 })
+
+                  Row({ space: 8 }) {
+                    this.StatPill('已修学分', `${this.summary!.earnedCredits}`)
+                    this.StatPill('加权平均', `${this.summary!.weightedAverage}`)
+                    this.StatPill('累计 GPA', `${this.summary!.totalGpa}`)
+                  }
+                  .width('100%')
+                  .margin({ top: 14 })
+                }
+                .width('100%')
+                .alignItems(HorizontalAlign.Start)
+                .padding(18)
+                .borderRadius(24)
+                .linearGradient({
+                  angle: 135,
+                  colors: [['#FFE4EE', 0], ['#F1E2FF', 0.5], ['#FFF1D6', 1]]
+                })
+                .margin({ left: 16, right: 16 })
+              }
+
+              RoseDivider({ label: `records · ${this.grades.length} 门` })
+
+              if (this.grades.length === 0) {
+                EmptyState({ title: '该学期暂无成绩' })
+              } else {
+                // 成绩列表
+                Column({ space: 10 }) {
+                  ForEach(this.grades, (g: GradeRecord) => {
+                    this.GradeCard(g)
+                  }, (g: GradeRecord) => g.id)
+                }
+                .padding({ left: 16, right: 16 })
+              }
+
+              Text('— sweet rewards —')
+                .fontSize(11)
+                .fontStyle(FontStyle.Italic)
+                .fontColor(ElysiaTheme.INK_MUTE)
+                .letterSpacing(4)
+                .fontFamily(ElysiaTheme.FONT_DISPLAY)
+                .margin({ top: 16, bottom: 30 })
+            }
+          }
+          .scrollBar(BarState.Off)
+          .layoutWeight(1)
+        }
       }
     }
     .width('100%').height('100%')
@@ -153,20 +179,20 @@ struct GradesPage {
     Column() {
       Row() {
         Column() {
-          Text(g.name)
+          Text(g.courseName)
             .fontSize(13)
             .fontWeight(FontWeight.Bold)
             .fontColor(ElysiaTheme.INK)
-          Text(g.code)
+          Text(g.courseCode)
             .fontSize(10)
             .fontStyle(FontStyle.Italic)
             .fontColor(ElysiaTheme.INK_MUTE)
             .fontFamily(ElysiaTheme.FONT_DISPLAY)
             .margin({ top: 2 })
           Row({ space: 6 }) {
-            Pill({ text: g.cls })
+            Pill({ text: g.courseCategory })
             Pill({
-              text: `${g.cred} 学分`,
+              text: `${g.credit} 学分`,
               bg: '#FBE6C2', color: ElysiaTheme.GOLD_700
             })
           }
@@ -176,10 +202,14 @@ struct GradesPage {
         .layoutWeight(1)
 
         Column() {
-          Text(`${g.total}`)
+          Text(`${g.totalScore ?? g.finalScore ?? '—'}`)
             .fontSize(30)
             .fontStyle(FontStyle.Italic)
-            .fontColor(typeof g.total === 'number' && g.total >= 90 ? ElysiaTheme.ROSE_700 : ElysiaTheme.INK_SOFT)
+            .fontColor(
+              (typeof g.totalScore === 'number' && g.totalScore >= 90) ||
+              (g.finalScore !== undefined && typeof g.finalScore === 'number' && g.finalScore >= 90)
+                ? ElysiaTheme.ROSE_700 : ElysiaTheme.INK_SOFT
+            )
             .fontFamily(ElysiaTheme.FONT_DISPLAY)
           Text('最终成绩')
             .fontSize(10)
@@ -198,9 +228,9 @@ struct GradesPage {
         .margin({ top: 10, bottom: 10 })
 
       Row() {
-        this.Mini('期中', g.mid)
-        this.Mini('期末', g.fin)
-        this.Mini('绩点', g.gpa)
+        this.Mini('期中', `${g.midtermScore ?? '—'}`)
+        this.Mini('期末', `${g.finalExamScore ?? '—'}`)
+        this.Mini('绩点', `${g.gradePoint ?? '—'}`)
       }
     }
     .width('100%')

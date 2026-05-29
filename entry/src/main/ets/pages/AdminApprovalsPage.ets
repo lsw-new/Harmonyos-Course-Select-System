@@ -1,14 +1,14 @@
 // 审批中心 · Approbations
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, Pill, PrimaryButton, GhostButton, RoseDivider } from '../common/Components';
+import { TopBar, Pill, PrimaryButton, GhostButton } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { ApprovalItem, ApprovalDetail, ApprovalFlowNode } from '../models/Admin';
 import { AppRoute } from '../app/AppRoute';
-import { LoadingState, EmptyState } from '../common/widgets/StateViews';
+import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
+import promptAction from '@ohos.promptAction';
 
 @Entry
 @Component
@@ -19,14 +19,18 @@ struct AdminApprovalsPage {
   @State activeId: string = '';
   @State detail: ApprovalDetail | null = null;
   @State detailLoading: boolean = false;
+  @State detailError: string = '';
   @State comment: string = '';
   @State submitting: boolean = false;
   @State errorMsg: string = '';
+  @State successMsg: string = '';
 
   private statuses: string[] = ['全部', 'pending', 'approved', 'rejected', 'withdrawn'];
   private statusLabels: string[] = ['全部', '待审', '通过', '驳回', '撤回'];
 
-  aboutToAppear(): void { this.loadList(); }
+  aboutToAppear(): void {
+    this.loadList();
+  }
 
   private loadList(): void {
     this.loading = true;
@@ -34,18 +38,28 @@ struct AdminApprovalsPage {
     AdminRepository.get().getApprovals(s as 'pending' | 'approved' | 'rejected' | 'withdrawn' | '全部').then((list: ApprovalItem[]) => {
       this.approvals = list;
       this.loading = false;
+      // Deep-link: open detail if an id param was passed
+      const id: string = AppRoute.getParam<string>('id', '');
+      if (id.length > 0) {
+        this.openDetail(id);
+      }
     }).catch(() => { this.loading = false; });
   }
 
   private openDetail(id: string): void {
     this.activeId = id;
     this.detailLoading = true;
+    this.detailError = '';
     this.comment = '';
     this.errorMsg = '';
+    this.successMsg = '';
     AdminRepository.get().getApprovalDetail(id).then((d: ApprovalDetail) => {
       this.detail = d;
       this.detailLoading = false;
-    }).catch(() => { this.detailLoading = false; });
+    }).catch((e: object) => {
+      this.detailError = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+      this.detailLoading = false;
+    });
   }
 
   private doApprove(): void {
@@ -53,6 +67,8 @@ struct AdminApprovalsPage {
     this.submitting = true;
     AdminRepository.get().approve(this.activeId, this.comment).then(() => {
       this.submitting = false;
+      this.successMsg = '已通过';
+      promptAction.showToast({ message: '已通过' });
       this.activeId = '';
       this.loadList();
     }).catch((e: object) => {
@@ -66,6 +82,8 @@ struct AdminApprovalsPage {
     this.submitting = true;
     AdminRepository.get().rejectApproval(this.activeId, this.comment).then(() => {
       this.submitting = false;
+      this.successMsg = '已驳回';
+      promptAction.showToast({ message: '已驳回' });
       this.activeId = '';
       this.loadList();
     }).catch((e: object) => {
@@ -137,6 +155,8 @@ struct AdminApprovalsPage {
           // 详情视图
           if (this.detailLoading) {
             LoadingState({})
+          } else if (this.detailError.length > 0) {
+            ErrorState({ message: this.detailError, onRetry: () => this.openDetail(this.activeId) })
           } else if (this.detail !== null) {
             Scroll() {
               Column({ space: 14 }) {

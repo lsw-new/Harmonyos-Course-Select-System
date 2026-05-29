@@ -1,5 +1,4 @@
 // 修改密码 · Password
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, GlowCard, Pill } from '../common/Components';
 import { ValidatorUtils } from '../common/utils/ValidatorUtils';
@@ -36,6 +35,10 @@ struct PasswordPage {
   private validate(): boolean {
     const r1 = ValidatorUtils.required(this.oldPassword, '原密码');
     if (!r1.ok) { this.errorMsg = r1.message ?? ''; return false; }
+    if (this.newPassword === this.oldPassword) {
+      this.errorMsg = '新密码不能与原密码相同';
+      return false;
+    }
     const r2 = ValidatorUtils.password(this.newPassword);
     if (!r2.ok) { this.errorMsg = r2.message ?? ''; return false; }
     const r3 = ValidatorUtils.match(this.newPassword, this.confirmPassword, '两次新密码');
@@ -51,9 +54,14 @@ struct PasswordPage {
       oldPassword: this.oldPassword,
       newPassword: this.newPassword,
       confirmPassword: this.confirmPassword
-    }).then(() => {
+    }).then((_res: boolean) => {
       this.submitting = false;
       this.successMsg = '密码修改成功，请重新登录';
+      AuthRepository.get().logout().then((_r: boolean) => {
+        return SessionStorage.get().clear();
+      }).then(() => {
+        AppRoute.clearTo(Routes.Login);
+      });
     }).catch((e: object) => {
       this.submitting = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '修改失败';
@@ -67,7 +75,7 @@ struct PasswordPage {
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Password', subtitle: '修 改 密 码', onBack: () => router.back() })
+        TopBar({ title: 'Password', subtitle: '修 改 密 码', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column() {

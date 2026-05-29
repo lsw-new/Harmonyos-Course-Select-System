@@ -34,6 +34,35 @@
 └── oh-package.json5          # OpenHarmony 包配置
 ```
 
+## 技术架构
+
+应用采用分层架构，UI 与数据解耦：未来只需把 `AppConfig.useMock` 置为 `false`，即可由 mock 平滑切换到真实后端。
+
+```text
+entry/src/main/ets/
+├── app/            # 应用编排：AppStartup 启动注入、AppRoute 路由与角色守卫、AppConfig 全局配置
+├── models/         # 领域模型（User / Course / Academic / Notice / Evaluation / Admin …）
+├── repositories/   # 仓储层：BaseRepository + 各域 Repository（单例），统一返回 Promise
+├── mock/           # 各域 mock 数据（含测试账号凭据）
+├── common/
+│   ├── http/       # HttpClient（封装 @ohos.net.http）+ HttpError 统一错误
+│   ├── storage/    # PreferenceStorage 本地持久化 + SessionStorage 会话（Token / 角色 / 用户）
+│   ├── utils/      # DateUtils / TermUtils / ValidatorUtils
+│   ├── widgets/    # AppIcon 图标 · StateViews 加载/空/错状态 · TabBars 底部导航
+│   ├── constants/  # 颜色 / 尺寸 / 文字样式 token
+│   └── Components.ets · Theme.ets   # 通用组件库与主题
+└── pages/          # 34 个页面（学生端 + 管理端）
+```
+
+**数据流**：`页面 (@Entry/@Component)` → `XxxRepository.get().method()` → `mock 数据` 或 `HttpClient`（真实后端）。
+
+**工程约定**：
+
+- 页面在 `aboutToAppear()` 经仓储加载数据，并用 `LoadingState / ErrorState / EmptyState` 处理加载 / 失败 / 空态；
+- 导航统一走 `AppRoute.go / back / clearTo / getParam`，内置按角色（学生 / 管理员）的**路由守卫**，不直接使用 `router`；
+- 登录经 `AuthRepository` 校验 → `SessionStorage` 写入会话 → `AppRoute.clearTo` 进入主页；退出登录清理会话并返回登录页；
+- 图标统一使用 `AppIcon`（基于 `ic_*.svg` 媒体注册表），不使用 emoji 占位。
+
 ## 功能模块
 
 ### 学生端
@@ -264,6 +293,30 @@
 3. 选择 `entry` 模块。
 4. 连接 HarmonyOS 设备或启动模拟器。
 5. 点击运行按钮进行构建与安装。
+
+### 命令行构建
+
+项目未提交 `hvigorw` 包装脚本，`local.properties` 也不含 `sdk.dir`，命令行构建需先指定 HarmonyOS SDK（路径替换为本机实际安装位置）：
+
+```bash
+# Windows PowerShell 示例
+$env:DEVECO_SDK_HOME = 'D:\DevEco Studio\sdk'
+& 'D:\DevEco Studio\tools\hvigor\bin\hvigorw.bat' assembleHap
+```
+
+构建产物（HAP）输出至 `entry/build/` 目录。
+
+## 测试账号
+
+当前为 mock 数据模式（`AppConfig.useMock = true`），内置以下测试账号（定义于 `mock/mockUser.ets`、`mock/mockAdmin.ets`，校验在 `repositories/AuthRepository.ets`）：
+
+| 角色 | 账号 | 密码 | 登录后身份 |
+| --- | --- | --- | --- |
+| 学生端 | `202221001234` | `Elysia@2024` | 林夏 · 汉语言文学 |
+| 管理端 | `A20251001` | `Admin@2024` | 苏知夏 · 教务管理员 |
+
+- 管理端登录需额外输入**任意 4 位**图形验证码（如 `1234`）。
+- 找回密码验证码固定为 `123456`；修改密码时原密码即登录密码，新密码需 8–32 位且至少包含字母、数字、符号中的两种。
 
 ## 使用说明
 
