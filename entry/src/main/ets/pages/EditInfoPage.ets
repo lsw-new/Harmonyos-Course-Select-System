@@ -7,6 +7,7 @@ import { ValidatorUtils } from '../common/utils/ValidatorUtils';
 import { HttpError } from '../common/http/HttpError';
 import { UserProfile } from '../models/User';
 import { LoadingState } from '../common/widgets/StateViews';
+import { FileService } from '../common/services/FileService';
 
 @Entry
 @Component
@@ -25,6 +26,8 @@ struct EditInfoPage {
   @State college: string = '';
   @State major: string = '';
   @State className: string = '';
+  @State avatarUrl: string = '';
+  @State pickingAvatar: boolean = false;
 
   aboutToAppear(): void {
     ProfileRepository.get().getProfile().then((p: UserProfile) => {
@@ -33,6 +36,7 @@ struct EditInfoPage {
       this.college = p.college;
       this.major = p.major;
       this.className = p.className;
+      this.avatarUrl = p.avatarUrl ?? '';
       this.phone = p.phone ?? '';
       this.email = p.email ?? '';
       this.address = p.address ?? '';
@@ -66,6 +70,23 @@ struct EditInfoPage {
     });
   }
 
+  private pickAvatar(): void {
+    if (this.pickingAvatar) return;
+    this.errorMsg = '';
+    this.successMsg = '';
+    this.pickingAvatar = true;
+    FileService.pickAvatarImage().then((uri: string) => {
+      return ProfileRepository.get().updateProfile({ avatarUrl: uri });
+    }).then((p: UserProfile) => {
+      this.avatarUrl = p.avatarUrl ?? '';
+      this.pickingAvatar = false;
+      this.successMsg = '头像已更新';
+    }).catch((e: object) => {
+      this.pickingAvatar = false;
+      this.errorMsg = e instanceof Error ? e.message : '选择头像失败';
+    });
+  }
+
   @Builder ReadonlyRow(label: string, value: string) {
     Row() {
       Text(label).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).width(72)
@@ -95,6 +116,24 @@ struct EditInfoPage {
                 this.ReadonlyRow('学院', this.college)
                 this.ReadonlyRow('专业', this.major)
                 this.ReadonlyRow('班级', this.className)
+              }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
+              .border({ width: 1, color: '#66FFB3CE' })
+
+              Column() {
+                Text('头像').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
+                Row() {
+                  Column() {
+                    Text(this.avatarUrl.length > 0 ? '已选择' : '未选择')
+                      .fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
+                    Text(this.avatarUrl.length > 0 ? this.avatarUrl : '点击右侧按钮选择本地图片')
+                      .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 4 }).maxLines(2)
+                  }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+                  Text(this.pickingAvatar ? '选择中...' : '选择头像')
+                    .fontSize(12).fontColor(Color.White).fontWeight(FontWeight.Bold)
+                    .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+                    .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
+                    .onClick(() => this.pickAvatar())
+                }
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: '#66FFB3CE' })
 

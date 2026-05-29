@@ -4,7 +4,7 @@ import { TopBar, Pill, ElysiaInput } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { StudentAdminItem } from '../models/Admin';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 
 @Entry
@@ -17,7 +17,10 @@ struct AdminStudentsPage {
   @State activeCollege: string = '全部';
   private colleges: string[] = ['全部', '人文与艺术学院', '计算机学院', '艺术学院', '数学学院'];
 
-  aboutToAppear(): void { this.loadData(); }
+  aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.AdminStudents)) return;
+    this.loadData();
+  }
 
   private loadData(): void {
     this.loading = true;

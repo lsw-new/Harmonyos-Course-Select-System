@@ -73,8 +73,16 @@ struct MinePage {
   aboutToAppear(): void {
     PreferenceStorage.get().getBoolean('darkMode', false).then((v: boolean) => {
       this.darkMode = v;
+      ElysiaTheme.setDarkMode(v);
     });
     this.loadData();
+  }
+
+  private setDarkModePreference(value: boolean): void {
+    this.darkMode = value;
+    ElysiaTheme.setDarkMode(value);
+    PreferenceStorage.get().putBoolean('darkMode', value);
+    promptAction.showToast({ message: value ? '深色模式已开启' : '深色模式已关闭' });
   }
 
   loadData(): void {
@@ -119,7 +127,7 @@ struct MinePage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]]
+          colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], [ElysiaTheme.SURFACE_GLOW, 1]]
         })
 
       Column() {
@@ -139,8 +147,9 @@ struct MinePage {
               AppIcon({ name: 'settings', iconSize: 16 })
             }
             .width(34).height(34)
-            .backgroundColor('#A6FFFFFF')
+            .backgroundColor(ElysiaTheme.SURFACE_GLOW)
             .border({ width: 1, color: '#99FFB3CE' })
+            .accessibilityText('打开系统设置')
             .onClick(() => { AppRoute.go(Routes.Settings); })
           }
           .width('100%')
@@ -184,7 +193,7 @@ struct MinePage {
           }
           .width('100%')
           .padding({ top: 10, bottom: 10 })
-          .backgroundColor('#A6FFFFFF')
+          .backgroundColor(ElysiaTheme.SURFACE_GLOW)
           .borderRadius(16)
           .margin({ top: 16 })
         }
@@ -192,7 +201,7 @@ struct MinePage {
         .padding({ left: 18, right: 18, top: 14, bottom: 22 })
         .linearGradient({
           angle: 180,
-          colors: [[ElysiaTheme.ROSE_200, 0], ['#FFE4EE', 0.6], ['#00FFFFFF', 1]]
+          colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.ROSE_100, 0.6], [ElysiaTheme.SURFACE_GLOW, 1]]
         })
 
         if (this.loading) {
@@ -214,7 +223,7 @@ struct MinePage {
                       .borderRadius(14)
                       .linearGradient({
                         angle: 135,
-                        colors: [[Color.White, 0], [ElysiaTheme.ROSE_100, 1]]
+                        colors: [[ElysiaTheme.SURFACE, 0], [ElysiaTheme.ROSE_100, 1]]
                       })
                       .border({ width: 1, color: '#80FFB3CE' })
                       Text(it.label)
@@ -226,6 +235,7 @@ struct MinePage {
                       if (it.route.length > 0) AppRoute.go(it.route);
                       else promptAction.showToast({ message: '该功能正在建设中' });
                     })
+                    .accessibilityText(it.label)
                   }
                 }, (it: QuickItem) => it.label)
               }
@@ -257,20 +267,21 @@ struct MinePage {
             Text('退出后需重新登录').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
             Row({ space: 12 }) {
               Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
-                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
-                .backgroundColor('#E0FFFFFF').borderRadius(999)
+                .padding({ left: 24, right: 24, top: 14, bottom: 14 })
+                .backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(999)
+                .accessibilityText('取消退出登录')
                 .onClick(() => { this.showLogoutConfirm = false; })
               Text('退出').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
-                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
+                .padding({ left: 24, right: 24, top: 14, bottom: 14 })
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
+                .accessibilityText('确认退出登录')
                 .onClick(() => { this.logout(); })
             }.margin({ top: 8 })
-          }.padding(24).backgroundColor(Color.White).borderRadius(22)
+          }.padding(24).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
         .backgroundColor('#66000000')
-        .onClick(() => { this.showLogoutConfirm = false; })
       }
 
       // Bottom tab bar
@@ -316,7 +327,7 @@ struct MinePage {
             angle: 135,
             colors: it.danger
               ? [[ElysiaTheme.ROSE_100, 0], [ElysiaTheme.ROSE_200, 1]]
-              : [[Color.White, 0], [ElysiaTheme.LAV_200, 1]]
+              : [[ElysiaTheme.SURFACE, 0], [ElysiaTheme.LAV_200, 1]]
           })
 
           Column() {
@@ -348,8 +359,7 @@ struct MinePage {
             Toggle({ type: ToggleType.Switch, isOn: this.darkMode })
               .selectedColor(ElysiaTheme.ROSE_500)
               .onChange((v: boolean) => {
-                this.darkMode = v;
-                PreferenceStorage.get().putBoolean('darkMode', v);
+                this.setDarkModePreference(v);
               })
           } else {
             AppIcon({ name: 'forward', iconSize: 14, dim: true })
@@ -357,6 +367,7 @@ struct MinePage {
         }
         .width('100%')
         .padding({ top: 10, bottom: 10 })
+        .accessibilityText(it.title)
         .onClick(() => { this.handleEntryTap(it); })
         if (idx !== undefined && idx < items.length - 1) {
           Divider().strokeWidth(1).color('#80FFB3CE')

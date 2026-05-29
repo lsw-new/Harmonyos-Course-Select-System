@@ -4,7 +4,7 @@ import { TopBar, Pill, RoseDivider } from '../common/Components';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { EvaluationStats } from '../models/Admin';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 
 class TemplateState {
   name: string;
@@ -25,6 +25,7 @@ struct AdminEvalPage {
   @State templates: TemplateState[] = [];
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.AdminEval)) return;
     this.templates = [
       new TemplateState('理工类课程通用评教问卷', true),
       new TemplateState('人文社科类课程评教问卷', true),

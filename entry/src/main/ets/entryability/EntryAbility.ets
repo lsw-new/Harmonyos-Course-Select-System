@@ -1,8 +1,8 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
-import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { SessionStorage } from '../common/storage/SessionStorage';
+import { AppStartup } from '../app/AppStartup';
 
 const DOMAIN = 0x0000;
 const TAG = 'Elysia';
@@ -20,9 +20,7 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, TAG, '%{public}s', 'Ability onWindowStageCreate');
 
-    PreferenceStorage.get().init(this.context).then(() => {
-      return SessionStorage.get().restore();
-    }).then(() => {
+    AppStartup.init(this.context).then(() => {
       const session = SessionStorage.get();
       let startPage = 'pages/LoginPage';
       if (session.isAuthenticated()) {

@@ -3,7 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, RoseDivider } from '../common/Components';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { SelectionRound } from '../models/Admin';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 
 @Entry
@@ -14,6 +14,7 @@ struct AdminSelectionPage {
   @State rounds: SelectionRound[] = [];
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.AdminSelection)) return;
     this.loadData();
   }
 

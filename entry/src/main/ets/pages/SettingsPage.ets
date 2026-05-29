@@ -31,6 +31,13 @@ struct SettingsPage {
     PreferenceStorage.get().putBoolean(key, value);
   }
 
+  private setDarkModePreference(value: boolean): void {
+    this.darkMode = value;
+    ElysiaTheme.setDarkMode(value);
+    PreferenceStorage.get().putBoolean('darkMode', value);
+    promptAction.showToast({ message: value ? '深色模式已开启' : '深色模式已关闭' });
+  }
+
   private logout(): void {
     SessionStorage.get().clear().then(() => { AppRoute.clearTo(Routes.Login); });
   }
@@ -63,7 +70,7 @@ struct SettingsPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], [ElysiaTheme.SURFACE_GLOW, 1]] })
 
       Column() {
         Blank().height(40)
@@ -101,8 +108,7 @@ struct SettingsPage {
                 promptAction.showToast({ message: '该功能正在建设中' });
               })
               this.ToggleRow('深色模式', '', this.darkMode, (v: boolean) => {
-                this.darkMode = v;
-                this.togglePref('darkMode', v);
+                this.setDarkModePreference(v);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
@@ -156,14 +162,14 @@ struct SettingsPage {
             Row({ space: 12 }) {
               Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
-                .backgroundColor('#E0FFFFFF').borderRadius(999)
+                .backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(999)
                 .onClick(() => { this.showLogoutConfirm = false; })
-              Text('退出').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
+              Text('退出').fontSize(14).fontColor(ElysiaTheme.SURFACE).fontWeight(FontWeight.Bold)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
                 .onClick(() => { this.logout(); })
             }.margin({ top: 8 })
-          }.padding(24).backgroundColor(Color.White).borderRadius(22)
+          }.padding(24).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)

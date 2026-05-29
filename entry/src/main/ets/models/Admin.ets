@@ -94,6 +94,18 @@ export interface AdminCourseItem {
   status: AdminCourseStatus;
 }
 
+export interface AdminCourseWritePayload {
+  code: string;
+  name: string;
+  teacher: string;
+  category: AdminCourseCategory;
+  credit: number;
+  timeText: string;
+  capacity: number;
+  selectedCount: number;
+  status: AdminCourseStatus;
+}
+
 export type SelectionRoundStatus = 'notStarted' | 'running' | 'ended';
 
 export interface SelectionRound {
@@ -109,7 +121,17 @@ export interface SelectionRound {
   conflictCount: number;
 }
 
-export type GradeAuditStatus = 'pendingAudit' | 'inputting' | 'published' | 'appealed';
+export type GradeAuditStatus = 'pendingAudit' | 'inputting' | 'published' | 'appealed' | 'rejected';
+
+export interface GradeInputPayload {
+  id: string;
+  inputProgress: number;
+}
+
+export interface GradeRejectPayload {
+  id: string;
+  reason: string;
+}
 
 export interface GradeAuditItem {
   id: string;
@@ -119,6 +141,7 @@ export interface GradeAuditItem {
   inputProgress: number;
   status: GradeAuditStatus;
   updatedAt: string;
+  rejectReason?: string;
 }
 
 export interface NoticeDraft {

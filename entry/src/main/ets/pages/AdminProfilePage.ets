@@ -18,6 +18,7 @@ struct AdminProfilePage {
   @State showLogoutConfirm: boolean = false;
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.AdminProfile)) return;
     const p = SessionStorage.get().getAdmin();
     if (p !== undefined) { this.profile = p; }
     PreferenceStorage.get().getBoolean('darkMode', false).then((v: boolean) => { this.darkMode = v; });
@@ -26,6 +27,13 @@ struct AdminProfilePage {
 
   private logout(): void {
     SessionStorage.get().clear().then(() => { AppRoute.clearTo(Routes.AdminLogin); });
+  }
+
+  private setDarkModePreference(value: boolean): void {
+    this.darkMode = value;
+    ElysiaTheme.setDarkMode(value);
+    PreferenceStorage.get().putBoolean('darkMode', value);
+    promptAction.showToast({ message: value ? '深色模式已开启' : '深色模式已关闭' });
   }
 
   private onlineStatusLabel(s: string): string {
@@ -72,7 +80,7 @@ struct AdminProfilePage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], [ElysiaTheme.SURFACE_GLOW, 1]] })
 
       Column() {
         Blank().height(40)
@@ -145,8 +153,7 @@ struct AdminProfilePage {
             Column() {
               Text('偏好').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.ToggleRow('star', '夜间模式', this.darkMode, (v: boolean) => {
-                this.darkMode = v;
-                PreferenceStorage.get().putBoolean('darkMode', v);
+                this.setDarkModePreference(v);
               })
               this.ToggleRow('bell', '消息推送', this.pushEnabled, (v: boolean) => {
                 this.pushEnabled = v;
@@ -184,14 +191,14 @@ struct AdminProfilePage {
             Row({ space: 12 }) {
               Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
-                .backgroundColor('#E0FFFFFF').borderRadius(999)
+                .backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(999)
                 .onClick(() => { this.showLogoutConfirm = false; })
-              Text('退出').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
+              Text('退出').fontSize(14).fontColor(ElysiaTheme.SURFACE).fontWeight(FontWeight.Bold)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
                 .onClick(() => { this.logout(); })
             }.margin({ top: 8 })
-          }.padding(24).backgroundColor(Color.White).borderRadius(22)
+          }.padding(24).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)

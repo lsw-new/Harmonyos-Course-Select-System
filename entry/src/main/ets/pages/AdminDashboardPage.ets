@@ -15,6 +15,7 @@ struct AdminDashboardPage {
   @State dashboard: AdminDashboardSummary | null = null;
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.AdminDashboard)) return;
     this.loadData();
   }
 

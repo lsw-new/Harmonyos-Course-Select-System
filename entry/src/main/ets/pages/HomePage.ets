@@ -14,6 +14,8 @@ import { ScheduleItem } from '../models/Course';
 import { Notice } from '../models/Notice';
 import { UserProfile } from '../models/User';
 import { DateUtils } from '../common/utils/DateUtils';
+import { FileService } from '../common/services/FileService';
+import promptAction from '@ohos.promptAction';
 
 @Entry
 @Component
@@ -301,6 +303,15 @@ struct HomePage {
     }.padding({ left: 16, right: 16, top: 8 })
   }
 
+  private downloadFile(f: DownloadFile): void {
+    FileService.downloadFile(f.url, f.fileName).then((path: string) => {
+      promptAction.showToast({ message: `已下载：${path}` });
+    }).catch((e: object) => {
+      const message = e instanceof Error ? e.message : '下载失败';
+      promptAction.showToast({ message });
+    });
+  }
+
   @Builder FilesSection(files: DownloadFile[]) {
     Row() {
       Text('Files').fontSize(18).fontStyle(FontStyle.Italic)
@@ -325,6 +336,7 @@ struct HomePage {
         .width('100%').padding(12)
         .backgroundColor(ElysiaTheme.SURFACE).borderRadius(16)
         .border({ width: 1, color: '#66FFB3CE' })
+        .onClick(() => this.downloadFile(f))
       }, (f: DownloadFile) => f.id)
     }.padding({ left: 16, right: 16, top: 8 })
   }

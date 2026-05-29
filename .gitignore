@@ -14,3 +14,17 @@
 /.appanalyzer
 /.codegraph
 /harmonyos-course-select-system
+
+# HarmonyOS release signing materials - never commit private keys/certs/profiles/passwords
+**/*.p12
+**/*.p7b
+**/*.cer
+**/*.csr
+**/*.key
+**/*.pem
+**/*.keystore
+**/*.jks
+**/*profile*
+**/*provision*
+**/*password*
+**/*secret*

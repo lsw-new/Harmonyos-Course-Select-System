@@ -2,8 +2,12 @@
 
 import { AppConfig } from '../app/AppConfig';
 import { HttpError } from '../common/http/HttpError';
+import { apiClient } from '../common/http/ApiClient';
+import { HttpClient } from '../common/http/HttpClient';
 
 export class BaseRepository {
+  protected http: HttpClient = apiClient;
+
   protected delay<T>(value: T, ms: number = AppConfig.mockDelayMs): Promise<T> {
     return new Promise<T>((resolve) => {
       setTimeout(() => resolve(value), ms);
@@ -16,7 +20,7 @@ export class BaseRepository {
     return this.delay(cloned, ms);
   }
 
-  protected reject(message: string, kind: 'business' | 'forbidden' | 'notFound' = 'business'): Promise<never> {
+  protected reject(message: string, kind: 'business' | 'forbidden' | 'unauthorized' | 'notFound' = 'business'): Promise<never> {
     return Promise.reject(new HttpError(kind, message));
   }
 }

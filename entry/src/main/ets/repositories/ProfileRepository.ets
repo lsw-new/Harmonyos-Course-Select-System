@@ -7,6 +7,11 @@ import { LeaveRequest, FeedbackItem, PracticeEntry, LeaveType, FeedbackCategory 
 import { mockStudentProfile } from '../mock/mockUser';
 import { mockHomeSummary } from '../mock/mockHome';
 import { mockLeaveRequests, mockFeedback, mockPracticeEntries } from '../mock/mockMisc';
+import { LocalDataStore } from '../common/storage/LocalDataStore';
+import { SessionStorage } from '../common/storage/SessionStorage';
+
+const KEY_LOCAL_LEAVES = 'local.leaveRequests.v1';
+const KEY_LOCAL_FEEDBACK = 'local.feedback.v1';
 
 export interface ProfileEditPatch {
   avatarUrl?: string;
@@ -43,6 +48,26 @@ export class ProfileRepository extends BaseRepository {
   }
 
   private workingProfile: UserProfile = JSON.parse(JSON.stringify(mockStudentProfile)) as UserProfile;
+  private localLeaves: LeaveRequest[] = [];
+  private localFeedback: FeedbackItem[] = [];
+  private isLeavesLoaded: boolean = false;
+  private isFeedbackLoaded: boolean = false;
+
+  private async getLocalLeaves(): Promise<LeaveRequest[]> {
+    if (!this.isLeavesLoaded) {
+      this.localLeaves = await LocalDataStore.loadArray<LeaveRequest>(KEY_LOCAL_LEAVES, []);
+      this.isLeavesLoaded = true;
+    }
+    return this.localLeaves;
+  }
+
+  private async getLocalFeedback(): Promise<FeedbackItem[]> {
+    if (!this.isFeedbackLoaded) {
+      this.localFeedback = await LocalDataStore.loadArray<FeedbackItem>(KEY_LOCAL_FEEDBACK, []);
+      this.isFeedbackLoaded = true;
+    }
+    return this.localFeedback;
+  }
 
   async getProfile(): Promise<UserProfile> {
     return this.delayCopy<UserProfile>(this.workingProfile);
@@ -66,6 +91,7 @@ export class ProfileRepository extends BaseRepository {
       role: cur.role
     };
     this.workingProfile = next;
+    await SessionStorage.get().updateStudentProfile(next);
     return this.delayCopy<UserProfile>(next);
   }
 
@@ -74,7 +100,9 @@ export class ProfileRepository extends BaseRepository {
   }
 
   async getLeaveRequests(): Promise<LeaveRequest[]> {
-    return this.delayCopy<LeaveRequest[]>(mockLeaveRequests);
+    const localItems = await this.getLocalLeaves();
+    const items = localItems.concat(mockLeaveRequests);
+    return this.delayCopy<LeaveRequest[]>(items);
   }
 
   async submitLeave(req: LeaveSubmitForm): Promise<LeaveRequest> {
@@ -88,11 +116,18 @@ export class ProfileRepository extends BaseRepository {
       state: 'pending',
       submittedAt: new Date().toISOString()
     };
+    const localItems = await this.getLocalLeaves();
+    const next = [item].concat(localItems);
+    this.localLeaves = next;
+    this.isLeavesLoaded = true;
+    await LocalDataStore.saveArray<LeaveRequest>(KEY_LOCAL_LEAVES, next);
     return this.delay<LeaveRequest>(item);
   }
 
   async getFeedback(): Promise<FeedbackItem[]> {
-    return this.delayCopy<FeedbackItem[]>(mockFeedback);
+    const localItems = await this.getLocalFeedback();
+    const items = localItems.concat(mockFeedback);
+    return this.delayCopy<FeedbackItem[]>(items);
   }
 
   async submitFeedback(req: FeedbackSubmitForm): Promise<FeedbackItem> {
@@ -106,6 +141,11 @@ export class ProfileRepository extends BaseRepository {
       submittedAt: new Date().toISOString(),
       state: 'submitted'
     };
+    const localItems = await this.getLocalFeedback();
+    const next = [item].concat(localItems);
+    this.localFeedback = next;
+    this.isFeedbackLoaded = true;
+    await LocalDataStore.saveArray<FeedbackItem>(KEY_LOCAL_FEEDBACK, next);
     return this.delay<FeedbackItem>(item);
   }
 

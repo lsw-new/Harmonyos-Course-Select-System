@@ -1,5 +1,22 @@
 {
   "app": {
+    // Release signing must be configured locally with real developer materials.
+    // Do not commit private keys, profiles, certificate paths, or passwords.
+    // Example shape only:
+    // "signingConfigs": [
+    //   {
+    //     "name": "release",
+    //     "type": "HarmonyOS",
+    //     "material": {
+    //       "storeFile": "<local path to .p12>",
+    //       "storePassword": "<local password or DevEco local config>",
+    //       "keyAlias": "<local key alias>",
+    //       "keyPassword": "<local key password>",
+    //       "profile": "<local path to release profile>",
+    //       "certpath": "<local path to .cer/.p7b>"
+    //     }
+    //   }
+    // ],
     "signingConfigs": [],
     "products": [
       {

@@ -8,6 +8,7 @@ import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
+import { FileService } from '../common/services/FileService';
 
 @Entry
 @Component
@@ -36,6 +37,15 @@ struct NoticeDetailPage {
     }).catch((e: object) => {
       this.loading = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+    });
+  }
+
+  private downloadAttachment(att: NoticeAttachment): void {
+    FileService.downloadFile(att.fileUrl, att.fileName).then((path: string) => {
+      promptAction.showToast({ message: `已下载：${path}` });
+    }).catch((e: object) => {
+      const message = e instanceof Error ? e.message : '下载失败';
+      promptAction.showToast({ message });
     });
   }
 
@@ -94,7 +104,7 @@ struct NoticeDetailPage {
                         }
                       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                       Text('下载').fontSize(11).fontColor(ElysiaTheme.ROSE_500)
-                        .onClick(() => promptAction.showToast({ message: '附件下载已开始' }))
+                        .onClick(() => this.downloadAttachment(att))
                     }.width('100%').padding(12).backgroundColor('#FFF6FA').borderRadius(12)
                     .border({ width: 1, color: '#66FFB3CE' })
                   }, (att: NoticeAttachment) => att.id)

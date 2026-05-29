@@ -3,7 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, PrimaryButton, ElysiaInput } from '../common/Components';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { HttpError } from '../common/http/HttpError';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import promptAction from '@ohos.promptAction';
 
 @Entry
@@ -25,6 +25,10 @@ struct AdminNoticePage {
   private urgencyKeys: string[] = ['normal', 'important', 'urgent'];
   private receiverLabels: string[] = ['全体', '学生', '教师', '自定义'];
   private receiverKeys: string[] = ['all', 'students', 'teachers', 'custom'];
+
+  aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.AdminNotice)) return;
+  }
 
   private publish(): void {
     if (this.submitting) return;

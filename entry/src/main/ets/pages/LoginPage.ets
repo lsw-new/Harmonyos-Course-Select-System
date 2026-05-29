@@ -171,6 +171,12 @@ struct LoginPage {
                 AppRoute.go(Routes.Register);
               }
             })
+            GhostButton({
+              text: '管理员登录 · Admin',
+              onTap: () => {
+                AppRoute.go(Routes.AdminLogin);
+              }
+            })
           }
           .width('100%')
           .margin({ top: 22 })

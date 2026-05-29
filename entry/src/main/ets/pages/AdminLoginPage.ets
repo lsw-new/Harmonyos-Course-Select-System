@@ -1,7 +1,7 @@
 // 管理员登录 · Sign in
 import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill, Monogram } from '../common/Components';
+import { TopBar, RoseDivider, PrimaryButton, GhostButton, ElysiaInput, Pill, Monogram } from '../common/Components';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppRoute, Routes } from '../app/AppRoute';
@@ -96,6 +96,12 @@ struct AdminLoginPage {
             }
 
             PrimaryButton({ text: this.submitting ? '登录中...' : '进入控制台', onTap: () => this.login() })
+            GhostButton({
+              text: '返回学生登录',
+              onTap: () => {
+                AppRoute.go(Routes.Login, { replace: true });
+              }
+            })
 
             Blank().height(40)
           }.padding({ left: 24, right: 24 })

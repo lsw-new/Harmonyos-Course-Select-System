@@ -1,0 +1,5 @@
+# Keep this directory available for local release signing materials,
+# but never commit private keys, certificates, profiles, or passwords.
+*
+!.gitignore
+!README.md

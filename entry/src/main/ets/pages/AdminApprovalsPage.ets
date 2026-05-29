@@ -5,7 +5,7 @@ import { AdminTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { ApprovalItem, ApprovalDetail, ApprovalFlowNode } from '../models/Admin';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
@@ -29,6 +29,7 @@ struct AdminApprovalsPage {
   private statusLabels: string[] = ['全部', '待审', '通过', '驳回', '撤回'];
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.AdminApprovals)) return;
     this.loadList();
   }
 
