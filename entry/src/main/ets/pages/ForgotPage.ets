@@ -2,6 +2,7 @@
 import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, ElysiaInput, PrimaryButton, Sparkle } from '../common/Components';
+import { AppIcon } from '../common/widgets/AppIcon';
 
 @Entry
 @Component
@@ -25,7 +26,7 @@ struct ForgotPage {
           Column() {
             Column() {
               Stack() {
-                Text('⌬').fontSize(38).fontColor(Color.White)
+                AppIcon({ name: 'rose', iconSize: 46 })
               }
               .width(90).height(90)
               .borderRadius(45)

@@ -2,6 +2,7 @@
 
 import { ElysiaTheme } from '../Theme';
 import { AppFontFamily, AppFontSize } from '../constants/TextStyles';
+import { AppIcon } from './AppIcon';
 
 export interface TabItem {
   id: string;
@@ -11,19 +12,19 @@ export interface TabItem {
 }
 
 export const STUDENT_TABS: TabItem[] = [
-  { id: 'home', label: 'Home', icon: '⌂', route: 'pages/HomePage' },
-  { id: 'mine', label: 'Mine', icon: '○', route: 'pages/MinePage' },
-  { id: 'eval', label: 'Eval', icon: '✦', route: 'pages/EvalPage' },
-  { id: 'prac', label: 'Prac', icon: '❀', route: 'pages/PracticePage' },
-  { id: 'pub', label: 'Pub', icon: '✧', route: 'pages/NoticesPage' }
+  { id: 'home', label: 'Home', icon: 'home', route: 'pages/HomePage' },
+  { id: 'mine', label: 'Mine', icon: 'mine', route: 'pages/MinePage' },
+  { id: 'eval', label: 'Eval', icon: 'evaluation', route: 'pages/EvalPage' },
+  { id: 'prac', label: 'Prac', icon: 'practice', route: 'pages/PracticePage' },
+  { id: 'pub', label: 'Pub', icon: 'public', route: 'pages/NoticesPage' }
 ];
 
 export const ADMIN_TABS: TabItem[] = [
-  { id: 'dashboard', label: 'Tableau', icon: '◐', route: 'pages/AdminDashboardPage' },
-  { id: 'students', label: 'Students', icon: '◉', route: 'pages/AdminStudentsPage' },
-  { id: 'courses', label: 'Cours', icon: '✿', route: 'pages/AdminCoursesPage' },
-  { id: 'approvals', label: 'Approve', icon: '✎', route: 'pages/AdminApprovalsPage' },
-  { id: 'mine', label: 'Madame', icon: '○', route: 'pages/AdminProfilePage' }
+  { id: 'dashboard', label: 'Tableau', icon: 'dashboard', route: 'pages/AdminDashboardPage' },
+  { id: 'students', label: 'Students', icon: 'students', route: 'pages/AdminStudentsPage' },
+  { id: 'courses', label: 'Cours', icon: 'course', route: 'pages/AdminCoursesPage' },
+  { id: 'approvals', label: 'Approve', icon: 'approve', route: 'pages/AdminApprovalsPage' },
+  { id: 'mine', label: 'Madame', icon: 'madame', route: 'pages/AdminProfilePage' }
 ];
 
 @Component
@@ -35,9 +36,7 @@ export struct StudentTabBar {
     Row() {
       ForEach(STUDENT_TABS, (tab: TabItem) => {
         Column() {
-          Text(tab.icon)
-            .fontSize(20)
-            .fontColor(tab.id === this.active ? ElysiaTheme.ROSE_600 : ElysiaTheme.INK_MUTE)
+          AppIcon({ name: tab.icon, iconSize: 24, dim: tab.id !== this.active })
           Text(tab.label)
             .fontSize(AppFontSize.small)
             .fontStyle(FontStyle.Italic)
@@ -69,9 +68,7 @@ export struct AdminTabBar {
     Row() {
       ForEach(ADMIN_TABS, (tab: TabItem) => {
         Column() {
-          Text(tab.icon)
-            .fontSize(20)
-            .fontColor(tab.id === this.active ? ElysiaTheme.ROSE_600 : ElysiaTheme.INK_MUTE)
+          AppIcon({ name: tab.icon, iconSize: 24, dim: tab.id !== this.active })
           Text(tab.label)
             .fontSize(AppFontSize.small)
             .fontStyle(FontStyle.Italic)

@@ -2,6 +2,7 @@
 import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider } from '../common/Components';
+import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
@@ -49,7 +50,7 @@ struct SettingsPage {
     Row() {
       Text(label).fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
       Text(hint).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
-      Text(' ›').fontSize(14).fontColor(ElysiaTheme.INK_MUTE)
+      AppIcon({ name: 'forward', iconSize: 14, dim: true, mLeft: 6 })
     }.width('100%').padding({ top: 14, bottom: 14 })
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
   }

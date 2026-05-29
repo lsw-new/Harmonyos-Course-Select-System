@@ -6,6 +6,7 @@ import {
 } from '../common/Components';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { StudentTabBar } from '../common/widgets/TabBars';
+import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { HomeSummary, QuickEntry, DownloadFile, RecentLogin, TermInfo } from '../models/Home';
@@ -107,7 +108,7 @@ struct HomePage {
         }.alignItems(HorizontalAlign.Start).margin({ left: 10 })
         Blank().layoutWeight(1)
         Stack({ alignContent: Alignment.TopEnd }) {
-          Button({ type: ButtonType.Circle }) { Text('🔔').fontSize(14) }
+          Button({ type: ButtonType.Circle }) { AppIcon({ name: 'bell', iconSize: 16 }) }
             .width(34).height(34).backgroundColor('#A6FFFFFF')
             .border({ width: 1, color: '#99FFB3CE' })
             .onClick(() => AppRoute.go(Routes.Notices))
@@ -123,7 +124,7 @@ struct HomePage {
       .width('100%').padding({ left: 18, right: 18, top: 12 })
 
       Row() {
-        Text('⌕').fontSize(13).fontColor(ElysiaTheme.ROSE_600).margin({ left: 14 })
+        AppIcon({ name: 'search', iconSize: 16, mLeft: 14 })
         TextInput({ placeholder: '搜索课程 · 通知 · 文件', text: this.query })
           .height(40).fontSize(12)
           .backgroundColor(Color.Transparent)
@@ -183,7 +184,7 @@ struct HomePage {
         GridItem() {
           Column() {
             Stack() {
-              Text(q.icon).fontSize(22).fontColor(ElysiaTheme.ROSE_600)
+              AppIcon({ name: q.icon, iconSize: 26 })
             }
             .width(50).height(50).borderRadius(16)
             .linearGradient({ angle: 135, colors: [[Color.White, 0], [ElysiaTheme.ROSE_100, 1]] })
@@ -217,7 +218,7 @@ struct HomePage {
 
     if (courses.length === 0) {
       Column() {
-        Text('✿').fontSize(28).fontColor(ElysiaTheme.ROSE_300)
+        AppIcon({ name: 'petal', iconSize: 30, dim: true })
         Text('今日无课 · 享受片刻闲暇')
           .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 6 })
       }
@@ -246,8 +247,11 @@ struct HomePage {
 
       Column() {
         Text(c.courseName).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-        Text(`📍 ${c.classroom} · ${c.teacher}`)
-          .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 4 })
+        Row() {
+          AppIcon({ name: 'pin', iconSize: 12 })
+          Text(`${c.classroom} · ${c.teacher}`)
+            .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ left: 4 })
+        }.margin({ top: 4 })
       }.layoutWeight(1).alignItems(HorizontalAlign.Start).margin({ left: 12, right: 12 })
 
       Pill({ text: c.courseType })
@@ -316,7 +320,7 @@ struct HomePage {
             Text(`${f.updatedAt} · ${this.formatSize(f.fileSize)}`)
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
           }.alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 10 })
-          Text('↓').fontSize(16).fontColor(ElysiaTheme.ROSE_500)
+          AppIcon({ name: 'download', iconSize: 16 })
         }
         .width('100%').padding(12)
         .backgroundColor(ElysiaTheme.SURFACE).borderRadius(16)

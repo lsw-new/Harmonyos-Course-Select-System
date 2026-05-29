@@ -118,8 +118,8 @@ struct LeavePage {
                 }, (label: string, idx: number) => `type-${idx}`)
               }.width('100%').margin({ top: 4 })
 
-              ElysiaInput({ placeholder: '开始日期 (YYYY-MM-DD)', value: $startDate, leadingIcon: '📅' })
-              ElysiaInput({ placeholder: '结束日期 (YYYY-MM-DD)', value: $endDate, leadingIcon: '📅' })
+              ElysiaInput({ placeholder: '开始日期 (YYYY-MM-DD)', value: $startDate, leadingIcon: 'calendar' })
+              ElysiaInput({ placeholder: '结束日期 (YYYY-MM-DD)', value: $endDate, leadingIcon: 'calendar' })
 
               TextArea({ placeholder: '请假事由', text: this.reason })
                 .height(100).fontSize(13).fontColor(ElysiaTheme.INK)

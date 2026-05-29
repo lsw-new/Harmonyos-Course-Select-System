@@ -1,5 +1,6 @@
 // 通用组件库 · Elysia
 import { ElysiaTheme, Gradients } from './Theme';
+import { AppIcon } from './widgets/AppIcon';
 
 class TabDef {
   id: string = '';
@@ -19,13 +20,7 @@ export struct RoseIcon {
   @Prop color: string = ElysiaTheme.ROSE_500;
 
   build() {
-    Stack() {
-      Text('✿')
-        .fontSize(this.iconSize)
-        .fontColor(this.color)
-    }
-    .width(this.iconSize)
-    .height(this.iconSize)
+    AppIcon({ name: 'rose', iconSize: this.iconSize })
   }
 }
 
@@ -35,9 +30,7 @@ export struct Sparkle {
   @Prop iconSize: number = 12;
   @Prop color: string = ElysiaTheme.GOLD_500;
   build() {
-    Text('✦')
-      .fontSize(this.iconSize)
-      .fontColor(this.color)
+    AppIcon({ name: 'sparkle', iconSize: this.iconSize })
   }
 }
 
@@ -82,7 +75,7 @@ export struct TopBar {
     Row() {
       if (this.showBack) {
         Button({ type: ButtonType.Circle }) {
-          Text('‹').fontSize(20).fontColor(ElysiaTheme.ROSE_700)
+          AppIcon({ name: 'back', iconSize: 18 })
         }
         .width(34).height(34)
         .backgroundColor('#A6FFFFFF')
@@ -211,11 +204,8 @@ export struct ElysiaInput {
         .borderRadius(14)
         .padding({ left: this.leadingIcon ? 38 : 14, right: 14 })
         .onChange((v) => { this.value = v; })
-      if (this.leadingIcon) {
-        Text(this.leadingIcon)
-          .fontSize(14)
-          .fontColor(ElysiaTheme.ROSE_600)
-          .position({ x: 14, y: 16 })
+      if (this.leadingIcon.length > 0) {
+        AppIcon({ name: this.leadingIcon, iconSize: 18, mLeft: 14 })
       }
     }
     .width('100%')
@@ -268,20 +258,18 @@ export struct ElysiaTabBar {
   @Prop active: string = 'home';
 
   private tabs: TabDef[] = [
-    new TabDef('home', 'Home', '⌂'),
-    new TabDef('mine', 'Mine', '○'),
-    new TabDef('eval', 'Eval', '✦'),
-    new TabDef('pra', 'Prac', '❀'),
-    new TabDef('pub', 'Pub', '✧')
+    new TabDef('home', 'Home', 'home'),
+    new TabDef('mine', 'Mine', 'mine'),
+    new TabDef('eval', 'Eval', 'evaluation'),
+    new TabDef('pra', 'Prac', 'practice'),
+    new TabDef('pub', 'Pub', 'public')
   ];
 
   build() {
     Row() {
       ForEach(this.tabs, (tab: TabDef) => {
         Column() {
-          Text(tab.icon)
-            .fontSize(20)
-            .fontColor(tab.id === this.active ? ElysiaTheme.ROSE_600 : ElysiaTheme.INK_MUTE)
+          AppIcon({ name: tab.icon, iconSize: 24, dim: tab.id !== this.active })
           Text(tab.label)
             .fontSize(11)
             .fontStyle(FontStyle.Italic)

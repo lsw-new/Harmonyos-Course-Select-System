@@ -65,13 +65,13 @@ struct LoginPage {
             ElysiaInput({
               placeholder: '学号 / Student ID',
               value: $studentId,
-              leadingIcon: '◯'
+              leadingIcon: 'mine'
             })
             ElysiaInput({
               placeholder: '密码 / Password',
               value: $password,
               secure: true,
-              leadingIcon: '⌬'
+              leadingIcon: 'lock'
             })
 
             // 记住我 / 忘记密码

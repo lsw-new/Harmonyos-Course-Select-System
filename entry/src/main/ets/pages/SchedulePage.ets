@@ -1,6 +1,7 @@
 // 我的课表 · Schedule
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseIcon, ElysiaTabBar } from '../common/Components';
+import { AppIcon } from '../common/widgets/AppIcon';
 
 function generateWeekNumbers(): number[] {
   let weeks: number[] = [];
@@ -69,20 +70,14 @@ struct SchedulePage {
 
             Blank().layoutWeight(1)
 
-            Button('‹')
+            Button({ type: ButtonType.Circle }) { AppIcon({ name: 'back', iconSize: 16 }) }
               .width(34).height(34)
-              .type(ButtonType.Circle)
-              .fontSize(14)
               .backgroundColor('#A6FFFFFF')
-              .fontColor(ElysiaTheme.ROSE_700)
               .border({ width: 1, color: '#99FFB3CE' })
               .onClick(() => { if (this.currentWeek > 1) this.currentWeek--; })
-            Button('›')
+            Button({ type: ButtonType.Circle }) { AppIcon({ name: 'forward', iconSize: 16 }) }
               .width(34).height(34)
-              .type(ButtonType.Circle)
-              .fontSize(14)
               .backgroundColor('#A6FFFFFF')
-              .fontColor(ElysiaTheme.ROSE_700)
               .border({ width: 1, color: '#99FFB3CE' })
               .margin({ left: 6 })
               .onClick(() => { if (this.currentWeek < 18) this.currentWeek++; })

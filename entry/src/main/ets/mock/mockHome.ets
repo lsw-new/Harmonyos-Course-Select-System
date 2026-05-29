@@ -11,14 +11,14 @@ const term: TermInfo = {
 };
 
 const quickEntries: QuickEntry[] = [
-  { key: 'schedule', label: '我的课表', icon: '🗓', route: 'pages/SchedulePage' },
-  { key: 'grades', label: '我的成绩', icon: '✦', route: 'pages/GradesPage' },
-  { key: 'selection', label: '选课中心', icon: '❀', route: 'pages/SelectionPage' },
-  { key: 'eval', label: '量化评教', icon: '✿', route: 'pages/EvalPage' },
-  { key: 'exam', label: '考试安排', icon: '✎', route: 'pages/ExamPage' },
-  { key: 'notice', label: '通知公告', icon: '✉', route: 'pages/NoticesPage' },
-  { key: 'roster', label: '学籍信息', icon: '◉', route: 'pages/RosterPage' },
-  { key: 'practice', label: '实践公服', icon: '✤', route: 'pages/PracticePage' }
+  { key: 'schedule', label: '我的课表', icon: 'schedule', route: 'pages/SchedulePage' },
+  { key: 'grades', label: '我的成绩', icon: 'grades', route: 'pages/GradesPage' },
+  { key: 'selection', label: '选课中心', icon: 'selection', route: 'pages/SelectionPage' },
+  { key: 'eval', label: '量化评教', icon: 'evaluation', route: 'pages/EvalPage' },
+  { key: 'exam', label: '考试安排', icon: 'exam', route: 'pages/ExamPage' },
+  { key: 'notice', label: '通知公告', icon: 'notice', route: 'pages/NoticesPage' },
+  { key: 'roster', label: '学籍信息', icon: 'roster', route: 'pages/RosterPage' },
+  { key: 'practice', label: '实践公服', icon: 'practice', route: 'pages/PracticePage' }
 ];
 
 const files: DownloadFile[] = [

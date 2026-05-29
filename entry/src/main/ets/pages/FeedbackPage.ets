@@ -96,12 +96,12 @@ struct FeedbackPage {
                 }, (label: string, idx: number) => `cat-${idx}`)
               }.width('100%').margin({ top: 4 })
 
-              ElysiaInput({ placeholder: '标题', value: $title, leadingIcon: '✎' })
+              ElysiaInput({ placeholder: '标题', value: $title, leadingIcon: 'edit' })
               TextArea({ placeholder: '详细描述', text: this.content })
                 .height(120).fontSize(13).fontColor(ElysiaTheme.INK)
                 .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
                 .onChange((v: string) => { this.content = v; })
-              ElysiaInput({ placeholder: '联系方式（选填）', value: $contact, leadingIcon: '☎' })
+              ElysiaInput({ placeholder: '联系方式（选填）', value: $contact, leadingIcon: 'phone' })
 
               if (this.errorMsg.length > 0) {
                 Text(this.errorMsg).fontSize(12).fontColor('#D8546B')

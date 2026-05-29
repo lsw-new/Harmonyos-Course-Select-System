@@ -3,6 +3,7 @@ import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, RoseDivider, Monogram } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
+import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AdminProfile } from '../models/Admin';
@@ -33,17 +34,17 @@ struct AdminProfilePage {
 
   @Builder EntryRow(icon: string, label: string, hint: string) {
     Row() {
-      Text(icon).fontSize(16).margin({ right: 10 })
+      AppIcon({ name: icon, iconSize: 18, mRight: 10 })
       Text(label).fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
       Text(hint).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
-      Text(' ›').fontSize(14).fontColor(ElysiaTheme.INK_MUTE)
+      AppIcon({ name: 'forward', iconSize: 14, dim: true, mLeft: 6 })
     }.width('100%').padding({ top: 12, bottom: 12 })
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
   }
 
   @Builder ToggleRow(icon: string, label: string, isOn: boolean, onChange: (v: boolean) => void) {
     Row() {
-      Text(icon).fontSize(16).margin({ right: 10 })
+      AppIcon({ name: icon, iconSize: 18, mRight: 10 })
       Text(label).fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
       Toggle({ type: ToggleType.Switch, isOn: isOn })
         .selectedColor(ElysiaTheme.ROSE_500)
@@ -86,24 +87,24 @@ struct AdminProfilePage {
             // 系统管理
             Column() {
               Text('系统管理').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.EntryRow('◉', '角色管理', '')
-              this.EntryRow('◐', '权限矩阵', '')
-              this.EntryRow('✦', '我的权限', `${this.profile?.permissions.length ?? 0} 项`)
-              this.EntryRow('✎', '操作日志', '')
-              this.EntryRow('📅', '校历管理', '')
-              this.EntryRow('✿', '审批流配置', '')
-              this.EntryRow('✉', '消息模板', '')
-              this.EntryRow('🔒', '安全策略', '')
+              this.EntryRow('students', '角色管理', '')
+              this.EntryRow('dashboard', '权限矩阵', '')
+              this.EntryRow('star', '我的权限', `${this.profile?.permissions.length ?? 0} 项`)
+              this.EntryRow('file', '操作日志', '')
+              this.EntryRow('calendar', '校历管理', '')
+              this.EntryRow('approve', '审批流配置', '')
+              this.EntryRow('mail', '消息模板', '')
+              this.EntryRow('lock', '安全策略', '')
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
 
             // 偏好
             Column() {
               Text('偏好').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.ToggleRow('🌙', '夜间模式', this.darkMode, (v: boolean) => { this.darkMode = v; })
-              this.ToggleRow('🔔', '消息推送', this.pushEnabled, (v: boolean) => { this.pushEnabled = v; })
-              this.EntryRow('ℹ', '关于系统', 'V1.0.0')
-              this.EntryRow('🔑', '修改密码', '')
+              this.ToggleRow('star', '夜间模式', this.darkMode, (v: boolean) => { this.darkMode = v; })
+              this.ToggleRow('bell', '消息推送', this.pushEnabled, (v: boolean) => { this.pushEnabled = v; })
+              this.EntryRow('info', '关于系统', 'V1.0.0')
+              this.EntryRow('unlock', '修改密码', '')
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: '#66FFB3CE' })
 

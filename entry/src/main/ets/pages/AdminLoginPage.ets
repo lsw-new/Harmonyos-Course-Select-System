@@ -67,8 +67,8 @@ struct AdminLoginPage {
 
         Scroll() {
           Column({ space: 14 }) {
-            ElysiaInput({ placeholder: '工号', value: $adminId, leadingIcon: '◉' })
-            ElysiaInput({ placeholder: '密码', value: $password, secure: true, leadingIcon: '🔒' })
+            ElysiaInput({ placeholder: '工号', value: $adminId, leadingIcon: 'students' })
+            ElysiaInput({ placeholder: '密码', value: $password, secure: true, leadingIcon: 'lock' })
 
             Row({ space: 10 }) {
               TextInput({ placeholder: '验证码', text: this.captcha })

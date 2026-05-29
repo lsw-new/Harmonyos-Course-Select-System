@@ -1,7 +1,8 @@
 // 通用状态视图：Loading / Empty / Error
 import { ElysiaTheme } from '../Theme';
-import { AppFontFamily, AppFontSize } from '../constants/TextStyles';
+import { AppFontSize } from '../constants/TextStyles';
 import { AppSpacing } from '../constants/Dimensions';
+import { AppIcon } from './AppIcon';
 
 @Component
 export struct LoadingState {
@@ -26,16 +27,13 @@ export struct LoadingState {
 
 @Component
 export struct EmptyState {
-  @Prop icon: string = '✿';
+  @Prop icon: string = 'petal';
   @Prop title: string = '暂无数据';
   @Prop hint: string = '';
 
   build() {
     Column() {
-      Text(this.icon)
-        .fontSize(48)
-        .fontColor(ElysiaTheme.ROSE_300)
-        .fontFamily(AppFontFamily.display)
+      AppIcon({ name: this.icon, iconSize: 52, dim: true })
       Text(this.title)
         .fontSize(AppFontSize.bodyLarge)
         .fontColor(ElysiaTheme.INK_SOFT)
@@ -61,9 +59,7 @@ export struct ErrorState {
 
   build() {
     Column() {
-      Text('✦')
-        .fontSize(40)
-        .fontColor(ElysiaTheme.ROSE_500)
+      AppIcon({ name: 'error', iconSize: 44 })
       Text(this.message)
         .fontSize(AppFontSize.bodyLarge)
         .fontColor(ElysiaTheme.INK_SOFT)

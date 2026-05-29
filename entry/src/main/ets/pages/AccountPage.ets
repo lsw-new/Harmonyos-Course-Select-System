@@ -2,6 +2,7 @@
 import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, Monogram, RoseIcon, Sparkle } from '../common/Components';
+import { AppIcon } from '../common/widgets/AppIcon';
 
 @Entry
 @Component
@@ -34,17 +35,17 @@ struct AccountPage {
 
             Row({space:10}) {
               Column() {
-                Text('⌘').fontSize(22).fontColor(ElysiaTheme.ROSE_700)
+                AppIcon({ name: 'lock', iconSize: 24 })
                 Text('修改密码').fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({top:6})
               }.layoutWeight(1).padding({top:14, bottom:14})
               .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({width:1, color:'#66FFB3CE'})
               Column() {
-                Text('📷').fontSize(22).fontColor(ElysiaTheme.ROSE_700)
+                AppIcon({ name: 'camera', iconSize: 24 })
                 Text('更换头像').fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({top:6})
               }.layoutWeight(1).padding({top:14, bottom:14})
               .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({width:1, color:'#66FFB3CE'})
               Column() {
-                Text('⏏').fontSize(22).fontColor(ElysiaTheme.ROSE_700)
+                AppIcon({ name: 'close', iconSize: 24 })
                 Text('退出登录').fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({top:6})
               }.layoutWeight(1).padding({top:14, bottom:14})
               .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({width:1, color:'#66FFB3CE'})

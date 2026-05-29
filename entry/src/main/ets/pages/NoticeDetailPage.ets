@@ -6,6 +6,7 @@ import { CourseRepository } from '../repositories/CourseRepository';
 import { Notice, NoticeAttachment } from '../models/Notice';
 import { AppRoute } from '../app/AppRoute';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
+import { AppIcon } from '../common/widgets/AppIcon';
 import { HttpError } from '../common/http/HttpError';
 
 @Entry
@@ -79,7 +80,7 @@ struct NoticeDetailPage {
                   Text('附件').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                   ForEach(this.notice!.attachments, (att: NoticeAttachment) => {
                     Row() {
-                      Text('📎').fontSize(14).margin({ right: 8 })
+                      AppIcon({ name: 'file', iconSize: 16, mRight: 8 })
                       Column() {
                         Text(att.fileName).fontSize(13).fontColor(ElysiaTheme.INK)
                         if (att.fileSize) {

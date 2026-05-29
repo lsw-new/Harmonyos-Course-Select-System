@@ -3,6 +3,7 @@ import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, PrimaryButton, GhostButton, RoseDivider } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
+import { AppIcon } from '../common/widgets/AppIcon';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { ApprovalItem, ApprovalDetail, ApprovalFlowNode } from '../models/Admin';
 import { AppRoute } from '../app/AppRoute';
@@ -122,7 +123,7 @@ struct AdminApprovalsPage {
                       Text(a.title).fontSize(14).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                       Text(`${a.applicantName} · ${a.submittedAt}`).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
                     }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-                    Text('›').fontSize(16).fontColor(ElysiaTheme.ROSE_500)
+                    AppIcon({ name: 'forward', iconSize: 16 })
                   }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
                   .border({ width: 1, color: '#66FFB3CE' })
                   .onClick(() => { this.openDetail(a.id); })

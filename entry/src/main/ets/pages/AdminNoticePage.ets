@@ -62,14 +62,14 @@ struct AdminNoticePage {
 
         Scroll() {
           Column({ space: 14 }) {
-            ElysiaInput({ placeholder: '通知标题', value: $title, leadingIcon: '✎' })
+            ElysiaInput({ placeholder: '通知标题', value: $title, leadingIcon: 'edit' })
 
             TextArea({ placeholder: '通知正文', text: this.content })
               .height(160).fontSize(13).fontColor(ElysiaTheme.INK)
               .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
               .onChange((v: string) => { this.content = v; })
 
-            ElysiaInput({ placeholder: '发布单位', value: $publisher, leadingIcon: '◉' })
+            ElysiaInput({ placeholder: '发布单位', value: $publisher, leadingIcon: 'public' })
 
             // 紧急程度
             Column({ space: 6 }) {

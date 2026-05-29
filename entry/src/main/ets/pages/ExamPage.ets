@@ -2,6 +2,7 @@
 import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, Monogram, RoseIcon, Sparkle } from '../common/Components';
+import { AppIcon } from '../common/widgets/AppIcon';
 
 class ExamItem {
   date: string = '';
@@ -78,8 +79,16 @@ struct ExamPage {
                       Text(e.name).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
                       Pill({text: e.type})
                     }
-                    Text('🕐 ' + e.time).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({top:6})
-                    Text('📍 ' + e.room + ' · 🪑 座位 ' + e.seat).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({top:4})
+                    Row() {
+                      AppIcon({ name: 'time', iconSize: 12 })
+                      Text(e.time).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({left:4})
+                    }.margin({top:6})
+                    Row() {
+                      AppIcon({ name: 'pin', iconSize: 12 })
+                      Text(e.room).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({left:4})
+                      AppIcon({ name: 'tag', iconSize: 12, mLeft: 8 })
+                      Text('座位 ' + e.seat).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({left:4})
+                    }.margin({top:4})
                   }
                   .alignItems(HorizontalAlign.Start).layoutWeight(1).margin({left:14})
                 }

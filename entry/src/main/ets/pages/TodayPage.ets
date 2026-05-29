@@ -2,6 +2,7 @@
 import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, Monogram, RoseIcon, Sparkle } from '../common/Components';
+import { AppIcon } from '../common/widgets/AppIcon';
 
 class TodayCourseItem {
   t: string = '';
@@ -69,7 +70,10 @@ struct TodayPage {
                   Stack().width(9).height(9).borderRadius(5).backgroundColor(ElysiaTheme.ROSE_500).margin({left:8, right:8})
                   Column() {
                     Text(c.name).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-                    Text('📍 ' + c.room + ' · ' + c.teacher).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({top:4})
+                    Row() {
+                      AppIcon({ name: 'pin', iconSize: 12 })
+                      Text(c.room + ' · ' + c.teacher).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({left:4})
+                    }.margin({top:4})
                   }.alignItems(HorizontalAlign.Start).layoutWeight(1)
                 }
                 .width('100%').padding(12)

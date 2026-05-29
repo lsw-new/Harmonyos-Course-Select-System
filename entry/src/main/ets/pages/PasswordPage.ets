@@ -84,8 +84,8 @@ struct PasswordPage {
             RoseDivider({ label: 'form' })
 
             Column({ space: 14 }) {
-              ElysiaInput({ placeholder: '原密码', value: $oldPassword, secure: true, leadingIcon: '🔒' })
-              ElysiaInput({ placeholder: '新密码', value: $newPassword, secure: true, leadingIcon: '🔑' })
+              ElysiaInput({ placeholder: '原密码', value: $oldPassword, secure: true, leadingIcon: 'lock' })
+              ElysiaInput({ placeholder: '新密码', value: $newPassword, secure: true, leadingIcon: 'unlock' })
 
               if (this.newPassword.length > 0) {
                 Row() {
@@ -95,7 +95,7 @@ struct PasswordPage {
                 .width('100%').padding({ left: 4 })
               }
 
-              ElysiaInput({ placeholder: '确认新密码', value: $confirmPassword, secure: true, leadingIcon: '🔑' })
+              ElysiaInput({ placeholder: '确认新密码', value: $confirmPassword, secure: true, leadingIcon: 'unlock' })
 
               if (this.errorMsg.length > 0) {
                 Text(this.errorMsg).fontSize(12).fontColor('#D8546B').margin({ top: 4 })

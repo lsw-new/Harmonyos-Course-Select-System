@@ -2,6 +2,7 @@
 import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { Monogram, RoseDivider, Pill, ElysiaTabBar } from '../common/Components';
+import { AppIcon } from '../common/widgets/AppIcon';
 
 class QuickItem {
   icon: string = '';
@@ -30,30 +31,30 @@ struct MinePage {
   @State darkMode: boolean = true;
 
   private quickItems: QuickItem[] = [
-    new QuickItem('◰', '课表', 'pages/SchedulePage'),
-    new QuickItem('✓', '成绩', 'pages/GradesPage'),
-    new QuickItem('☰', '选课', 'pages/SelectionPage'),
-    new QuickItem('◔', '学籍', 'pages/RosterPage'),
-    new QuickItem('◧', '考试', 'pages/ExamPage'),
-    new QuickItem('✦', '评教', 'pages/EvalPage'),
-    new QuickItem('◐', '通知', 'pages/NoticesPage'),
-    new QuickItem('＋', '更多', '')
+    new QuickItem('schedule', '课表', 'pages/SchedulePage'),
+    new QuickItem('grades', '成绩', 'pages/GradesPage'),
+    new QuickItem('selection', '选课', 'pages/SelectionPage'),
+    new QuickItem('roster', '学籍', 'pages/RosterPage'),
+    new QuickItem('exam', '考试', 'pages/ExamPage'),
+    new QuickItem('evaluation', '评教', 'pages/EvalPage'),
+    new QuickItem('notice', '通知', 'pages/NoticesPage'),
+    new QuickItem('more', '更多', '')
   ];
 
   private affairs: MineEntry[] = [
-    { icon: '👤', title: '我的账户', subtitle: '账号信息 · 状态 · 有效期', route: 'pages/AccountPage' },
-    { icon: '✎', title: '修改个人信息', subtitle: '手机 · 邮箱 · 头像 · 联系人' },
-    { icon: '⌘', title: '修改密码', subtitle: '强度建议 · 8 位以上' },
-    { icon: '🌸', title: '我的请假', subtitle: '3 条记录', badge: '1' },
-    { icon: '📜', title: '办事大厅', subtitle: '课程替代 · 缓考 · 转专业…' }
+    { icon: 'wallet', title: '我的账户', subtitle: '账号信息 · 状态 · 有效期', route: 'pages/AccountPage' },
+    { icon: 'edit', title: '修改个人信息', subtitle: '手机 · 邮箱 · 头像 · 联系人' },
+    { icon: 'lock', title: '修改密码', subtitle: '强度建议 · 8 位以上' },
+    { icon: 'leave', title: '我的请假', subtitle: '3 条记录', badge: '1' },
+    { icon: 'public', title: '办事大厅', subtitle: '课程替代 · 缓考 · 转专业…' }
   ];
 
   @State prefs: MineEntry[] = [
-    { icon: '⚙', title: '系统设置', subtitle: '消息 · 缓存 · 深色模式' },
-    { icon: '💌', title: '意见反馈', subtitle: '帮我们变得更好' },
-    { icon: '☾', title: '夜间模式', subtitle: '减少屏幕灼伤', toggle: true },
-    { icon: 'ⓘ', title: '关于', subtitle: 'v1.1.0 · 协议 · 隐私政策' },
-    { icon: '⏏', title: '退出登录', subtitle: '清除本地凭据', danger: true }
+    { icon: 'settings', title: '系统设置', subtitle: '消息 · 缓存 · 深色模式' },
+    { icon: 'feedback', title: '意见反馈', subtitle: '帮我们变得更好' },
+    { icon: 'star', title: '夜间模式', subtitle: '减少屏幕灼伤', toggle: true },
+    { icon: 'info', title: '关于', subtitle: 'v1.1.0 · 协议 · 隐私政策' },
+    { icon: 'close', title: '退出登录', subtitle: '清除本地凭据', danger: true }
   ];
 
   build() {
@@ -78,7 +79,7 @@ struct MinePage {
               .fontFamily(ElysiaTheme.FONT_DISPLAY)
             Blank().layoutWeight(1)
             Button({ type: ButtonType.Circle }) {
-              Text('⚙').fontSize(14).fontColor(ElysiaTheme.ROSE_700)
+              AppIcon({ name: 'settings', iconSize: 16 })
             }
             .width(34).height(34)
             .backgroundColor('#A6FFFFFF')
@@ -140,7 +141,7 @@ struct MinePage {
                 GridItem() {
                   Column() {
                     Stack() {
-                      Text(it.icon).fontSize(18).fontColor(ElysiaTheme.ROSE_700)
+                      AppIcon({ name: it.icon, iconSize: 22 })
                     }
                     .width(46).height(46)
                     .borderRadius(14)
@@ -205,9 +206,7 @@ struct MinePage {
       ForEach(items, (it: MineEntry, idx?: number) => {
         Row() {
           Stack() {
-            Text(it.icon)
-              .fontSize(14)
-              .fontColor(it.danger ? ElysiaTheme.ROSE_700 : ElysiaTheme.ROSE_700)
+            AppIcon({ name: it.icon, iconSize: 18 })
           }
           .width(34).height(34)
           .borderRadius(11)
@@ -248,7 +247,7 @@ struct MinePage {
               .selectedColor(ElysiaTheme.ROSE_500)
               .onChange((v: boolean) => { this.darkMode = v; })
           } else {
-            Text('›').fontSize(14).fontColor(ElysiaTheme.INK_MUTE)
+            AppIcon({ name: 'forward', iconSize: 14, dim: true })
           }
         }
         .width('100%')

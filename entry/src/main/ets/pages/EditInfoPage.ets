@@ -101,10 +101,10 @@ struct EditInfoPage {
               RoseDivider({ label: 'editable' })
 
               Column({ space: 12 }) {
-                ElysiaInput({ placeholder: '手机号', value: $phone, leadingIcon: '📱' })
-                ElysiaInput({ placeholder: '邮箱', value: $email, leadingIcon: '✉' })
-                ElysiaInput({ placeholder: '通讯地址', value: $address, leadingIcon: '📍' })
-                ElysiaInput({ placeholder: '紧急联系人', value: $emergencyContact, leadingIcon: '☎' })
+                ElysiaInput({ placeholder: '手机号', value: $phone, leadingIcon: 'phone' })
+                ElysiaInput({ placeholder: '邮箱', value: $email, leadingIcon: 'mail' })
+                ElysiaInput({ placeholder: '通讯地址', value: $address, leadingIcon: 'location' })
+                ElysiaInput({ placeholder: '紧急联系人', value: $emergencyContact, leadingIcon: 'phone' })
                 TextArea({ placeholder: '个人简介', text: this.bio })
                   .height(80).fontSize(13).fontColor(ElysiaTheme.INK)
                   .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)

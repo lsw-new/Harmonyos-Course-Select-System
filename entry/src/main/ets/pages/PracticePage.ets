@@ -2,6 +2,7 @@
 import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, Pill } from '../common/Components';
+import { AppIcon } from '../common/widgets/AppIcon';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { PracticeEntry } from '../models/Misc';
 import { LoadingState } from '../common/widgets/StateViews';
@@ -72,7 +73,7 @@ struct PracticePage {
       if (!item.available) {
         Pill({ text: '建设中', color: ElysiaTheme.INK_MUTE, bg: '#F0F0F0' })
       } else {
-        Text('›').fontSize(16).fontColor(ElysiaTheme.ROSE_500)
+        AppIcon({ name: 'forward', iconSize: 16 })
       }
     }
     .width('100%').padding(14)
