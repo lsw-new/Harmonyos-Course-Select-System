@@ -15,7 +15,6 @@ struct GradesPage {
   @State summary?: GradeSummary = undefined;
   @State loading: boolean = true;
   @State errorMsg: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   // '全部' must come first; remaining terms are the EXACT strings in mockGrades
   private terms: string[] = ['全部', '2025-2026-1', '2025-2026-2'];
@@ -46,7 +45,7 @@ struct GradesPage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: ElysiaTheme.pageGradient(this.darkMode)
+          colors: ElysiaTheme.pageGradient()
         })
 
       Column() {
@@ -63,13 +62,13 @@ struct GradesPage {
                 .fontSize(11)
                 .fontWeight(FontWeight.Medium)
                 .fontColor(i === this.activeTerm ? Color.White : ElysiaTheme.ROSE_700)
-                .backgroundColor(i === this.activeTerm ? '' : ElysiaTheme.glass(this.darkMode))
+                .backgroundColor(i === this.activeTerm ? '' : ElysiaTheme.glass())
                 .linearGradient(i === this.activeTerm ? {
                   angle: 135,
                   colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]]
                 } : { angle: 0, colors: [['#00FFFFFF', 0]] })
                 .borderRadius(999)
-                .border({ width: i === this.activeTerm ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
+                .border({ width: i === this.activeTerm ? 0 : 1, color: ElysiaTheme.hairline() })
                 .onClick(() => {
                   this.activeTerm = i ?? 0;
                   this.loadData();
@@ -175,7 +174,7 @@ struct GradesPage {
     .layoutWeight(1)
     .padding({ top: 10, bottom: 10 })
     .borderRadius(14)
-    .backgroundColor(ElysiaTheme.glassSoft(this.darkMode))
+    .backgroundColor(ElysiaTheme.glassSoft())
   }
 
   @Builder GradeCard(g: GradeRecord) {
@@ -227,7 +226,7 @@ struct GradesPage {
 
       Divider()
         .strokeWidth(1)
-        .color(ElysiaTheme.hairline(this.darkMode))
+        .color(ElysiaTheme.hairline())
         .margin({ top: 10, bottom: 10 })
 
       Row() {
@@ -240,7 +239,7 @@ struct GradesPage {
     .padding(14)
     .backgroundColor(ElysiaTheme.SURFACE)
     .borderRadius(22)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     .shadow({ radius: 16, color: '#1FD85487', offsetX: 0, offsetY: 4 })
   }
 

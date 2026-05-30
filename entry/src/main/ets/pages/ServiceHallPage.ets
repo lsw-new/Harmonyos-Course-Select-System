@@ -19,7 +19,6 @@ class ServiceTile {
 @Entry
 @Component
 struct ServiceHallPage {
-  @StorageProp('darkMode') darkMode: boolean = false;
   private tiles: ServiceTile[] = [
     new ServiceTile('leave', '请假申请', Routes.Leave),
     new ServiceTile('feedback', '意见反馈', Routes.Feedback),
@@ -41,7 +40,7 @@ struct ServiceHallPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -78,7 +77,7 @@ struct ServiceHallPage {
       .width(52).height(52)
       .borderRadius(16)
       .linearGradient({ angle: 135, colors: [[ElysiaTheme.SURFACE, 0], [ElysiaTheme.ROSE_100, 1]] })
-      .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+      .border({ width: 1, color: ElysiaTheme.hairline() })
 
       Text(it.label)
         .fontSize(12).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 8 })

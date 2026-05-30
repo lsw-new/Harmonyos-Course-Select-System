@@ -37,7 +37,6 @@ struct PracticeDetailPage {
   @State errorMsg: string = '';
   @State submitting: boolean = false;
   @State confirmingCancel: boolean = false;
-  @StorageProp('darkMode') darkMode: boolean = false;
   private projectId: string = '';
 
   aboutToAppear(): void {
@@ -123,7 +122,7 @@ struct PracticeDetailPage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: ElysiaTheme.pageGradient(this.darkMode)
+          colors: ElysiaTheme.pageGradient()
         })
 
       Column() {
@@ -186,7 +185,7 @@ struct PracticeDetailPage {
             }, (row: InfoRow) => row.label)
           }
           .width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-          .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+          .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
           // 项目简介
           Column({ space: 8 }) {
@@ -196,7 +195,7 @@ struct PracticeDetailPage {
               .lineHeight(20).width('100%')
           }
           .width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-          .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+          .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
           // 报名要求
           if (d.requirements.length > 0) {
@@ -211,7 +210,7 @@ struct PracticeDetailPage {
               }, (req: string, idx: number) => `req-${idx}`)
             }
             .width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
           }
 
           SafeBottom()
@@ -227,8 +226,8 @@ struct PracticeDetailPage {
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 10, bottom: 18 })
-      .backgroundColor(ElysiaTheme.barBg(this.darkMode))
-      .border({ width: { top: 1 }, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+      .backgroundColor(ElysiaTheme.barBg())
+      .border({ width: { top: 1 }, color: ElysiaTheme.hairlineSoft() })
     }
     .layoutWeight(1)
     .width('100%')
@@ -261,7 +260,7 @@ struct PracticeDetailPage {
 
   @Builder CancelOverlay() {
     Stack() {
-      Column().width('100%').height('100%').backgroundColor(ElysiaTheme.scrim(this.darkMode))
+      Column().width('100%').height('100%').backgroundColor(ElysiaTheme.scrim())
         .onClick(() => { this.confirmingCancel = false; })
 
       Column({ space: 14 }) {
@@ -275,7 +274,7 @@ struct PracticeDetailPage {
         }.width('100%')
       }
       .width('80%').padding(22).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-      .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+      .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
       .shadow({ radius: 24, color: '#33000000', offsetX: 0, offsetY: 8 })
     }
     .width('100%').height('100%')

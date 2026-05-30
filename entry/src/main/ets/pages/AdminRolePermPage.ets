@@ -27,7 +27,6 @@ struct AdminRolePermPage {
   @State errorMsg: string = '';
   @State roles: AdminRoleView[] = [];
   @State myPerms: PermItem[] = [];
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminRolePerm)) return;
@@ -146,7 +145,7 @@ struct AdminRolePermPage {
       }.width('100%').margin({ top: 10 })
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) }).margin({ bottom: 10 })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).margin({ bottom: 10 })
   }
 
   // 权限矩阵：逐角色列出其各模块拥有的操作（移动端友好，避免过宽的真表格）
@@ -171,7 +170,7 @@ struct AdminRolePermPage {
       }, (mod: ModuleLabel, idx: number) => `${role.id}-mod-${mod.key}`)
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) }).margin({ bottom: 10 })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).margin({ bottom: 10 })
   }
 
   @Builder MyPermGroup(group: PermModuleGroup) {
@@ -190,7 +189,7 @@ struct AdminRolePermPage {
       }, (perm: PermItem) => `my-${group.module}-${perm.code}`)
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) }).margin({ bottom: 10 })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).margin({ bottom: 10 })
   }
 
   @Builder Body() {
@@ -228,7 +227,7 @@ struct AdminRolePermPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()

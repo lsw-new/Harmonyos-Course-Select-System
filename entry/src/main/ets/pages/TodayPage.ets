@@ -20,7 +20,6 @@ struct TodayPage {
   @State activeTab: number = 0;
   @State loading: boolean = true;
   @State errorMsg: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
   // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
   @StorageProp('safeBottom') safeBottom: number = 0;
 
@@ -58,7 +57,7 @@ struct TodayPage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: ElysiaTheme.pageGradient(this.darkMode)
+          colors: ElysiaTheme.pageGradient()
         })
 
       Column() {
@@ -72,11 +71,11 @@ struct TodayPage {
                 Button(t).height(28).fontSize(11).padding({ left: 14, right: 14 })
                   .borderRadius(999)
                   .fontColor((i ?? 0) === this.activeTab ? Color.White : ElysiaTheme.ROSE_700)
-                  .backgroundColor((i ?? 0) === this.activeTab ? '' : ElysiaTheme.glass(this.darkMode))
+                  .backgroundColor((i ?? 0) === this.activeTab ? '' : ElysiaTheme.glass())
                   .linearGradient((i ?? 0) === this.activeTab
                     ? { angle: 135, colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]] }
                     : { angle: 0, colors: [['#00FFFFFF', 0]] })
-                  .border({ width: (i ?? 0) === this.activeTab ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
+                  .border({ width: (i ?? 0) === this.activeTab ? 0 : 1, color: ElysiaTheme.hairline() })
                   .onClick(() => {
                     this.activeTab = i ?? 0;
                     this.loadData();
@@ -123,7 +122,7 @@ struct TodayPage {
                   }
                   .width('100%').padding(12)
                   .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-                  .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+                  .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                   .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
                   .onClick(() => {
                     let p: Record<string, Object> = { 'id': c.courseId };

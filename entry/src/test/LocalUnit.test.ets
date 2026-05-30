@@ -6,7 +6,6 @@ import { SessionStorage } from '../main/ets/common/storage/SessionStorage';
 import { PreferenceStorage } from '../main/ets/common/storage/PreferenceStorage';
 import { AdminCourseWritePayload, GradeAuditItem } from '../main/ets/models/Admin';
 import { FileService } from '../main/ets/common/services/FileService';
-import { ElysiaTheme } from '../main/ets/common/Theme';
 
 async function clearLocalUnitState(): Promise<void> {
   await SessionStorage.get().clear();
@@ -48,30 +47,12 @@ export default function localUnitTest() {
     beforeAll(() => {
     });
     beforeEach(async () => {
-      ElysiaTheme.setDarkMode(false);
       await clearLocalUnitState();
     });
     afterEach(async () => {
-      ElysiaTheme.setDarkMode(false);
       await clearLocalUnitState();
     });
     afterAll(() => {
-    });
-
-    it('elysiaThemeReturnsDarkPaletteAfterDarkModeIsEnabled', 0, () => {
-      const lightSurface = ElysiaTheme.SURFACE;
-      const lightInk = ElysiaTheme.INK;
-
-      ElysiaTheme.setDarkMode(true);
-
-      expect(ElysiaTheme.isDarkMode()).assertTrue();
-      expect(ElysiaTheme.SURFACE !== lightSurface).assertTrue();
-      expect(ElysiaTheme.INK !== lightInk).assertTrue();
-
-      ElysiaTheme.setDarkMode(false);
-      expect(ElysiaTheme.isDarkMode()).assertFalse();
-      expect(ElysiaTheme.SURFACE).assertEqual(lightSurface);
-      expect(ElysiaTheme.INK).assertEqual(lightInk);
     });
 
     it('localDataStoreReturnsFallbackWhenPreferencesAreUnavailable', 0, async () => {

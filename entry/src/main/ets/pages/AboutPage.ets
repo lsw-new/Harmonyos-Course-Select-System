@@ -19,7 +19,6 @@ class CreditItem {
 @Entry
 @Component
 struct AboutPage {
-  @StorageProp('darkMode') darkMode: boolean = false;
   private credits: CreditItem[] = [
     new CreditItem('info', '版本', 'V1.0.0 (build 20260529)'),
     new CreditItem('star', '出品', 'Salon de Elysia 教务工作室'),
@@ -32,7 +31,7 @@ struct AboutPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -51,7 +50,7 @@ struct AboutPage {
               Pill({ text: 'V1.0.0', color: ElysiaTheme.ROSE_700, bg: ElysiaTheme.SURFACE_GLOW })
             }.width('100%').alignItems(HorizontalAlign.Center).padding(24)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             // 简介
             Column({ space: 8 }) {
@@ -60,7 +59,7 @@ struct AboutPage {
                 .fontSize(13).fontColor(ElysiaTheme.INK_SOFT).lineHeight(22)
             }.width('100%').alignItems(HorizontalAlign.Start).padding(16)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             // 构建 / 致谢
             Column() {
@@ -70,7 +69,7 @@ struct AboutPage {
               }, (it: CreditItem) => it.label)
             }.width('100%').padding(16)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             RoseDivider({ label: '法 律 条 款' })
 
@@ -80,7 +79,7 @@ struct AboutPage {
               this.DocLinkRow('隐私政策', 'privacy')
             }.width('100%').padding(16)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Text('© 2026 Salon de Elysia · 保留所有权利')
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE)

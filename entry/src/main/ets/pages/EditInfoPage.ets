@@ -29,7 +29,6 @@ struct EditInfoPage {
   @State className: string = '';
   @State avatarUrl: string = '';
   @State pickingAvatar: boolean = false;
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     ProfileRepository.get().getProfile().then((p: UserProfile) => {
@@ -100,7 +99,7 @@ struct EditInfoPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -119,7 +118,7 @@ struct EditInfoPage {
                 this.ReadonlyRow('专业', this.major)
                 this.ReadonlyRow('班级', this.className)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-              .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
               Column() {
                 Text('头像').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
@@ -137,7 +136,7 @@ struct EditInfoPage {
                     .onClick(() => this.pickAvatar())
                 }
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-              .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
               RoseDivider({ label: 'editable' })
 
@@ -148,7 +147,7 @@ struct EditInfoPage {
                 ElysiaInput({ placeholder: '紧急联系人', value: $emergencyContact, leadingIcon: 'phone' })
                 TextArea({ placeholder: '个人简介', text: this.bio })
                   .height(80).fontSize(13).fontColor(ElysiaTheme.INK)
-                  .backgroundColor(ElysiaTheme.glass(this.darkMode)).border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
+                  .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                   .onChange((v: string) => { this.bio = v; })
 
                 if (this.errorMsg.length > 0) {
@@ -160,7 +159,7 @@ struct EditInfoPage {
 
                 PrimaryButton({ text: this.submitting ? '保存中...' : '保存修改', onTap: () => this.submit() })
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-              .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
               SafeBottom()
             }.padding({ left: 16, right: 16 })

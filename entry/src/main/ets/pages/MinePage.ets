@@ -1,5 +1,4 @@
 // 我的中心 · Mine
-import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { Monogram, RoseDivider } from '../common/Components';
@@ -8,7 +7,6 @@ import { StudentTabBar } from '../common/widgets/TabBars';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
-import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { UserProfile } from '../models/User';
@@ -33,14 +31,12 @@ interface MineEntry {
   subtitle: string;
   route?: string;
   badge?: string;
-  toggle?: boolean;
   danger?: boolean;
 }
 
 @Entry
 @Component
 struct MinePage {
-  @StorageProp('darkMode') darkMode: boolean = false;
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State profile: UserProfile | null = null;
@@ -76,23 +72,14 @@ struct MinePage {
   }
 
   @State prefs: MineEntry[] = [
-    { icon: 'settings', title: '系统设置', subtitle: '消息 · 缓存 · 深色模式', route: Routes.Settings },
+    { icon: 'settings', title: '系统设置', subtitle: '消息 · 缓存 · 字体', route: Routes.Settings },
     { icon: 'feedback', title: '意见反馈', subtitle: '帮我们变得更好', route: Routes.Feedback },
-    { icon: 'star', title: '夜间模式', subtitle: '减少屏幕灼伤', toggle: true },
     { icon: 'info', title: '关于', subtitle: 'v1.1.0 · 协议 · 隐私政策', route: Routes.About },
     { icon: 'close', title: '退出登录', subtitle: '清除本地凭据', danger: true }
   ];
 
   aboutToAppear(): void {
-    // darkMode 由 AppStorage 提供（启动时已从 PreferenceStorage 注入），@StorageProp 自动同步。
     this.loadData();
-  }
-
-  private setDarkModePreference(value: boolean): void {
-    this.darkMode = value;
-    ElysiaTheme.setDarkMode(value);
-    PreferenceStorage.get().putBoolean('darkMode', value);
-    promptAction.showToast({ message: value ? '深色模式已开启' : '深色模式已关闭' });
   }
 
   loadData(): void {
@@ -133,9 +120,6 @@ struct MinePage {
       this.showLogoutConfirm = true;
       return;
     }
-    if (it.toggle) {
-      return;
-    }
     if (it.route && it.route.length > 0) {
       AppRoute.go(it.route);
     }
@@ -146,7 +130,7 @@ struct MinePage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: ElysiaTheme.pageGradient(this.darkMode)
+          colors: ElysiaTheme.pageGradient()
         })
 
       Column() {
@@ -246,7 +230,7 @@ struct MinePage {
                         angle: 135,
                         colors: [[ElysiaTheme.SURFACE, 0], [ElysiaTheme.ROSE_100, 1]]
                       })
-                      .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+                      .border({ width: 1, color: ElysiaTheme.hairline() })
                       Text(it.label)
                         .fontSize(10)
                         .fontColor(ElysiaTheme.INK_SOFT)
@@ -310,7 +294,7 @@ struct MinePage {
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-        .backgroundColor(ElysiaTheme.scrim(this.darkMode))
+        .backgroundColor(ElysiaTheme.scrim())
       }
 
     }
@@ -374,12 +358,6 @@ struct MinePage {
                 angle: 135,
                 colors: [['#FF9FBE', 0], [ElysiaTheme.ROSE_500, 1]]
               })
-          } else if (it.toggle) {
-            Toggle({ type: ToggleType.Switch, isOn: this.darkMode })
-              .selectedColor(ElysiaTheme.ROSE_500)
-              .onChange((v: boolean) => {
-                this.setDarkModePreference(v);
-              })
           } else {
             AppIcon({ name: 'forward', iconSize: 14, dim: true })
           }
@@ -389,7 +367,7 @@ struct MinePage {
         .accessibilityText(it.title)
         .onClick(() => { this.handleEntryTap(it); })
         if (idx !== undefined && idx < items.length - 1) {
-          Divider().strokeWidth(1).color(ElysiaTheme.hairline(this.darkMode))
+          Divider().strokeWidth(1).color(ElysiaTheme.hairline())
         }
       }, (it: MineEntry) => it.title)
     }
@@ -398,7 +376,7 @@ struct MinePage {
     .margin({ left: 16, right: 16 })
     .backgroundColor(ElysiaTheme.SURFACE)
     .borderRadius(22)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     .shadow({ radius: 16, color: '#1FD85487', offsetX: 0, offsetY: 4 })
   }
 }

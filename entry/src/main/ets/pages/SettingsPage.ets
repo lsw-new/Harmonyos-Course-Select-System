@@ -1,7 +1,7 @@
 // 系统设置 · Settings
 import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, Pill } from '../common/Components';
+import { TopBar } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
@@ -27,7 +27,6 @@ struct SettingsPage {
   @State evalReminder: boolean = true;
   @State dndMode: boolean = false;
   @State homeworkReminder: boolean = true;
-  @StorageProp('darkMode') darkMode: boolean = false;
   @State biometric: boolean = false;
   @State fontScale: string = 'normal';
   @State showLogoutConfirm: boolean = false;
@@ -44,20 +43,12 @@ struct SettingsPage {
     PreferenceStorage.get().getBoolean('evalReminder', true).then((v: boolean) => { this.evalReminder = v; });
     PreferenceStorage.get().getBoolean('dndMode', false).then((v: boolean) => { this.dndMode = v; });
     PreferenceStorage.get().getBoolean('homeworkReminder', true).then((v: boolean) => { this.homeworkReminder = v; });
-    // darkMode 由 AppStorage 提供（启动时注入），@StorageProp 自动同步，无需在此读取。
     PreferenceStorage.get().getBoolean('biometric', false).then((v: boolean) => { this.biometric = v; });
     PreferenceStorage.get().getString('fontScale', 'normal').then((v: string) => { this.fontScale = v; });
   }
 
   private togglePref(key: string, value: boolean): void {
     PreferenceStorage.get().putBoolean(key, value);
-  }
-
-  private setDarkModePreference(value: boolean): void {
-    this.darkMode = value;
-    ElysiaTheme.setDarkMode(value);
-    PreferenceStorage.get().putBoolean('darkMode', value);
-    promptAction.showToast({ message: value ? '已切换到深色模式' : '已切换到浅色模式' });
   }
 
   private selectFontScale(key: string): void {
@@ -117,7 +108,7 @@ struct SettingsPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -144,23 +135,10 @@ struct SettingsPage {
                 this.togglePref('homeworkReminder', v);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Column() {
               Text('外观').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              // 主题：状态 Pill 展示当前浅色/深色，点击切换并持久化
-              Row() {
-                Text('主题').fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
-                Pill({
-                  text: this.darkMode ? '深色' : '浅色',
-                  color: ElysiaTheme.ROSE_700,
-                  bg: ElysiaTheme.SURFACE_GLOW
-                })
-                AppIcon({ name: 'forward', iconSize: 14, dim: true, mLeft: 8 })
-              }.width('100%').padding({ top: 14, bottom: 14 })
-              .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
-              .onClick(() => { this.setDarkModePreference(!this.darkMode); })
-
               this.LinkRow('字体大小', this.fontScaleLabel(), () => {
                 this.showFontSheet = true;
               })
@@ -170,11 +148,8 @@ struct SettingsPage {
                 .fontColor(ElysiaTheme.INK_SOFT)
                 .width('100%')
                 .padding({ top: 10, bottom: 4 })
-              this.ToggleRow('深色模式', '与主题同步', this.darkMode, (v: boolean) => {
-                this.setDarkModePreference(v);
-              })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Column() {
               Text('安全与存储').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
@@ -190,7 +165,7 @@ struct SettingsPage {
                 promptAction.showToast({ message: '已是最新版本' });
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Column() {
               this.LinkRow('用户协议', '', () => {
@@ -205,7 +180,7 @@ struct SettingsPage {
                 AppRoute.go(Routes.About);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Text('退出登录')
               .fontSize(14).fontColor('#D8546B').fontWeight(FontWeight.Medium)

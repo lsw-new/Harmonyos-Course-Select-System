@@ -17,7 +17,6 @@ struct AdminAuditLogPage {
   @State errorMsg: string = '';
   @State logs: AuditLogEntry[] = [];
   @State activeType: string = '全部';
-  @StorageProp('darkMode') darkMode: boolean = false;
   // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
   @StorageProp('safeBottom') safeBottom: number = 0;
 
@@ -107,13 +106,13 @@ struct AdminAuditLogPage {
     }
     .width('100%').alignItems(HorizontalAlign.Start).padding(14)
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()

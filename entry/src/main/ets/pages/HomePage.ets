@@ -31,7 +31,6 @@ struct HomePage {
   @State courseHits: ScheduleItem[] = [];
   @State noticeHits: Notice[] = [];
   @State fileHits: DownloadFile[] = [];
-  @StorageProp('darkMode') darkMode: boolean = false;
   // 完整可搜索语料（全周课表 / 全部通知 / 文件），不直接渲染，故用 private。
   private allCourses: ScheduleItem[] = [];
   private allNotices: Notice[] = [];
@@ -129,7 +128,7 @@ struct HomePage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: ElysiaTheme.pageGradient(this.darkMode)
+          colors: ElysiaTheme.pageGradient()
         })
 
       // 内容区 + 底部 TabBar 按正常纵向流排布，TabBar 不再做全屏覆盖层，
@@ -197,8 +196,8 @@ struct HomePage {
         Blank().layoutWeight(1)
         Stack({ alignContent: Alignment.TopEnd }) {
           Button({ type: ButtonType.Circle }) { AppIcon({ name: 'bell', iconSize: 16 }) }
-            .width(34).height(34).backgroundColor(ElysiaTheme.glassSoft(this.darkMode))
-            .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+            .width(34).height(34).backgroundColor(ElysiaTheme.glassSoft())
+            .border({ width: 1, color: ElysiaTheme.hairline() })
             .onClick(() => AppRoute.go(Routes.Notices))
           if (unread > 0) {
             Text(unread > 9 ? '9+' : `${unread}`)
@@ -230,8 +229,8 @@ struct HomePage {
         }
       }
       .width('100%').margin({ left: 16, right: 16, top: 14 })
-      .backgroundColor(ElysiaTheme.glass(this.darkMode)).borderRadius(14)
-      .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+      .backgroundColor(ElysiaTheme.glass()).borderRadius(14)
+      .border({ width: 1, color: ElysiaTheme.hairline() })
     }.width('100%')
   }
 
@@ -260,7 +259,7 @@ struct HomePage {
           .layoutWeight(1).padding({ top: 6, bottom: 6 }).borderRadius(10)
           .linearGradient(this.isToday(i ?? 0) ? {
             angle: 135, colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]]
-          } : { angle: 0, colors: [[ElysiaTheme.glassSoft(this.darkMode), 0], [ElysiaTheme.glassSoft(this.darkMode), 1]] })
+          } : { angle: 0, colors: [[ElysiaTheme.glassSoft(), 0], [ElysiaTheme.glassSoft(), 1]] })
         }, (day: string) => day)
       }.width('100%').margin({ top: 14 })
     }
@@ -284,7 +283,7 @@ struct HomePage {
             }
             .width(50).height(50).borderRadius(16)
             .linearGradient({ angle: 135, colors: [[Color.White, 0], [ElysiaTheme.ROSE_100, 1]] })
-            .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairline() })
             .shadow({ radius: 10, color: '#59F2709C', offsetX: 0, offsetY: 4 })
             Text(q.label).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 6 })
           }
@@ -320,7 +319,7 @@ struct HomePage {
       }
       .width('100%').padding(30).margin({ left: 16, right: 16, top: 10 })
       .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-      .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+      .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     } else {
       Column({ space: 10 }) {
         ForEach(courses, (c: ScheduleItem) => {
@@ -354,7 +353,7 @@ struct HomePage {
     }
     .width('100%').padding(12)
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
     .onClick(() => {
       let p: Record<string, Object> = { 'id': c.courseId };
@@ -390,7 +389,7 @@ struct HomePage {
             AppRoute.go(Routes.NoticeDetail, opts);
           })
           if (i !== undefined && i < items.length - 1) {
-            Divider().strokeWidth(1).color(ElysiaTheme.hairline(this.darkMode))
+            Divider().strokeWidth(1).color(ElysiaTheme.hairline())
           }
         }, (n: Notice) => n.id)
       }
@@ -419,7 +418,7 @@ struct HomePage {
         }
         .width('100%').padding(30).margin({ left: 16, right: 16, top: 12 })
         .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-        .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+        .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
       } else {
         if (this.courseHits.length > 0) {
           this.ResultGroupTitle('课程', this.courseHits.length)
@@ -469,7 +468,7 @@ struct HomePage {
     }
     .width('100%').padding(12)
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(16)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     .onClick(() => {
       let p: Record<string, Object> = { 'id': n.id };
       let opts: NavigateOptions = { params: p };
@@ -491,7 +490,7 @@ struct HomePage {
     }
     .width('100%').padding(12)
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(16)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     .onClick(() => this.downloadFile(f))
   }
 
@@ -527,7 +526,7 @@ struct HomePage {
         }
         .width('100%').padding(12)
         .backgroundColor(ElysiaTheme.SURFACE).borderRadius(16)
-        .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+        .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
         .onClick(() => this.downloadFile(f))
       }, (f: DownloadFile) => f.id)
     }.padding({ left: 16, right: 16, top: 8 })
@@ -544,8 +543,8 @@ struct HomePage {
       }.alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 12 })
     }
     .width('100%').padding(14).margin({ left: 16, right: 16, top: 18 })
-    .backgroundColor(ElysiaTheme.glassSoft(this.darkMode)).borderRadius(18)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .backgroundColor(ElysiaTheme.glassSoft()).borderRadius(18)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   isToday(idx: number): boolean {

@@ -20,7 +20,6 @@ struct ForgotPage {
   @State successMsg: string = '';
   @State submitting: boolean = false;
   @State smsCountdown: number = 0;
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   private countdownTimer: number = -1;
 
@@ -101,7 +100,7 @@ struct ForgotPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -151,7 +150,7 @@ struct ForgotPage {
                     angle: 135,
                     colors: [['#FF9FBE', 0], [ElysiaTheme.ROSE_500, 1]]
                   } : { angle: 0, colors: [['#00FFFFFF', 0]] })
-                  .border({ width: this.method === 0 ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
+                  .border({ width: this.method === 0 ? 0 : 1, color: ElysiaTheme.hairline() })
                   .borderRadius(12)
                   .onClick(() => { this.method = 0; })
                 Button('校园邮箱')
@@ -164,7 +163,7 @@ struct ForgotPage {
                     angle: 135,
                     colors: [['#FF9FBE', 0], [ElysiaTheme.ROSE_500, 1]]
                   } : { angle: 0, colors: [['#00FFFFFF', 0]] })
-                  .border({ width: this.method === 1 ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
+                  .border({ width: this.method === 1 ? 0 : 1, color: ElysiaTheme.hairline() })
                   .borderRadius(12)
                   .onClick(() => { this.method = 1; })
               }
@@ -178,9 +177,9 @@ struct ForgotPage {
                   Column() { ElysiaInput({ placeholder: '6 位验证码', value: $code }) }.layoutWeight(1)
                   Button(this.smsCountdown > 0 ? `${this.smsCountdown}s` : '获取验证码')
                     .height(46).fontSize(11)
-                    .backgroundColor(ElysiaTheme.glass(this.darkMode))
+                    .backgroundColor(ElysiaTheme.glass())
                     .fontColor(this.smsCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
-                    .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+                    .border({ width: 1, color: ElysiaTheme.hairline() })
                     .borderRadius(14)
                     .padding({ left: 12, right: 12 })
                     .onClick(() => { this.sendCode(); })
@@ -209,7 +208,7 @@ struct ForgotPage {
             .padding(16)
             .borderRadius(22)
             .backgroundColor(ElysiaTheme.SURFACE)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
             .margin({ top: 24 })
 
             PrimaryButton({

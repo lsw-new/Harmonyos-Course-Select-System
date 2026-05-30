@@ -19,7 +19,6 @@ struct AdminPasswordPage {
   @State confirmPassword: string = '';
   @State errorMsg: string = '';
   @State submitting: boolean = false;
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     AppRoute.guard(Routes.AdminPassword);
@@ -75,7 +74,7 @@ struct AdminPasswordPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -107,7 +106,7 @@ struct AdminPasswordPage {
               PrimaryButton({ text: this.submitting ? '提交中...' : '确认修改', onTap: () => this.submit() })
             }
             .width('100%').padding(18).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
             .shadow({ radius: 16, color: '#1FD85487', offsetX: 0, offsetY: 4 })
 
             SafeBottom()

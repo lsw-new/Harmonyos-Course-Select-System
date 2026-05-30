@@ -21,7 +21,6 @@ struct AdminStudentDetailPage {
   @State hasDetail: boolean = false;
   // 待确认的不可逆操作（毕业）；非空时展示确认浮层。
   @State pendingStatus: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminStudentDetail)) {
@@ -121,7 +120,7 @@ struct AdminStudentDetailPage {
     .padding({ top: 12, bottom: 12 })
     .backgroundColor(ElysiaTheme.SURFACE_GLOW)
     .borderRadius(14)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   @Builder
@@ -152,13 +151,13 @@ struct AdminStudentDetailPage {
       Column() {
         Text('培养信息').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700).margin({ bottom: 4 })
         this.InfoRow('students', '学院', d.college)
-        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft(this.darkMode))
+        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft())
         this.InfoRow('book', '专业', d.major)
-        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft(this.darkMode))
+        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft())
         this.InfoRow('roster', '班级', d.className)
-        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft(this.darkMode))
+        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft())
         this.InfoRow('star', '辅导员', d.advisor)
-        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft(this.darkMode))
+        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft())
         this.InfoRow('calendar', '入学日期', d.enrollDate)
       }.width('100%').alignItems(HorizontalAlign.Start)
     }
@@ -170,9 +169,9 @@ struct AdminStudentDetailPage {
       Column() {
         Text('联系方式').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700).margin({ bottom: 4 })
         this.InfoRow('phone', '电话', d.phone)
-        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft(this.darkMode))
+        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft())
         this.InfoRow('mail', '邮箱', d.email)
-        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft(this.darkMode))
+        Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft())
         this.InfoRow('location', '宿舍', d.dormitory)
       }.width('100%').alignItems(HorizontalAlign.Start)
     }
@@ -277,7 +276,7 @@ struct AdminStudentDetailPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()

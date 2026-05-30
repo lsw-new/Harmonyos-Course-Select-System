@@ -17,7 +17,6 @@ struct PasswordPage {
   @State errorMsg: string = '';
   @State submitting: boolean = false;
   @State successMsg: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   private getStrengthLabel(): string {
     if (this.newPassword.length === 0) return '';
@@ -73,7 +72,7 @@ struct PasswordPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -117,7 +116,7 @@ struct PasswordPage {
               PrimaryButton({ text: this.submitting ? '提交中...' : '确认修改', onTap: () => this.submit() })
             }
             .width('100%').padding(18).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
             .shadow({ radius: 16, color: '#1FD85487', offsetX: 0, offsetY: 4 })
 
             SafeBottom()

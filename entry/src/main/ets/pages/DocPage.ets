@@ -17,7 +17,6 @@ class DocSection {
 @Component
 struct DocPage {
   @State docType: string = 'agreement';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     this.docType = AppRoute.getParam<string>('type', 'agreement');
@@ -84,7 +83,7 @@ struct DocPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -99,7 +98,7 @@ struct DocPage {
                 .fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
             }.width('100%').alignItems(HorizontalAlign.Start).padding(16)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Column({ space: 14 }) {
               ForEach(this.sections(), (sec: DocSection) => {
@@ -107,7 +106,7 @@ struct DocPage {
               }, (sec: DocSection) => sec.heading)
             }.width('100%').alignItems(HorizontalAlign.Start).padding(16)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Text('如对以上条款有疑问，请联系 support@elysia.edu')
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE)

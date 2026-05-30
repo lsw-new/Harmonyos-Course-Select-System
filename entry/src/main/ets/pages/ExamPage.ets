@@ -15,7 +15,6 @@ struct ExamPage {
   @State exams: ExamArrangement[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     this.loadData();
@@ -76,7 +75,7 @@ struct ExamPage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: ElysiaTheme.pageGradient(this.darkMode)
+          colors: ElysiaTheme.pageGradient()
         })
 
       Column() {
@@ -166,7 +165,7 @@ struct ExamPage {
                   }
                   .width('100%').padding(14)
                   .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-                  .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+                  .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                   .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
                 }, (e: ExamArrangement) => e.id)
               }

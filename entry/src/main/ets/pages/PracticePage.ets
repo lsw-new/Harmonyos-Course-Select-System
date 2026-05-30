@@ -45,7 +45,6 @@ struct PracticePage {
   @State errorMsg: string = '';
   @State actionError: string = '';
   @State busyId: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.Practice)) {
@@ -116,7 +115,7 @@ struct PracticePage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: ElysiaTheme.pageGradient(this.darkMode)
+          colors: ElysiaTheme.pageGradient()
         })
 
       Column() {
@@ -131,11 +130,11 @@ struct PracticePage {
                 .padding({ left: 14, right: 14 })
                 .borderRadius(999)
                 .fontColor(f.value === this.category ? Color.White : ElysiaTheme.ROSE_700)
-                .backgroundColor(f.value === this.category ? '' : ElysiaTheme.glass(this.darkMode))
+                .backgroundColor(f.value === this.category ? '' : ElysiaTheme.glass())
                 .linearGradient(f.value === this.category
                   ? { angle: 135, colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]] }
                   : { angle: 0, colors: [['#00FFFFFF', 0]] })
-                .border({ width: f.value === this.category ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
+                .border({ width: f.value === this.category ? 0 : 1, color: ElysiaTheme.hairline() })
                 .onClick(() => {
                   this.category = f.value;
                   this.loadData();
@@ -201,8 +200,8 @@ struct PracticePage {
       Button(this.busyId === project.id ? '处理中' : '取消')
         .height(34).fontSize(11).fontWeight(FontWeight.Bold)
         .fontColor(ElysiaTheme.ROSE_700)
-        .backgroundColor(ElysiaTheme.glass(this.darkMode))
-        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+        .backgroundColor(ElysiaTheme.glass())
+        .border({ width: 1, color: ElysiaTheme.hairline() })
         .borderRadius(999)
         .padding({ left: 14, right: 14 })
         .enabled(this.busyId.length === 0)
@@ -211,8 +210,8 @@ struct PracticePage {
       Button('已 满')
         .height(34).fontSize(11).fontWeight(FontWeight.Bold)
         .fontColor(ElysiaTheme.INK_MUTE)
-        .backgroundColor(ElysiaTheme.glass(this.darkMode))
-        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+        .backgroundColor(ElysiaTheme.glass())
+        .border({ width: 1, color: ElysiaTheme.hairline() })
         .borderRadius(999)
         .padding({ left: 14, right: 14 })
         .enabled(false)
@@ -260,7 +259,7 @@ struct PracticePage {
     }
     .width('100%').padding(14)
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
     .onClick(() => { this.openDetail(project); })
   }

@@ -7,7 +7,6 @@ import { apiClient } from '../common/http/ApiClient';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { FileService } from '../common/services/FileService';
 import { AppRoute, Routes } from './AppRoute';
-import { ElysiaTheme } from '../common/Theme';
 
 export class AppStartup {
   private static initialized = false;
@@ -26,7 +25,6 @@ export class AppStartup {
     FileService.configure(context);
     const preferences = PreferenceStorage.get();
     await preferences.init(context);
-    ElysiaTheme.setDarkMode(await preferences.getBoolean('darkMode', false));
     const session = SessionStorage.get();
     await session.restore();
     if (session.getRole() === 'student' && session.getStudent() === undefined) {

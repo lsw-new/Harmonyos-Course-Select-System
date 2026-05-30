@@ -22,7 +22,6 @@ struct AdminCalendarPage {
   @State title: string = '';
   @State type: string = 'term';
   @State pendingDeleteId: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
   // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
   @StorageProp('safeBottom') safeBottom: number = 0;
   private types: string[] = ['term', 'exam', 'holiday', 'selection', 'makeup', 'other'];
@@ -156,7 +155,7 @@ struct AdminCalendarPage {
           PrimaryButton({ text: this.submitting ? '保存中...' : '保存', onTap: () => this.saveEvent() }).layoutWeight(1)
         }
       }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-      .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+      .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     }.height(290).padding({ left: 16, right: 16, top: 10 }).scrollBar(BarState.Off)
   }
 
@@ -188,13 +187,13 @@ struct AdminCalendarPage {
         }
       }.width('100%').alignItems(VerticalAlign.Center)
     }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()

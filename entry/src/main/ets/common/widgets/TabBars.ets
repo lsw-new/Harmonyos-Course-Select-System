@@ -30,7 +30,6 @@ export const ADMIN_TABS: TabItem[] = [
 @Component
 export struct StudentTabBar {
   @Prop active: string = 'home';
-  @StorageProp('darkMode') darkMode: boolean = false;
   // 底部手势指示条避让高度（vp），由 EntryAbility 测量写入；随设备自适应。
   @StorageProp('safeBottom') safeBottom: number = 0;
   onTap?: (id: string, route: string) => void;
@@ -56,15 +55,14 @@ export struct StudentTabBar {
     }
     .width('100%')
     .padding({ top: 8, bottom: 14 + this.safeBottom, left: 14, right: 14 })
-    .backgroundColor(ElysiaTheme.barBg(this.darkMode))
-    .border({ width: { top: 1 }, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .backgroundColor(ElysiaTheme.barBg())
+    .border({ width: { top: 1 }, color: ElysiaTheme.hairlineSoft() })
   }
 }
 
 @Component
 export struct AdminTabBar {
   @Prop active: string = 'dashboard';
-  @StorageProp('darkMode') darkMode: boolean = false;
   // 底部手势指示条避让高度（vp），由 EntryAbility 测量写入；随设备自适应。
   @StorageProp('safeBottom') safeBottom: number = 0;
   onTap?: (id: string, route: string) => void;
@@ -90,7 +88,7 @@ export struct AdminTabBar {
     }
     .width('100%')
     .padding({ top: 8, bottom: 14 + this.safeBottom, left: 14, right: 14 })
-    .backgroundColor(ElysiaTheme.barBg(this.darkMode))
-    .border({ width: { top: 1 }, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .backgroundColor(ElysiaTheme.barBg())
+    .border({ width: { top: 1 }, color: ElysiaTheme.hairlineSoft() })
   }
 }

@@ -25,7 +25,6 @@ struct AdminApprovalsPage {
   @State submitting: boolean = false;
   @State errorMsg: string = '';
   @State successMsg: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   private statuses: string[] = ['全部', 'pending', 'approved', 'rejected', 'withdrawn'];
   private statusLabels: string[] = ['全部', '待审', '通过', '驳回', '撤回'];
@@ -105,7 +104,7 @@ struct AdminApprovalsPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -146,7 +145,7 @@ struct AdminApprovalsPage {
                     }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                     AppIcon({ name: 'forward', iconSize: 16 })
                   }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-                  .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+                  .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                   .onClick(() => { this.openDetail(a.id); })
                 }.margin({ bottom: 8 })
               }, (a: ApprovalItem) => a.id)
@@ -169,7 +168,7 @@ struct AdminApprovalsPage {
                   Text(`申请人：${this.detail!.applicantName} (${this.detail!.applicantId})`).fontSize(12).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 4 })
                   Text(`事由：${this.detail!.reason}`).fontSize(13).fontColor(ElysiaTheme.INK).margin({ top: 8 }).lineHeight(20)
                 }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-                .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
                 // 流程时间线
                 Column() {
@@ -191,14 +190,14 @@ struct AdminApprovalsPage {
                     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
                   }, (node: ApprovalFlowNode) => node.id)
                 }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-                .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
                 // 审批操作
                 if (this.detail!.status === 'pending') {
                   Column({ space: 10 }) {
                     TextArea({ placeholder: '审批意见（必填）', text: this.comment })
                       .height(80).fontSize(13).fontColor(ElysiaTheme.INK)
-                      .backgroundColor(ElysiaTheme.glass(this.darkMode)).border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
+                      .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                       .onChange((v: string) => { this.comment = v; })
                     if (this.errorMsg.length > 0) {
                       Text(this.errorMsg).fontSize(12).fontColor('#D8546B')
@@ -208,7 +207,7 @@ struct AdminApprovalsPage {
                       PrimaryButton({ text: this.submitting ? '处理中...' : '同意通过', onTap: () => this.doApprove() })
                     }.width('100%')
                   }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-                  .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+                  .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                 }
 
                 SafeBottom()

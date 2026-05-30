@@ -33,7 +33,6 @@ struct AdminSelectionPage {
   @State startText: string = '';
   @State endText: string = '';
   @State formError: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminSelection)) {
@@ -170,7 +169,7 @@ struct AdminSelectionPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -240,7 +239,7 @@ struct AdminSelectionPage {
         this.ConflictEntry(r)
       }
     }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   @Builder ActionRow(r: AdminRound) {
@@ -339,7 +338,7 @@ struct AdminSelectionPage {
   @Builder EditSheet() {
     Column() {
       Column().layoutWeight(1).width('100%')
-        .backgroundColor(ElysiaTheme.scrim(this.darkMode))
+        .backgroundColor(ElysiaTheme.scrim())
         .onClick(() => { this.cancelEdit(); })
 
       Column({ space: 12 }) {
@@ -372,7 +371,7 @@ struct AdminSelectionPage {
       }.width('100%').padding(20)
       .backgroundColor(ElysiaTheme.SURFACE)
       .borderRadius({ topLeft: 24, topRight: 24 })
-      .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+      .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     }.width('100%').height('100%')
   }
 }

@@ -23,7 +23,6 @@ struct SchedulePage {
   @State schedule: ScheduleItem[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   private days: string[] = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -50,7 +49,7 @@ struct SchedulePage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: ElysiaTheme.pageGradient(this.darkMode)
+          colors: ElysiaTheme.pageGradient()
         })
 
       Column() {
@@ -77,8 +76,8 @@ struct SchedulePage {
 
             Button({ type: ButtonType.Circle }) { AppIcon({ name: 'back', iconSize: 16 }) }
               .width(34).height(34)
-              .backgroundColor(ElysiaTheme.glassSoft(this.darkMode))
-              .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+              .backgroundColor(ElysiaTheme.glassSoft())
+              .border({ width: 1, color: ElysiaTheme.hairline() })
               .onClick(() => {
                 if (this.currentWeek > 1) {
                   this.currentWeek--;
@@ -87,8 +86,8 @@ struct SchedulePage {
               })
             Button({ type: ButtonType.Circle }) { AppIcon({ name: 'forward', iconSize: 16 }) }
               .width(34).height(34)
-              .backgroundColor(ElysiaTheme.glassSoft(this.darkMode))
-              .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+              .backgroundColor(ElysiaTheme.glassSoft())
+              .border({ width: 1, color: ElysiaTheme.hairline() })
               .margin({ left: 6 })
               .onClick(() => {
                 if (this.currentWeek < 18) {
@@ -109,13 +108,13 @@ struct SchedulePage {
                   .fontStyle(FontStyle.Italic)
                   .fontFamily(ElysiaTheme.FONT_DISPLAY)
                   .fontColor(w === this.currentWeek ? Color.White : ElysiaTheme.ROSE_700)
-                  .backgroundColor(w === this.currentWeek ? '' : ElysiaTheme.glassSoft(this.darkMode))
+                  .backgroundColor(w === this.currentWeek ? '' : ElysiaTheme.glassSoft())
                   .linearGradient(w === this.currentWeek ? {
                     angle: 135,
                     colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]]
                   } : { angle: 0, colors: [['#00FFFFFF', 0]] })
                   .borderRadius(999)
-                  .border({ width: w === this.currentWeek ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
+                  .border({ width: w === this.currentWeek ? 0 : 1, color: ElysiaTheme.hairline() })
                   .onClick(() => {
                     this.currentWeek = w;
                     this.loadSchedule();

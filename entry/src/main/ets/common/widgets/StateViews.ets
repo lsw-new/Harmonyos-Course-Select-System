@@ -55,7 +55,6 @@ export struct EmptyState {
 @Component
 export struct ErrorState {
   @Prop message: string = '加载失败';
-  @StorageProp('darkMode') darkMode: boolean = false;
   onRetry?: () => void;
 
   build() {
@@ -69,8 +68,8 @@ export struct ErrorState {
       Button('重新加载')
         .fontSize(AppFontSize.body)
         .fontColor(ElysiaTheme.ROSE_700)
-        .backgroundColor(ElysiaTheme.glass(this.darkMode))
-        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+        .backgroundColor(ElysiaTheme.glass())
+        .border({ width: 1, color: ElysiaTheme.hairline() })
         .borderRadius(999)
         .padding({ left: 20, right: 20, top: 8, bottom: 8 })
         .height(36)

@@ -23,7 +23,6 @@ struct AdminGradesPage {
   @State rejectingId: string = '';
   @State rejectReason: string = '';
   @State submittingId: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
   // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
   @StorageProp('safeBottom') safeBottom: number = 0;
   private statuses: string[] = ['全部', 'pendingAudit', 'inputting', 'rejected', 'published', 'appealed'];
@@ -149,7 +148,7 @@ struct AdminGradesPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -237,8 +236,8 @@ struct AdminGradesPage {
                         .height(38)
                         .fontSize(12)
                         .fontColor(ElysiaTheme.INK)
-                        .backgroundColor(ElysiaTheme.glass(this.darkMode))
-                        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+                        .backgroundColor(ElysiaTheme.glass())
+                        .border({ width: 1, color: ElysiaTheme.hairline() })
                         .borderRadius(12)
                         .onChange((v: string) => { this.progressText = v; })
                       Row({ space: 8 }) {
@@ -254,7 +253,7 @@ struct AdminGradesPage {
                           .enabled(this.submittingId !== item.id)
                           .onClick(() => { this.submitInput(item.id); })
                       }.width('100%').justifyContent(FlexAlign.End)
-                    }.width('100%').padding(10).backgroundColor(ElysiaTheme.glassSoft(this.darkMode)).borderRadius(12)
+                    }.width('100%').padding(10).backgroundColor(ElysiaTheme.glassSoft()).borderRadius(12)
                   }
 
                   if (this.rejectingId === item.id) {
@@ -264,8 +263,8 @@ struct AdminGradesPage {
                         .height(70)
                         .fontSize(12)
                         .fontColor(ElysiaTheme.INK)
-                        .backgroundColor(ElysiaTheme.glass(this.darkMode))
-                        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+                        .backgroundColor(ElysiaTheme.glass())
+                        .border({ width: 1, color: ElysiaTheme.hairline() })
                         .borderRadius(12)
                         .onChange((v: string) => { this.rejectReason = v; })
                       Row({ space: 8 }) {
@@ -281,14 +280,14 @@ struct AdminGradesPage {
                           .enabled(this.submittingId !== item.id)
                           .onClick(() => { this.submitReject(item.id); })
                       }.width('100%').justifyContent(FlexAlign.End)
-                    }.width('100%').padding(10).backgroundColor(ElysiaTheme.glassSoft(this.darkMode)).borderRadius(12)
+                    }.width('100%').padding(10).backgroundColor(ElysiaTheme.glassSoft()).borderRadius(12)
                   }
 
                   if (this.formErrorMsg.length > 0 && (this.editingId === item.id || this.rejectingId === item.id)) {
                     Text(this.formErrorMsg).fontSize(11).fontColor('#D8546B')
                   }
                 }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-                .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
               }.margin({ bottom: 8 })
             }, (item: GradeAuditItem) => item.id)
           }.layoutWeight(1).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 })

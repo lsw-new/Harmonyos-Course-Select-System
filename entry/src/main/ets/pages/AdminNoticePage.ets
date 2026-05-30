@@ -21,7 +21,6 @@ struct AdminNoticePage {
   @State errorMsg: string = '';
   @State successMsg: string = '';
   @State showConfirm: boolean = false;
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   private urgencyLabels: string[] = ['普通', '重要', '紧急'];
   private urgencyKeys: string[] = ['normal', 'important', 'urgent'];
@@ -71,7 +70,7 @@ struct AdminNoticePage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -87,7 +86,7 @@ struct AdminNoticePage {
 
             TextArea({ placeholder: '通知正文', text: this.content })
               .height(160).fontSize(13).fontColor(ElysiaTheme.INK)
-              .backgroundColor(ElysiaTheme.glass(this.darkMode)).border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
+              .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
               .onChange((v: string) => {
                 this.content = v;
                 if (this.successMsg.length > 0) { this.successMsg = ''; }
@@ -165,7 +164,7 @@ struct AdminNoticePage {
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-        .backgroundColor(ElysiaTheme.scrim(this.darkMode))
+        .backgroundColor(ElysiaTheme.scrim())
         .onClick(() => { this.showConfirm = false; })
       }
     }.width('100%').height('100%')

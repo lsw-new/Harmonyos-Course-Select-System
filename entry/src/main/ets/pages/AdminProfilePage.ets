@@ -1,5 +1,4 @@
 // 管理员中心 · Madame
-import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, Monogram } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
@@ -15,7 +14,6 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 @Component
 struct AdminProfilePage {
   @State profile: AdminProfile | null = null;
-  @StorageProp('darkMode') darkMode: boolean = false;
   @State pushEnabled: boolean = true;
   @State approvalPending: number = 0;
   @State approvalApproved: number = 0;
@@ -26,7 +24,6 @@ struct AdminProfilePage {
     if (!AppRoute.guard(Routes.AdminProfile)) return;
     const p = SessionStorage.get().getAdmin();
     if (p !== undefined) { this.profile = p; }
-    // darkMode 由 AppStorage 提供（启动时注入），@StorageProp 自动同步。
     PreferenceStorage.get().getBoolean('push', true).then((v: boolean) => { this.pushEnabled = v; });
     this.loadApprovalStats();
   }
@@ -52,13 +49,6 @@ struct AdminProfilePage {
 
   private logout(): void {
     SessionStorage.get().clear().then(() => { AppRoute.clearTo(Routes.AdminLogin); });
-  }
-
-  private setDarkModePreference(value: boolean): void {
-    this.darkMode = value;
-    ElysiaTheme.setDarkMode(value);
-    PreferenceStorage.get().putBoolean('darkMode', value);
-    promptAction.showToast({ message: value ? '深色模式已开启' : '深色模式已关闭' });
   }
 
   private onlineStatusLabel(s: string): string {
@@ -105,7 +95,7 @@ struct AdminProfilePage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -133,7 +123,7 @@ struct AdminProfilePage {
               })
             }.width('100%').alignItems(HorizontalAlign.Center).padding(20)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             // 效率统计
             Row({ space: 0 }) {
@@ -142,7 +132,7 @@ struct AdminProfilePage {
               this.StatMini('已驳回', `${this.approvalRejected}`)
               this.StatMini('通过率', this.passRateText())
             }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             // 系统管理
             Column() {
@@ -172,14 +162,11 @@ struct AdminProfilePage {
                 AppRoute.go(Routes.AdminSysConfig);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             // 偏好
             Column() {
               Text('偏好').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.ToggleRow('star', '夜间模式', this.darkMode, (v: boolean) => {
-                this.setDarkModePreference(v);
-              })
               this.ToggleRow('bell', '消息推送', this.pushEnabled, (v: boolean) => {
                 this.pushEnabled = v;
                 PreferenceStorage.get().putBoolean('push', v);
@@ -191,7 +178,7 @@ struct AdminProfilePage {
                 AppRoute.go(Routes.AdminPassword);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             // 退出
             Text('退出登录')
@@ -227,7 +214,7 @@ struct AdminProfilePage {
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-        .backgroundColor(ElysiaTheme.scrim(this.darkMode))
+        .backgroundColor(ElysiaTheme.scrim())
         .onClick(() => { this.showLogoutConfirm = false; })
       }
     }.width('100%').height('100%')

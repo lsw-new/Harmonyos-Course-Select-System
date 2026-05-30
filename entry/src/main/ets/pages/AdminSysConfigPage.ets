@@ -50,7 +50,6 @@ struct AdminSysConfigPage {
   @State tplContent: string = '';
   @State tplFormError: string = '';
   @State pendingDeleteTplId: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminSysConfig)) {
@@ -274,7 +273,7 @@ struct AdminSysConfigPage {
         }, (node: ApprovalNode) => node.id)
       }
     }.width('100%').padding({ left: 14, right: 14 })
-    .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18).border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18).border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   @Builder
@@ -293,7 +292,7 @@ struct AdminSysConfigPage {
         PrimaryButton({ text: this.submitting ? '保存中...' : '保存模板', onTap: () => this.saveTpl() }).layoutWeight(1)
       }
     }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(16)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) }).margin({ top: 10 })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).margin({ top: 10 })
   }
 
   @Builder
@@ -328,7 +327,7 @@ struct AdminSysConfigPage {
         }
       }.width('100%').alignItems(VerticalAlign.Center)
     }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) }).margin({ bottom: 8 })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).margin({ bottom: 8 })
   }
 
   @Builder
@@ -384,13 +383,13 @@ struct AdminSysConfigPage {
         this.SecurityRow(def)
       }, (def: SecurityToggleDef) => def.key)
     }.width('100%').padding({ left: 14, right: 14 })
-    .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18).border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18).border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()

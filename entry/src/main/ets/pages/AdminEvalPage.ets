@@ -30,7 +30,6 @@ struct AdminEvalPage {
   @State questionCountText: string = '10';
   @State status: string = 'enabled';
   @State pendingDeleteId: string = '';
-  @StorageProp('darkMode') darkMode: boolean = false;
   private statuses: string[] = ['enabled', 'disabled'];
   private statusLabels: string[] = ['启用', '停用'];
 
@@ -246,7 +245,7 @@ struct AdminEvalPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -323,7 +322,7 @@ struct AdminEvalPage {
           .onClick(() => { this.setPeriod(false); })
       }.width('100%').margin({ top: 4 })
     }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   // 评分分布卡片：从 stats.ratingDistribution 计算的水平柱条
@@ -348,7 +347,7 @@ struct AdminEvalPage {
         }.width('100%').margin({ top: 6, bottom: 6 }).alignItems(VerticalAlign.Center)
       }, (b: RatingBucket) => `${b.star}`)
     }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   // 问卷模板卡片：列表 + 内联编辑/删除 + 新增表单
@@ -403,11 +402,11 @@ struct AdminEvalPage {
             }.width('100%').alignItems(VerticalAlign.Center).margin({ top: 2 })
           }.width('100%').padding(12).margin({ bottom: 8 })
           .backgroundColor('#FFFDFE').borderRadius(14)
-          .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+          .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
         }, (t: QuestionnaireTemplate) => t.id)
       }
     }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
   // 新增/编辑表单
@@ -421,8 +420,8 @@ struct AdminEvalPage {
         Text('题目数量').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
         TextInput({ placeholder: '1-50', text: this.questionCountText })
           .type(InputType.Number)
-          .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass(this.darkMode))
-          .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
+          .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass())
+          .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
           .layoutWeight(1)
           .onChange((v: string) => { this.questionCountText = v; })
       }.width('100%').alignItems(VerticalAlign.Center)

@@ -21,7 +21,6 @@ struct RegisterPage {
   @State successMsg: string = '';
   @State submitting: boolean = false;
   @State smsCountdown: number = 0;
-  @StorageProp('darkMode') darkMode: boolean = false;
 
   private countdownTimer: number = -1;
 
@@ -97,7 +96,7 @@ struct RegisterPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
       Column() {
         SafeTop()
@@ -125,9 +124,9 @@ struct RegisterPage {
                 Column() { ElysiaInput({ placeholder: '6 位验证码', value: $code }) }.layoutWeight(1)
                 Button(this.smsCountdown > 0 ? `${this.smsCountdown}s` : '获取')
                   .height(46).fontSize(11)
-                  .backgroundColor(ElysiaTheme.glass(this.darkMode))
+                  .backgroundColor(ElysiaTheme.glass())
                   .fontColor(this.smsCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
-                  .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+                  .border({ width: 1, color: ElysiaTheme.hairline() })
                   .borderRadius(14)
                   .padding({ left: 14, right: 14 })
                   .onClick(() => { this.sendSms(); })
@@ -150,7 +149,7 @@ struct RegisterPage {
             .width('100%')
             .padding(12)
             .backgroundColor(ElysiaTheme.SURFACE)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
             .borderRadius(22)
             .margin({ top: 14 })
 

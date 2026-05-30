@@ -23,7 +23,7 @@ interface ElysiaPalette {
   inkMute: string;
   surface: string;
   surfaceGlow: string;
-  // 语义化半透明/表面 token —— 为夜间模式适配而引入，替换页面里散落的写死浅色字面量。
+  // 语义化半透明/表面 token —— 收敛页面里散落的写死浅色字面量。
   glass: string;        // 磨砂输入框 / 次按钮填充
   glassSoft: string;    // 更轻的磨砂层（圆形返回按钮等）
   barBg: string;        // 底部 TabBar / 操作栏背景
@@ -34,8 +34,6 @@ interface ElysiaPalette {
 }
 
 export class ElysiaTheme {
-  private static darkMode: boolean = false;
-
   private static readonly lightPalette: ElysiaPalette = {
     rose50: '#FFF6FA',
     rose100: '#FFE9F1',
@@ -67,51 +65,8 @@ export class ElysiaTheme {
     scrim: '#66000000'
   };
 
-  private static readonly darkPalette: ElysiaPalette = {
-    rose50: '#160D13',
-    rose100: '#21131B',
-    rose200: '#3A2030',
-    rose300: '#5A2D46',
-    rose400: '#FF9FBE',
-    rose500: '#FF8DB4',
-    rose600: '#F2709C',
-    rose700: '#FFB4CE',
-    cream50: '#160D13',
-    cream100: '#21131B',
-    lav200: '#33223D',
-    lav300: '#4C3560',
-    lav500: '#D9BFFF',
-    gold300: '#F2D5A0',
-    gold500: '#D9B675',
-    gold700: '#F7D99B',
-    ink: '#F8EAF1',
-    inkSoft: '#E2C9D6',
-    inkMute: '#BFA8B4',
-    surface: '#241821',
-    surfaceGlow: '#2D1B27',
-    glass: '#2E2230',
-    glassSoft: '#261C24',
-    barBg: '#F21C121A',
-    pillBg: '#3A2030',
-    hairline: '#40FFB4CE',
-    hairlineSoft: '#26FFB4CE',
-    scrim: '#80000000'
-  };
-
   private static get palette(): ElysiaPalette {
-    return ElysiaTheme.darkMode ? ElysiaTheme.darkPalette : ElysiaTheme.lightPalette;
-  }
-
-  // 同时更新静态调色板开关与 AppStorage。
-  // 静态开关驱动各 getter 返回的色值；AppStorage('darkMode') 驱动所有
-  // 订阅了 @StorageProp('darkMode') 的组件即时重绘——二者缺一不可。
-  static setDarkMode(isDark: boolean): void {
-    ElysiaTheme.darkMode = isDark;
-    AppStorage.setOrCreate<boolean>('darkMode', isDark);
-  }
-
-  static isDarkMode(): boolean {
-    return ElysiaTheme.darkMode;
+    return ElysiaTheme.lightPalette;
   }
 
   // 主色 — 玫瑰
@@ -147,25 +102,19 @@ export class ElysiaTheme {
   static get SURFACE(): string { return ElysiaTheme.palette.surface; }
   static get SURFACE_GLOW(): string { return ElysiaTheme.palette.surfaceGlow; }
 
-  // 语义化半透明 / 表面 / 描边 token（夜间模式自适应）。
-  // 这些方法显式接收 isDark：组件/页面传入 `this.darkMode` 时，既取到正确色值，
-  // 又因在 build() 中读取了 @StorageProp('darkMode') 而订阅夜间模式 → 切换即重绘。
-  // （ArkUI 只重绘 build 里真正读取了的状态，未被读取的 @StorageProp 不会触发刷新。）
-  private static paletteOf(isDark: boolean): ElysiaPalette {
-    return isDark ? ElysiaTheme.darkPalette : ElysiaTheme.lightPalette;
-  }
-  static glass(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).glass; }
-  static glassSoft(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).glassSoft; }
-  static barBg(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).barBg; }
-  static pillBg(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).pillBg; }
-  static hairline(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).hairline; }
-  static hairlineSoft(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).hairlineSoft; }
-  static scrim(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).scrim; }
-  static surfaceOf(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).surface; }
+  // 语义化半透明 / 表面 / 描边 token（纯浅色）。保留无参方法名，调用点统一为 `()`。
+  static glass(): string { return ElysiaTheme.lightPalette.glass; }
+  static glassSoft(): string { return ElysiaTheme.lightPalette.glassSoft; }
+  static barBg(): string { return ElysiaTheme.lightPalette.barBg; }
+  static pillBg(): string { return ElysiaTheme.lightPalette.pillBg; }
+  static hairline(): string { return ElysiaTheme.lightPalette.hairline; }
+  static hairlineSoft(): string { return ElysiaTheme.lightPalette.hairlineSoft; }
+  static scrim(): string { return ElysiaTheme.lightPalette.scrim; }
+  static surfaceOf(): string { return ElysiaTheme.lightPalette.surface; }
 
-  // 页面整屏渐变背景的色标。传入 this.darkMode 同样兼具「取色」+「订阅重绘」两职。
-  static pageGradient(isDark: boolean): Array<[string, number]> {
-    const p: ElysiaPalette = ElysiaTheme.paletteOf(isDark);
+  // 页面整屏渐变背景的色标（纯浅色）。
+  static pageGradient(): Array<[string, number]> {
+    const p: ElysiaPalette = ElysiaTheme.lightPalette;
     return [[p.rose50, 0.0], [p.cream50, 0.55], [p.surfaceGlow, 1.0]];
   }
 
