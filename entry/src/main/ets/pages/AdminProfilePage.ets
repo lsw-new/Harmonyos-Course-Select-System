@@ -7,22 +7,46 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
-import { AdminProfile } from '../models/Admin';
+import { AdminProfile, ApprovalItem } from '../models/Admin';
+import { AdminRepository } from '../repositories/AdminRepository';
 
 @Entry
 @Component
 struct AdminProfilePage {
   @State profile: AdminProfile | null = null;
-  @State darkMode: boolean = false;
+  @StorageProp('darkMode') darkMode: boolean = false;
   @State pushEnabled: boolean = true;
+  @State approvalPending: number = 0;
+  @State approvalApproved: number = 0;
+  @State approvalRejected: number = 0;
   @State showLogoutConfirm: boolean = false;
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminProfile)) return;
     const p = SessionStorage.get().getAdmin();
     if (p !== undefined) { this.profile = p; }
-    PreferenceStorage.get().getBoolean('darkMode', false).then((v: boolean) => { this.darkMode = v; });
+    // darkMode 由 AppStorage 提供（启动时注入），@StorageProp 自动同步。
     PreferenceStorage.get().getBoolean('push', true).then((v: boolean) => { this.pushEnabled = v; });
+    this.loadApprovalStats();
+  }
+
+  // 审批效率统计来自真实审批数据（待审 / 已通过 / 已驳回 / 通过率）。
+  private loadApprovalStats(): void {
+    AdminRepository.get().getApprovals('全部').then((list: ApprovalItem[]) => {
+      this.approvalPending = list.filter((a: ApprovalItem) => a.status === 'pending').length;
+      this.approvalApproved = list.filter((a: ApprovalItem) => a.status === 'approved').length;
+      this.approvalRejected = list.filter((a: ApprovalItem) => a.status === 'rejected').length;
+    }).catch(() => {
+      // 统计加载失败时保持为 0，不影响管理员中心其余功能。
+    });
+  }
+
+  private passRateText(): string {
+    const decided = this.approvalApproved + this.approvalRejected;
+    if (decided <= 0) {
+      return '—';
+    }
+    return `${Math.round(this.approvalApproved / decided * 100)}%`;
   }
 
   private logout(): void {
@@ -80,7 +104,7 @@ struct AdminProfilePage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], [ElysiaTheme.SURFACE_GLOW, 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -104,50 +128,50 @@ struct AdminProfilePage {
                 color: this.profile !== null
                   ? this.onlineStatusColor(this.profile.onlineStatus)
                   : ElysiaTheme.INK_MUTE,
-                bg: '#FFF6FA'
+                bg: ElysiaTheme.SURFACE_GLOW
               })
             }.width('100%').alignItems(HorizontalAlign.Center).padding(20)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: '#66FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
             // 效率统计
             Row({ space: 0 }) {
-              this.StatMini('今日审批', '8')
-              this.StatMini('平均时长', '12min')
-              this.StatMini('待办', '3')
-              this.StatMini('通过率', '87%')
+              this.StatMini('待审', `${this.approvalPending}`)
+              this.StatMini('已通过', `${this.approvalApproved}`)
+              this.StatMini('已驳回', `${this.approvalRejected}`)
+              this.StatMini('通过率', this.passRateText())
             }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-            .border({ width: 1, color: '#66FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
             // 系统管理
             Column() {
               Text('系统管理').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.EntryRow('students', '角色管理', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.AdminRolePerm);
               })
               this.EntryRow('dashboard', '权限矩阵', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.AdminRolePerm);
               })
               this.EntryRow('star', '我的权限', `${this.profile !== null ? this.profile.permissions.length : 0} 项`, () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.AdminRolePerm);
               })
               this.EntryRow('file', '操作日志', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.AdminAuditLog);
               })
               this.EntryRow('calendar', '校历管理', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.AdminCalendar);
               })
               this.EntryRow('approve', '审批流配置', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.AdminSysConfig);
               })
               this.EntryRow('mail', '消息模板', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.AdminSysConfig);
               })
               this.EntryRow('lock', '安全策略', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.AdminSysConfig);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: '#66FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
             // 偏好
             Column() {
@@ -160,13 +184,13 @@ struct AdminProfilePage {
                 PreferenceStorage.get().putBoolean('push', v);
               })
               this.EntryRow('info', '关于系统', 'V1.0.0', () => {
-                promptAction.showToast({ message: 'Elysia 教学管理系统 V1.0.0' });
+                AppRoute.go(Routes.About);
               })
               this.EntryRow('unlock', '修改密码', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.AdminPassword);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: '#66FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
             // 退出
             Text('退出登录')
@@ -202,7 +226,7 @@ struct AdminProfilePage {
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-        .backgroundColor('#66000000')
+        .backgroundColor(ElysiaTheme.scrim(this.darkMode))
         .onClick(() => { this.showLogoutConfirm = false; })
       }
     }.width('100%').height('100%')

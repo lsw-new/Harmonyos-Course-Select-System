@@ -37,6 +37,7 @@ struct EvalPage {
   @State qError: string = '';
   @State submitting: boolean = false;
   @State answers: QAnswer[] = [];
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     this.loadData();
@@ -203,7 +204,7 @@ struct EvalPage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]]
+          colors: ElysiaTheme.pageGradient(this.darkMode)
         })
 
       Column() {
@@ -268,7 +269,7 @@ struct EvalPage {
         Text('  已完成').fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
       }.alignItems(VerticalAlign.Bottom).margin({ top: 10 })
       Stack({ alignContent: Alignment.Start }) {
-        Stack().width('100%').height(6).backgroundColor('#99FFFFFF').borderRadius(3)
+        Stack().width('100%').height(6).backgroundColor(ElysiaTheme.glassSoft(this.darkMode)).borderRadius(3)
         Stack()
           .width(this.tasks.length === 0 ? '0%' : `${(this.doneCount() / this.tasks.length) * 100}%`)
           .height(6).borderRadius(3)
@@ -297,11 +298,11 @@ struct EvalPage {
         Button(this.statusLabel(task.status))
           .height(28).fontSize(10).fontWeight(FontWeight.Bold).padding({ left: 12, right: 12 })
           .fontColor(task.status === 'open' ? Color.White : (task.status === 'submitted' ? '#3F7A4A' : ElysiaTheme.INK_MUTE))
-          .backgroundColor(task.status === 'open' ? Color.Transparent : '#A6FFFFFF')
+          .backgroundColor(task.status === 'open' ? Color.Transparent : ElysiaTheme.glassSoft(this.darkMode))
           .linearGradient(task.status === 'open'
             ? { angle: 135, colors: [['#FF9FBE', 0], [ElysiaTheme.ROSE_500, 1]] }
             : { angle: 0, colors: [['#00FFFFFF', 0], ['#00FFFFFF', 1]] })
-          .border({ width: task.status === 'open' ? 0 : 1, color: '#80FFB3CE' })
+          .border({ width: task.status === 'open' ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
           .borderRadius(999)
           .enabled(task.status === 'open')
           .onClick(() => { if (task.status === 'open') this.openSheet(task); })
@@ -309,7 +310,7 @@ struct EvalPage {
     }
     .width('100%').padding(14)
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-    .border({ width: 1, color: '#66FFB3CE' })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
   }
 
@@ -317,7 +318,7 @@ struct EvalPage {
     Stack({ alignContent: Alignment.Bottom }) {
       Column()
         .width('100%').height('100%')
-        .backgroundColor('#66000000')
+        .backgroundColor(ElysiaTheme.scrim(this.darkMode))
         .onClick(() => this.closeSheet())
 
       Column() {
@@ -328,8 +329,8 @@ struct EvalPage {
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 }).maxLines(1)
           }.alignItems(HorizontalAlign.Start).layoutWeight(1)
           Button({ type: ButtonType.Circle }) { AppIcon({ name: 'close', iconSize: 16 }) }
-            .width(32).height(32).backgroundColor('#A6FFFFFF')
-            .border({ width: 1, color: '#99FFB3CE' })
+            .width(32).height(32).backgroundColor(ElysiaTheme.glassSoft(this.darkMode))
+            .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
             .onClick(() => this.closeSheet())
         }.width('100%').padding({ left: 18, right: 18, top: 16, bottom: 10 })
 
@@ -366,7 +367,7 @@ struct EvalPage {
       .width('100%').height('86%')
       .backgroundColor(ElysiaTheme.CREAM_50)
       .borderRadius({ topLeft: 28, topRight: 28 })
-      .border({ width: 1, color: '#66FFB3CE' })
+      .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
     }
     .width('100%').height('100%')
   }
@@ -403,7 +404,7 @@ struct EvalPage {
       } else if (q.type === 'text') {
         TextArea({ placeholder: '请输入...', text: this.answers[i].text })
           .height(80).fontSize(13).fontColor(ElysiaTheme.INK)
-          .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+          .backgroundColor(ElysiaTheme.glass(this.darkMode)).border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
           .margin({ top: 10 })
           .maxLength(q.maxLength ?? 200)
           .onChange((v: string) => this.setText(i, v))
@@ -411,7 +412,7 @@ struct EvalPage {
     }
     .width('100%').padding(14)
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-    .border({ width: 1, color: '#66FFB3CE' })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -423,8 +424,8 @@ struct EvalPage {
         }
       }
       .width(20).height(20).borderRadius(multi ? 6 : 10)
-      .backgroundColor((multi ? this.isMultiSelected(i, opt.id) : this.isSingleSelected(i, opt.id)) ? ElysiaTheme.ROSE_100 : '#CCFFFFFF')
-      .border({ width: 1, color: (multi ? this.isMultiSelected(i, opt.id) : this.isSingleSelected(i, opt.id)) ? ElysiaTheme.ROSE_500 : '#80FFB3CE' })
+      .backgroundColor((multi ? this.isMultiSelected(i, opt.id) : this.isSingleSelected(i, opt.id)) ? ElysiaTheme.ROSE_100 : ElysiaTheme.glass(this.darkMode))
+      .border({ width: 1, color: (multi ? this.isMultiSelected(i, opt.id) : this.isSingleSelected(i, opt.id)) ? ElysiaTheme.ROSE_500 : ElysiaTheme.hairline(this.darkMode) })
       Text(opt.label).fontSize(12).fontColor(ElysiaTheme.INK).margin({ left: 10 }).layoutWeight(1)
     }
     .width('100%').padding({ top: 6, bottom: 6 })

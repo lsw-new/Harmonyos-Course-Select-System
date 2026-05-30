@@ -2,10 +2,11 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, ElysiaInput } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
-import { AdminRepository } from '../repositories/AdminRepository';
+import { StudentAdminRepository } from '../repositories/StudentAdminRepository';
 import { StudentAdminItem } from '../models/Admin';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
+import { AppIcon } from '../common/widgets/AppIcon';
 
 @Entry
 @Component
@@ -15,6 +16,7 @@ struct AdminStudentsPage {
   @State query: string = '';
   @State students: StudentAdminItem[] = [];
   @State activeCollege: string = '全部';
+  @StorageProp('darkMode') darkMode: boolean = false;
   private colleges: string[] = ['全部', '人文与艺术学院', '计算机学院', '艺术学院', '数学学院'];
 
   aboutToAppear(): void {
@@ -25,7 +27,7 @@ struct AdminStudentsPage {
   private loadData(): void {
     this.loading = true;
     this.errorMsg = '';
-    AdminRepository.get().getStudents(this.query, this.activeCollege).then((list: StudentAdminItem[]) => {
+    StudentAdminRepository.get().getStudents(this.query, this.activeCollege).then((list: StudentAdminItem[]) => {
       this.students = list;
       this.loading = false;
     }).catch((e: object) => {
@@ -48,10 +50,15 @@ struct AdminStudentsPage {
     return '已毕业';
   }
 
+  private openDetail(item: StudentAdminItem): void {
+    const p: Record<string, Object> = { 'studentId': item.studentId };
+    AppRoute.go(Routes.AdminStudentDetail, { params: p });
+  }
+
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -59,8 +66,8 @@ struct AdminStudentsPage {
 
         Column({ space: 10 }) {
           TextInput({ placeholder: '搜索学号/姓名/班级', text: this.query })
-            .height(40).fontSize(13).backgroundColor('#CCFFFFFF')
-            .border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+            .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass(this.darkMode))
+            .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
             .onChange((v: string) => { this.query = v; this.loadData(); })
 
           Scroll() {
@@ -94,8 +101,10 @@ struct AdminStudentsPage {
                     Text(`${s.college} · GPA ${s.gpa ?? '—'}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                   }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                   Pill({ text: this.statusLabel(s.status), color: this.statusColor(s.status), bg: '#FFF6FA' })
+                  AppIcon({ name: 'forward', iconSize: 16, mLeft: 8, dim: true })
                 }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-                .border({ width: 1, color: '#66FFB3CE' })
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+                .onClick(() => { this.openDetail(s); })
               }.margin({ bottom: 8 })
             }, (s: StudentAdminItem) => s.studentId)
           }.layoutWeight(1).padding({ left: 16, right: 16, top: 10 })

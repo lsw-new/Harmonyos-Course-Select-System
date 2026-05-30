@@ -31,6 +31,7 @@ struct AdminCoursesPage {
   @State selectedCountText: string = '0';
   @State status: string = 'draft';
   @State pendingDeleteId: string = '';
+  @StorageProp('darkMode') darkMode: boolean = false;
   private categories: string[] = ['全部', 'required', 'elective', 'public', 'practice'];
   private catLabels: string[] = ['全部', '必修', '选修', '公选', '实践'];
   private editCategories: string[] = ['required', 'elective', 'public', 'practice'];
@@ -207,7 +208,7 @@ struct AdminCoursesPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -216,8 +217,8 @@ struct AdminCoursesPage {
         Column({ space: 10 }) {
           Row({ space: 10 }) {
             TextInput({ placeholder: '搜索课程/课号/教师', text: this.query })
-              .height(40).fontSize(13).backgroundColor('#CCFFFFFF')
-              .border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+              .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass(this.darkMode))
+              .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
               .layoutWeight(1)
               .onChange((v: string) => { this.query = v; this.loadData(); })
             Text('新增').fontSize(13).fontColor(Color.White).fontWeight(FontWeight.Bold)
@@ -251,18 +252,18 @@ struct AdminCoursesPage {
               ElysiaInput({ placeholder: '上课时间，如：周一 1-2 节', value: $timeText, leadingIcon: 'time' })
               Row({ space: 8 }) {
                 TextInput({ placeholder: '学分', text: this.creditText })
-                  .height(40).fontSize(13).backgroundColor('#CCFFFFFF')
-                  .border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+                  .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass(this.darkMode))
+                  .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
                   .layoutWeight(1)
                   .onChange((v: string) => { this.creditText = v; })
                 TextInput({ placeholder: '容量', text: this.capacityText })
-                  .height(40).fontSize(13).backgroundColor('#CCFFFFFF')
-                  .border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+                  .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass(this.darkMode))
+                  .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
                   .layoutWeight(1)
                   .onChange((v: string) => { this.capacityText = v; })
                 TextInput({ placeholder: '已选', text: this.selectedCountText })
-                  .height(40).fontSize(13).backgroundColor('#CCFFFFFF')
-                  .border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+                  .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass(this.darkMode))
+                  .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
                   .layoutWeight(1)
                   .onChange((v: string) => { this.selectedCountText = v; })
               }.width('100%')
@@ -304,7 +305,7 @@ struct AdminCoursesPage {
                 PrimaryButton({ text: this.submitting ? '保存中...' : '保存课程', onTap: () => this.saveCourse() }).layoutWeight(1)
               }
             }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: '#66FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
           }.height(430).padding({ left: 16, right: 16, top: 10 }).scrollBar(BarState.Off)
         } else if (this.formError.length > 0) {
           Text(this.formError).fontSize(12).fontColor('#D8546B')
@@ -324,7 +325,7 @@ struct AdminCoursesPage {
                 Column({ space: 8 }) {
                   Row() {
                     Text(c.name).fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
-                    Pill({ text: this.statusLabel(c.status), color: this.statusColor(c.status), bg: '#FFF6FA' })
+                    Pill({ text: this.statusLabel(c.status), color: this.statusColor(c.status), bg: ElysiaTheme.SURFACE_GLOW })
                   }.width('100%')
                   Text(`${c.code} · ${c.teacher} · ${c.credit} 学分 · ${c.timeText}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
                   Row() {
@@ -357,7 +358,7 @@ struct AdminCoursesPage {
                     }
                   }.width('100%').alignItems(VerticalAlign.Center)
                 }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-                .border({ width: 1, color: '#66FFB3CE' })
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
               }.margin({ bottom: 8 })
             }, (c: AdminCourseItem) => c.id)
           }.layoutWeight(1).padding({ left: 16, right: 16, top: 10 })

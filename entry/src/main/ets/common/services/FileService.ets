@@ -111,9 +111,8 @@ export class FileService {
       throw new Error('文件服务未初始化');
     }
     const targetFolder = context.cacheDir.length > 0 ? context.cacheDir : context.filesDir;
-    const targetPath = `${targetFolder}/${fileName}`;
     const session = rcp.createSession();
-    const response = await session.downloadToFile(url, { kind: 'file', path: targetPath });
+    const response = await session.downloadToFile(url, { kind: 'folder', path: targetFolder });
     const statusCode = response.statusCode;
     if (statusCode < 200 || statusCode >= 300) {
       throw new Error(`下载失败（状态码 ${statusCode}）`);

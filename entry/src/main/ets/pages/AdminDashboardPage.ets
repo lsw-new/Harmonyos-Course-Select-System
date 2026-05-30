@@ -13,6 +13,7 @@ struct AdminDashboardPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State dashboard: AdminDashboardSummary | null = null;
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminDashboard)) return;
@@ -43,7 +44,7 @@ struct AdminDashboardPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -67,7 +68,7 @@ struct AdminDashboardPage {
                         Text(`${card.delta! > 0 ? '+' : ''}${card.delta}`).fontSize(10).fontColor(card.delta! > 0 ? '#7BB07B' : '#D8546B')
                       }
                     }.width('100%').padding(12).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-                    .border({ width: 1, color: '#66FFB3CE' }).alignItems(HorizontalAlign.Center)
+                    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) }).alignItems(HorizontalAlign.Center)
                   }
                 }, (card: DashboardStatCard) => card.key)
               }
@@ -85,7 +86,7 @@ struct AdminDashboardPage {
                   }, (p: TrendPoint) => p.label)
                 }.width('100%').height(100).alignItems(VerticalAlign.Bottom)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-              .border({ width: 1, color: '#66FFB3CE' })
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
               // 课程类型分布
               Column() {
@@ -98,7 +99,7 @@ struct AdminDashboardPage {
                   }.width('100%').padding({ top: 6, bottom: 6 })
                 }, (item: DistributionItem) => item.name)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-              .border({ width: 1, color: '#66FFB3CE' })
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
               // 待办审批
               Column() {
@@ -119,7 +120,7 @@ struct AdminDashboardPage {
                   .onClick(() => AppRoute.go(Routes.AdminApprovals))
                 }, (a: ApprovalItem) => a.id)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-              .border({ width: 1, color: '#66FFB3CE' })
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
               Blank().height(80)
             }.padding({ left: 16, right: 16 })

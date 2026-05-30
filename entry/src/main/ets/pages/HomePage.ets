@@ -9,6 +9,7 @@ import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { ProfileRepository } from '../repositories/ProfileRepository';
+import { CourseRepository } from '../repositories/CourseRepository';
 import { HomeSummary, QuickEntry, DownloadFile, RecentLogin, TermInfo } from '../models/Home';
 import { ScheduleItem } from '../models/Course';
 import { Notice } from '../models/Notice';
@@ -25,6 +26,16 @@ struct HomePage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State query: string = '';
+  @State searchActive: boolean = false;
+  @State courseHits: ScheduleItem[] = [];
+  @State noticeHits: Notice[] = [];
+  @State fileHits: DownloadFile[] = [];
+  @StorageProp('darkMode') darkMode: boolean = false;
+  // 完整可搜索语料（全周课表 / 全部通知 / 文件），不直接渲染，故用 private。
+  private allCourses: ScheduleItem[] = [];
+  private allNotices: Notice[] = [];
+  private allFiles: DownloadFile[] = [];
+  private corpusLoaded: boolean = false;
 
   aboutToAppear(): void {
     this.loadData();
@@ -36,9 +47,15 @@ struct HomePage {
     const repo = ProfileRepository.get();
     Promise.all([repo.getHomeSummary(), repo.getProfile()])
       .then((res: [HomeSummary, UserProfile]) => {
-        this.summary = res[0];
+        const sum = res[0];
+        this.summary = sum;
         this.profile = res[1];
         this.loading = false;
+        // 先用首页摘要兜底，保证输入即可搜索；随后再拉取完整语料扩大检索范围。
+        this.allCourses = sum.todayCourses;
+        this.allNotices = sum.noticeSummary;
+        this.allFiles = sum.files;
+        this.loadSearchCorpus();
       })
       .catch((e: object) => {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
@@ -46,12 +63,72 @@ struct HomePage {
       });
   }
 
+  // 拉取完整课表与全部通知作为检索语料；失败则保持首页摘要兜底，不阻断首页。
+  private loadSearchCorpus(): void {
+    if (this.corpusLoaded) {
+      return;
+    }
+    const cr = CourseRepository.get();
+    Promise.all([cr.getSchedule(), cr.getNotices()])
+      .then((res: [ScheduleItem[], Notice[]]) => {
+        this.allCourses = res[0];
+        this.allNotices = res[1];
+        this.corpusLoaded = true;
+        if (this.query.trim().length > 0) {
+          this.runSearch(this.query);
+        }
+      })
+      .catch(() => {
+        // 语料加载失败时检索范围退回今日课程与通知摘要，不影响首页其余功能。
+      });
+  }
+
+  // 在 课程 / 通知 / 文件 三类数据中做不区分大小写的包含匹配；课程按 courseId 去重。
+  private runSearch(raw: string): void {
+    const q = raw.trim().toLowerCase();
+    if (q.length === 0) {
+      this.searchActive = false;
+      this.courseHits = [];
+      this.noticeHits = [];
+      this.fileHits = [];
+      return;
+    }
+    this.searchActive = true;
+
+    const seen: string[] = [];
+    const courseMatches: ScheduleItem[] = [];
+    this.allCourses.forEach((c: ScheduleItem) => {
+      const hit = c.courseName.toLowerCase().indexOf(q) >= 0
+        || c.teacher.toLowerCase().indexOf(q) >= 0
+        || c.classroom.toLowerCase().indexOf(q) >= 0
+        || c.courseType.toLowerCase().indexOf(q) >= 0;
+      if (hit && seen.indexOf(c.courseId) < 0) {
+        seen.push(c.courseId);
+        courseMatches.push(c);
+      }
+    });
+    this.courseHits = courseMatches;
+
+    this.noticeHits = this.allNotices.filter((n: Notice) =>
+      n.title.toLowerCase().indexOf(q) >= 0
+      || n.publisher.toLowerCase().indexOf(q) >= 0);
+
+    this.fileHits = this.allFiles.filter((f: DownloadFile) =>
+      f.fileName.toLowerCase().indexOf(q) >= 0
+      || f.fileType.toLowerCase().indexOf(q) >= 0);
+  }
+
+  private clearSearch(): void {
+    this.query = '';
+    this.runSearch('');
+  }
+
   build() {
     Stack() {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]]
+          colors: ElysiaTheme.pageGradient(this.darkMode)
         })
 
       Column() {
@@ -65,14 +142,18 @@ struct HomePage {
           Scroll() {
             Column() {
               this.WelcomeBlock(this.profile!, this.summary!.unreadNoticeCount)
-              this.HeroTerm(this.summary!.term)
-              RoseDivider({ label: 'quick entrance · 快捷入口' })
-              this.QuickGrid(this.summary!.quickEntries)
-              this.TodaySection(this.summary!.todayCourses)
-              this.NoticeSection(this.summary!.noticeSummary)
-              this.FilesSection(this.summary!.files)
-              if (this.summary!.recentLogin !== undefined) {
-                this.RecentLoginCard(this.summary!.recentLogin!)
+              if (this.searchActive) {
+                this.SearchResults()
+              } else {
+                this.HeroTerm(this.summary!.term)
+                RoseDivider({ label: 'quick entrance · 快捷入口' })
+                this.QuickGrid(this.summary!.quickEntries)
+                this.TodaySection(this.summary!.todayCourses)
+                this.NoticeSection(this.summary!.noticeSummary)
+                this.FilesSection(this.summary!.files)
+                if (this.summary!.recentLogin !== undefined) {
+                  this.RecentLoginCard(this.summary!.recentLogin!)
+                }
               }
               Blank().height(100)
             }
@@ -100,19 +181,21 @@ struct HomePage {
     Column() {
       Blank().height(40)
       Row() {
-        Monogram({ iconSize: 44 })
-        Column() {
-          Text('Bonjour ✦').fontSize(11).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
-          Text(`${p.name} · ${p.studentId}`)
-            .fontSize(17).fontStyle(FontStyle.Italic)
-            .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
-            .margin({ top: 2 })
-        }.alignItems(HorizontalAlign.Start).margin({ left: 10 })
+        Row() {
+          Monogram({ iconSize: 44 })
+          Column() {
+            Text('Bonjour ✦').fontSize(11).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
+            Text(`${p.name} · ${p.studentId}`)
+              .fontSize(17).fontStyle(FontStyle.Italic)
+              .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
+              .margin({ top: 2 })
+          }.alignItems(HorizontalAlign.Start).margin({ left: 10 })
+        }.onClick(() => AppRoute.go(Routes.Mine, { replace: true }))
         Blank().layoutWeight(1)
         Stack({ alignContent: Alignment.TopEnd }) {
           Button({ type: ButtonType.Circle }) { AppIcon({ name: 'bell', iconSize: 16 }) }
-            .width(34).height(34).backgroundColor('#A6FFFFFF')
-            .border({ width: 1, color: '#99FFB3CE' })
+            .width(34).height(34).backgroundColor(ElysiaTheme.glassSoft(this.darkMode))
+            .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
             .onClick(() => AppRoute.go(Routes.Notices))
           if (unread > 0) {
             Text(unread > 9 ? '9+' : `${unread}`)
@@ -133,11 +216,19 @@ struct HomePage {
           .placeholderColor(ElysiaTheme.INK_MUTE)
           .fontColor(ElysiaTheme.INK)
           .layoutWeight(1)
-          .onChange((v: string) => { this.query = v; })
+          .enterKeyType(EnterKeyType.Search)
+          .onChange((v: string) => { this.query = v; this.runSearch(v); })
+        if (this.query.length > 0) {
+          Text('✕')
+            .fontSize(12).fontColor(ElysiaTheme.INK_MUTE).textAlign(TextAlign.Center)
+            .width(28).height(28).borderRadius(14).backgroundColor('#33F2709C')
+            .margin({ right: 6 })
+            .onClick(() => this.clearSearch())
+        }
       }
       .width('100%').margin({ left: 16, right: 16, top: 14 })
-      .backgroundColor('#B3FFFFFF').borderRadius(14)
-      .border({ width: 1, color: '#80FFB3CE' })
+      .backgroundColor(ElysiaTheme.glass(this.darkMode)).borderRadius(14)
+      .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
     }.width('100%')
   }
 
@@ -166,7 +257,7 @@ struct HomePage {
           .layoutWeight(1).padding({ top: 6, bottom: 6 }).borderRadius(10)
           .linearGradient(this.isToday(i ?? 0) ? {
             angle: 135, colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]]
-          } : { angle: 0, colors: [['#8CFFFFFF', 0], ['#8CFFFFFF', 1]] })
+          } : { angle: 0, colors: [[ElysiaTheme.glassSoft(this.darkMode), 0], [ElysiaTheme.glassSoft(this.darkMode), 1]] })
         }, (day: string) => day)
       }.width('100%').margin({ top: 14 })
     }
@@ -190,7 +281,7 @@ struct HomePage {
             }
             .width(50).height(50).borderRadius(16)
             .linearGradient({ angle: 135, colors: [[Color.White, 0], [ElysiaTheme.ROSE_100, 1]] })
-            .border({ width: 1, color: '#80FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
             .shadow({ radius: 10, color: '#59F2709C', offsetX: 0, offsetY: 4 })
             Text(q.label).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 6 })
           }
@@ -226,7 +317,7 @@ struct HomePage {
       }
       .width('100%').padding(30).margin({ left: 16, right: 16, top: 10 })
       .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-      .border({ width: 1, color: '#66FFB3CE' })
+      .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
     } else {
       Column({ space: 10 }) {
         ForEach(courses, (c: ScheduleItem) => {
@@ -260,7 +351,7 @@ struct HomePage {
     }
     .width('100%').padding(12)
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-    .border({ width: 1, color: '#66FFB3CE' })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
     .onClick(() => {
       let p: Record<string, Object> = { 'id': c.courseId };
@@ -296,11 +387,109 @@ struct HomePage {
             AppRoute.go(Routes.NoticeDetail, opts);
           })
           if (i !== undefined && i < items.length - 1) {
-            Divider().strokeWidth(1).color('#80FFB3CE')
+            Divider().strokeWidth(1).color(ElysiaTheme.hairline(this.darkMode))
           }
         }, (n: Notice) => n.id)
       }
     }.padding({ left: 16, right: 16, top: 8 })
+  }
+
+  @Builder SearchResults() {
+    Column() {
+      Row() {
+        Text('搜索结果').fontSize(18).fontStyle(FontStyle.Italic)
+          .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
+        Blank().layoutWeight(1)
+        Text(`${this.courseHits.length + this.noticeHits.length + this.fileHits.length} 项`)
+          .fontSize(10).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
+      }.width('100%').padding({ left: 20, right: 20, top: 18 })
+
+      if (this.courseHits.length + this.noticeHits.length + this.fileHits.length === 0) {
+        Column() {
+          AppIcon({ name: 'petal', iconSize: 30, dim: true })
+          Text(`未找到与「${this.query}」相关的内容`)
+            .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 8 })
+            .textAlign(TextAlign.Center)
+          Text('试试课程名 / 老师 / 教室 / 通知标题 / 文件名')
+            .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 4 })
+            .textAlign(TextAlign.Center)
+        }
+        .width('100%').padding(30).margin({ left: 16, right: 16, top: 12 })
+        .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
+        .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+      } else {
+        if (this.courseHits.length > 0) {
+          this.ResultGroupTitle('课程', this.courseHits.length)
+          Column({ space: 10 }) {
+            ForEach(this.courseHits, (c: ScheduleItem) => {
+              this.LessonCard(c)
+            }, (c: ScheduleItem) => `sc-${c.id}`)
+          }.padding({ left: 16, right: 16, top: 10 })
+        }
+        if (this.noticeHits.length > 0) {
+          this.ResultGroupTitle('通知', this.noticeHits.length)
+          Column({ space: 8 }) {
+            ForEach(this.noticeHits, (n: Notice) => {
+              this.NoticeResultRow(n)
+            }, (n: Notice) => `nt-${n.id}`)
+          }.padding({ left: 16, right: 16, top: 10 })
+        }
+        if (this.fileHits.length > 0) {
+          this.ResultGroupTitle('文件', this.fileHits.length)
+          Column({ space: 8 }) {
+            ForEach(this.fileHits, (f: DownloadFile) => {
+              this.FileResultRow(f)
+            }, (f: DownloadFile) => `fl-${f.id}`)
+          }.padding({ left: 16, right: 16, top: 10 })
+        }
+      }
+    }.width('100%')
+  }
+
+  @Builder ResultGroupTitle(label: string, count: number) {
+    Row() {
+      Text(label).fontSize(12).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+      Text(`${count}`).fontSize(10).fontColor(Color.White).fontWeight(FontWeight.Bold)
+        .padding({ left: 6, right: 6, top: 1, bottom: 1 })
+        .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(8).margin({ left: 6 })
+      Blank().layoutWeight(1)
+    }.width('100%').padding({ left: 20, right: 20, top: 16 })
+  }
+
+  @Builder NoticeResultRow(n: Notice) {
+    Row() {
+      Pill({ text: n.publisher })
+      Text(n.title).fontSize(12).fontColor(ElysiaTheme.INK)
+        .layoutWeight(1).margin({ left: 10, right: 10 }).maxLines(2)
+      Text(n.publishedAt.slice(5, 10)).fontSize(10).fontStyle(FontStyle.Italic)
+        .fontColor(ElysiaTheme.INK_MUTE).fontFamily(ElysiaTheme.FONT_DISPLAY)
+    }
+    .width('100%').padding(12)
+    .backgroundColor(ElysiaTheme.SURFACE).borderRadius(16)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .onClick(() => {
+      let p: Record<string, Object> = { 'id': n.id };
+      let opts: NavigateOptions = { params: p };
+      AppRoute.go(Routes.NoticeDetail, opts);
+    })
+  }
+
+  @Builder FileResultRow(f: DownloadFile) {
+    Row() {
+      Text(f.fileType.toUpperCase()).fontSize(9).fontWeight(FontWeight.Bold)
+        .fontColor(ElysiaTheme.GOLD_700).padding({ left: 8, right: 8, top: 4, bottom: 4 })
+        .backgroundColor('#FBE6C2').borderRadius(8)
+      Column() {
+        Text(f.fileName).fontSize(12).fontColor(ElysiaTheme.INK).maxLines(1)
+        Text(`${f.updatedAt} · ${this.formatSize(f.fileSize)}`)
+          .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
+      }.alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 10 })
+      AppIcon({ name: 'download', iconSize: 16 })
+    }
+    .width('100%').padding(12)
+    .backgroundColor(ElysiaTheme.SURFACE).borderRadius(16)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .onClick(() => this.downloadFile(f))
   }
 
   private downloadFile(f: DownloadFile): void {
@@ -335,7 +524,7 @@ struct HomePage {
         }
         .width('100%').padding(12)
         .backgroundColor(ElysiaTheme.SURFACE).borderRadius(16)
-        .border({ width: 1, color: '#66FFB3CE' })
+        .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
         .onClick(() => this.downloadFile(f))
       }, (f: DownloadFile) => f.id)
     }.padding({ left: 16, right: 16, top: 8 })
@@ -352,8 +541,8 @@ struct HomePage {
       }.alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 12 })
     }
     .width('100%').padding(14).margin({ left: 16, right: 16, top: 18 })
-    .backgroundColor('#99FFFFFF').borderRadius(18)
-    .border({ width: 1, color: '#66FFB3CE' })
+    .backgroundColor(ElysiaTheme.glassSoft(this.darkMode)).borderRadius(18)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
   }
 
   isToday(idx: number): boolean {

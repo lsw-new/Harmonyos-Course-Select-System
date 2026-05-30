@@ -25,6 +25,7 @@ struct SelectionPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State actionError: string = '';
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     this.loadData();
@@ -66,7 +67,7 @@ struct SelectionPage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]]
+          colors: ElysiaTheme.pageGradient(this.darkMode)
         })
 
       Column() {
@@ -101,7 +102,7 @@ struct SelectionPage {
 
                   // 进度条
                   Stack({ alignContent: Alignment.Start }) {
-                    Stack().width('100%').height(6).borderRadius(3).backgroundColor('#99FFFFFF')
+                    Stack().width('100%').height(6).borderRadius(3).backgroundColor(ElysiaTheme.glassSoft(this.darkMode))
                     Stack()
                       .width(`${Math.min((this.round!.selectedCredits / this.round!.creditLimit) * 100, 100)}%`)
                       .height(6).borderRadius(3)
@@ -134,8 +135,8 @@ struct SelectionPage {
                     this.reloadCourses();
                   })
               }
-              .width('100%').backgroundColor('#B3FFFFFF').borderRadius(14)
-              .border({ width: 1, color: '#80FFB3CE' })
+              .width('100%').backgroundColor(ElysiaTheme.glass(this.darkMode)).borderRadius(14)
+              .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
               .margin({ bottom: 10 })
 
               // 分类筛选
@@ -146,11 +147,11 @@ struct SelectionPage {
                       .padding({ left: 14, right: 14 })
                       .borderRadius(999)
                       .fontColor(cat === this.category ? Color.White : ElysiaTheme.ROSE_700)
-                      .backgroundColor(cat === this.category ? '' : '#B3FFFFFF')
+                      .backgroundColor(cat === this.category ? '' : ElysiaTheme.glass(this.darkMode))
                       .linearGradient(cat === this.category
                         ? { angle: 135, colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]] }
                         : { angle: 0, colors: [['#00FFFFFF', 0]] })
-                      .border({ width: cat === this.category ? 0 : 1, color: '#80FFB3CE' })
+                      .border({ width: cat === this.category ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
                       .onClick(() => {
                         this.category = cat;
                         this.reloadCourses();
@@ -218,8 +219,8 @@ struct SelectionPage {
                         Button('退 选')
                           .height(34).fontSize(11).fontWeight(FontWeight.Bold)
                           .fontColor(ElysiaTheme.ROSE_700)
-                          .backgroundColor('#B3FFFFFF')
-                          .border({ width: 1, color: '#80FFB3CE' })
+                          .backgroundColor(ElysiaTheme.glass(this.darkMode))
+                          .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
                           .borderRadius(999)
                           .padding({ left: 14, right: 14 })
                           .onClick(() => {
@@ -233,8 +234,8 @@ struct SelectionPage {
                         Button('已 满')
                           .height(34).fontSize(11).fontWeight(FontWeight.Bold)
                           .fontColor(ElysiaTheme.INK_MUTE)
-                          .backgroundColor('#B3FFFFFF')
-                          .border({ width: 1, color: '#80FFB3CE' })
+                          .backgroundColor(ElysiaTheme.glass(this.darkMode))
+                          .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
                           .borderRadius(999)
                           .padding({ left: 14, right: 14 })
                           .enabled(false)
@@ -242,8 +243,8 @@ struct SelectionPage {
                         Button('冲 突')
                           .height(34).fontSize(11).fontWeight(FontWeight.Bold)
                           .fontColor(ElysiaTheme.INK_MUTE)
-                          .backgroundColor('#B3FFFFFF')
-                          .border({ width: 1, color: '#80FFB3CE' })
+                          .backgroundColor(ElysiaTheme.glass(this.darkMode))
+                          .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
                           .borderRadius(999)
                           .padding({ left: 14, right: 14 })
                           .enabled(false)
@@ -251,7 +252,7 @@ struct SelectionPage {
                     }
                     .width('100%').padding(14)
                     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-                    .border({ width: 1, color: '#66FFB3CE' })
+                    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
                     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
                   }, (c: SelectionCourse) => c.course.id)
                 }

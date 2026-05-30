@@ -17,6 +17,7 @@ struct NoticesPage {
   @State notices: Notice[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     this.loadData();
@@ -40,7 +41,7 @@ struct NoticesPage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]]
+          colors: ElysiaTheme.pageGradient(this.darkMode)
         })
 
       Column() {
@@ -56,13 +57,13 @@ struct NoticesPage {
                 .fontSize(11)
                 .fontWeight(FontWeight.Medium)
                 .fontColor((i === this.activeFilter) ? Color.White : ElysiaTheme.ROSE_700)
-                .backgroundColor((i === this.activeFilter) ? '' : '#B3FFFFFF')
+                .backgroundColor((i === this.activeFilter) ? '' : ElysiaTheme.glass(this.darkMode))
                 .linearGradient((i === this.activeFilter) ? {
                   angle: 135,
                   colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]]
                 } : { angle: 0, colors: [['#00FFFFFF', 0]] })
                 .borderRadius(999)
-                .border({ width: (i === this.activeFilter) ? 0 : 1, color: '#80FFB3CE' })
+                .border({ width: (i === this.activeFilter) ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
                 .onClick(() => {
                   this.activeFilter = i ?? 0;
                   this.loadData();
@@ -121,7 +122,7 @@ struct NoticesPage {
           angle: 135,
           colors: [[ElysiaTheme.ROSE_100, 0], [ElysiaTheme.LAV_200, 1]]
         })
-        .border({ width: 1, color: '#80FFB3CE' })
+        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
 
         Column() {
           Row() {
@@ -162,7 +163,7 @@ struct NoticesPage {
     .width('100%')
     .backgroundColor(ElysiaTheme.SURFACE)
     .borderRadius(22)
-    .border({ width: 1, color: '#66FFB3CE' })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
     .onClick(() => {
       let p: Record<string, Object> = { 'id': n.id };

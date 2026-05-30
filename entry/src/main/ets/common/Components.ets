@@ -38,6 +38,7 @@ export struct Sparkle {
 @Component
 export struct Monogram {
   @Prop iconSize: number = 56;
+  @StorageProp('darkMode') darkMode: boolean = false;
   build() {
     Stack() {
       Text('É')
@@ -59,7 +60,7 @@ export struct Monogram {
         [ElysiaTheme.ROSE_200, 1.0]
       ]
     })
-    .shadow({ radius: 12, color: '#40F2709C', offsetX: 0, offsetY: 6 })
+    .shadow({ radius: 12, color: this.darkMode ? '#40000000' : '#40F2709C', offsetX: 0, offsetY: 6 })
   }
 }
 
@@ -69,6 +70,7 @@ export struct TopBar {
   @Prop title: string = '';
   @Prop subtitle: string = '';
   @Prop showBack: boolean = true;
+  @StorageProp('darkMode') darkMode: boolean = false;
   onBack?: () => void;
 
   build() {
@@ -78,8 +80,8 @@ export struct TopBar {
           AppIcon({ name: 'back', iconSize: 18 })
         }
         .width(34).height(34)
-        .backgroundColor('#A6FFFFFF')
-        .border({ width: 1, color: '#99FFB3CE' })
+        .backgroundColor(ElysiaTheme.glassSoft(this.darkMode))
+        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
         .onClick(() => { if (this.onBack) this.onBack(); })
       } else {
         Blank().width(34)
@@ -112,12 +114,13 @@ export struct TopBar {
 @Component
 export struct RoseDivider {
   @Prop label: string = '';
+  @StorageProp('darkMode') darkMode: boolean = false;
   build() {
     Row() {
       Divider()
         .layoutWeight(1)
         .strokeWidth(1)
-        .color('#99FFB3CE')
+        .color(ElysiaTheme.hairline(this.darkMode))
         .opacity(0.6)
       Row() {
         RoseIcon({ iconSize: 10 })
@@ -132,7 +135,7 @@ export struct RoseDivider {
       Divider()
         .layoutWeight(1)
         .strokeWidth(1)
-        .color('#99FFB3CE')
+        .color(ElysiaTheme.hairline(this.darkMode))
         .opacity(0.6)
     }
     .width('100%')
@@ -168,6 +171,7 @@ export struct PrimaryButton {
 @Component
 export struct GhostButton {
   @Prop text: string = '';
+  @StorageProp('darkMode') darkMode: boolean = false;
   onTap?: () => void;
   build() {
     Button(this.text)
@@ -176,8 +180,8 @@ export struct GhostButton {
       .fontSize(13)
       .fontWeight(FontWeight.Medium)
       .fontColor(ElysiaTheme.ROSE_700)
-      .backgroundColor('#B3FFFFFF')
-      .border({ width: 1, color: '#99FFB3CE' })
+      .backgroundColor(ElysiaTheme.glass(this.darkMode))
+      .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
       .borderRadius(999)
       .onClick(() => { if (this.onTap) this.onTap(); })
   }
@@ -190,6 +194,7 @@ export struct ElysiaInput {
   @Link value: string;
   @Prop secure: boolean = false;
   @Prop leadingIcon: string = '';
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   build() {
     Stack({ alignContent: Alignment.Start }) {
@@ -199,8 +204,8 @@ export struct ElysiaInput {
         .fontSize(13)
         .fontColor(ElysiaTheme.INK)
         .placeholderColor(ElysiaTheme.INK_MUTE)
-        .backgroundColor('#CCFFFFFF')
-        .border({ width: 1, color: '#80FFB3CE' })
+        .backgroundColor(ElysiaTheme.glass(this.darkMode))
+        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
         .borderRadius(14)
         .padding({ left: this.leadingIcon ? 38 : 14, right: 14 })
         .onChange((v) => { this.value = v; })
@@ -217,6 +222,7 @@ export struct ElysiaInput {
 export struct GlowCard {
   @BuilderParam content?: () => void;
   @Prop pad: number = 14;
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   build() {
     Column() {
@@ -228,7 +234,7 @@ export struct GlowCard {
     .padding(this.pad)
     .backgroundColor(ElysiaTheme.SURFACE)
     .borderRadius(22)
-    .border({ width: 1, color: '#66FFB3CE' })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
     .shadow({ radius: 16, color: '#1FD85487', offsetX: 0, offsetY: 4 })
   }
 }
@@ -239,6 +245,7 @@ export struct Pill {
   @Prop text: string = '';
   @Prop bg: string = '';
   @Prop color: string = '';
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   build() {
     Text(this.text)
@@ -246,8 +253,8 @@ export struct Pill {
       .fontWeight(FontWeight.Bold)
       .fontColor(this.color || ElysiaTheme.ROSE_700)
       .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-      .backgroundColor(this.bg || '#FFE4EE')
-      .border({ width: 1, color: '#B3FFB3CE' })
+      .backgroundColor(this.bg || ElysiaTheme.pillBg(this.darkMode))
+      .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
       .borderRadius(999)
   }
 }
@@ -256,6 +263,7 @@ export struct Pill {
 @Component
 export struct ElysiaTabBar {
   @Prop active: string = 'home';
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   private tabs: TabDef[] = [
     new TabDef('home', 'Home', 'home'),
@@ -284,7 +292,7 @@ export struct ElysiaTabBar {
     .width('100%')
     .height(72)
     .padding({ top: 10, bottom: 18, left: 14, right: 14 })
-    .backgroundColor('#F2FFF6FA')
+    .backgroundColor(ElysiaTheme.barBg(this.darkMode))
     .backdropBlur(8)
     .position({ x: 0, y: '100%' })
     .translate({ y: -72 })

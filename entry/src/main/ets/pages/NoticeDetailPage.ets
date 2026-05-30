@@ -16,6 +16,7 @@ struct NoticeDetailPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State notice: Notice | null = null;
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     this.loadData();
@@ -52,7 +53,7 @@ struct NoticeDetailPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -88,7 +89,7 @@ struct NoticeDetailPage {
                 Text(this.notice!.content)
                   .fontSize(14).fontColor(ElysiaTheme.INK).lineHeight(22)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-              .border({ width: 1, color: '#66FFB3CE' })
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
               // 附件
               if (this.notice!.attachments.length > 0) {
@@ -105,11 +106,11 @@ struct NoticeDetailPage {
                       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                       Text('下载').fontSize(11).fontColor(ElysiaTheme.ROSE_500)
                         .onClick(() => this.downloadAttachment(att))
-                    }.width('100%').padding(12).backgroundColor('#FFF6FA').borderRadius(12)
-                    .border({ width: 1, color: '#66FFB3CE' })
+                    }.width('100%').padding(12).backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(12)
+                    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
                   }, (att: NoticeAttachment) => att.id)
                 }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-                .border({ width: 1, color: '#66FFB3CE' })
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
               }
 
               Blank().height(40)

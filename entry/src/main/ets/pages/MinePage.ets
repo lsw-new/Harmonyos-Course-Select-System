@@ -9,8 +9,11 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { ProfileRepository } from '../repositories/ProfileRepository';
+import { AcademicRepository } from '../repositories/AcademicRepository';
 import { UserProfile } from '../models/User';
 import { HomeSummary } from '../models/Home';
+import { GradeSummary } from '../models/Academic';
+import { LeaveRequest } from '../models/Misc';
 
 class QuickItem {
   icon: string = '';
@@ -36,11 +39,15 @@ interface MineEntry {
 @Entry
 @Component
 struct MinePage {
-  @State darkMode: boolean = false;
+  @StorageProp('darkMode') darkMode: boolean = false;
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State profile: UserProfile | null = null;
   @State unreadCount: number = 0;
+  @State gpa: string = '—';
+  @State earnedCredits: string = '—';
+  @State leaveTotal: number = 0;
+  @State leavePending: number = 0;
   @State showLogoutConfirm: boolean = false;
 
   private quickItems: QuickItem[] = [
@@ -51,30 +58,32 @@ struct MinePage {
     new QuickItem('exam', '考试', Routes.Exam),
     new QuickItem('evaluation', '评教', Routes.Eval),
     new QuickItem('notice', '通知', Routes.Notices),
-    new QuickItem('more', '更多', '')
+    new QuickItem('more', '更多', Routes.ServiceHall)
   ];
 
-  private affairs: MineEntry[] = [
-    { icon: 'wallet', title: '我的账户', subtitle: '账号信息 · 状态 · 有效期', route: Routes.Account },
-    { icon: 'edit', title: '修改个人信息', subtitle: '手机 · 邮箱 · 头像 · 联系人', route: Routes.EditInfo },
-    { icon: 'lock', title: '修改密码', subtitle: '强度建议 · 8 位以上', route: Routes.Password },
-    { icon: 'leave', title: '我的请假', subtitle: '3 条记录', badge: '1', route: Routes.Leave },
-    { icon: 'public', title: '办事大厅', subtitle: '课程替代 · 缓考 · 转专业…' }
-  ];
+  // 我的事务列表；「我的请假」的记录数与待审角标来自真实请假数据。
+  private makeAffairs(): MineEntry[] {
+    const leaveSubtitle: string = this.leaveTotal > 0 ? `${this.leaveTotal} 条记录` : '暂无记录';
+    const leaveBadge: string = this.leavePending > 0 ? `${this.leavePending}` : '';
+    return [
+      { icon: 'wallet', title: '我的账户', subtitle: '账号信息 · 状态 · 有效期', route: Routes.Account },
+      { icon: 'edit', title: '修改个人信息', subtitle: '手机 · 邮箱 · 头像 · 联系人', route: Routes.EditInfo },
+      { icon: 'lock', title: '修改密码', subtitle: '强度建议 · 8 位以上', route: Routes.Password },
+      { icon: 'leave', title: '我的请假', subtitle: leaveSubtitle, badge: leaveBadge, route: Routes.Leave },
+      { icon: 'public', title: '办事大厅', subtitle: '课程替代 · 缓考 · 转专业…', route: Routes.ServiceHall }
+    ];
+  }
 
   @State prefs: MineEntry[] = [
     { icon: 'settings', title: '系统设置', subtitle: '消息 · 缓存 · 深色模式', route: Routes.Settings },
     { icon: 'feedback', title: '意见反馈', subtitle: '帮我们变得更好', route: Routes.Feedback },
     { icon: 'star', title: '夜间模式', subtitle: '减少屏幕灼伤', toggle: true },
-    { icon: 'info', title: '关于', subtitle: 'v1.1.0 · 协议 · 隐私政策' },
+    { icon: 'info', title: '关于', subtitle: 'v1.1.0 · 协议 · 隐私政策', route: Routes.About },
     { icon: 'close', title: '退出登录', subtitle: '清除本地凭据', danger: true }
   ];
 
   aboutToAppear(): void {
-    PreferenceStorage.get().getBoolean('darkMode', false).then((v: boolean) => {
-      this.darkMode = v;
-      ElysiaTheme.setDarkMode(v);
-    });
+    // darkMode 由 AppStorage 提供（启动时已从 PreferenceStorage 注入），@StorageProp 自动同步。
     this.loadData();
   }
 
@@ -89,16 +98,27 @@ struct MinePage {
     this.loading = true;
     this.errorMsg = '';
     const repo = ProfileRepository.get();
-    Promise.all([repo.getProfile(), repo.getHomeSummary()])
-      .then((res: [UserProfile, HomeSummary]) => {
+    const academic = AcademicRepository.get();
+    Promise.all([repo.getProfile(), repo.getHomeSummary(), academic.getGradeSummary(), repo.getLeaveRequests()])
+      .then((res: [UserProfile, HomeSummary, GradeSummary, LeaveRequest[]]) => {
         this.profile = res[0];
         this.unreadCount = res[1].unreadNoticeCount;
+        const summary: GradeSummary = res[2];
+        this.gpa = summary.totalGpa.toFixed(2);
+        this.earnedCredits = `${summary.earnedCredits}`;
+        const leaves: LeaveRequest[] = res[3];
+        this.leaveTotal = leaves.length;
+        this.leavePending = leaves.filter((lv: LeaveRequest) => lv.state === 'pending').length;
         this.loading = false;
       })
       .catch((e: object) => {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
         this.loading = false;
       });
+  }
+
+  private pad2(n: number): string {
+    return n > 9 ? `${n}` : `0${n}`;
   }
 
   private logout(): void {
@@ -117,8 +137,6 @@ struct MinePage {
     }
     if (it.route && it.route.length > 0) {
       AppRoute.go(it.route);
-    } else {
-      promptAction.showToast({ message: '该功能正在建设中' });
     }
   }
 
@@ -127,7 +145,7 @@ struct MinePage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], [ElysiaTheme.SURFACE_GLOW, 1]]
+          colors: ElysiaTheme.pageGradient(this.darkMode)
         })
 
       Column() {
@@ -186,10 +204,10 @@ struct MinePage {
 
           // Quick stats
           Row({ space: 6 }) {
-            this.StatBlock('3.86', 'GPA')
-            this.StatBlock('21.5', '学分')
+            this.StatBlock(this.gpa, 'GPA')
+            this.StatBlock(this.earnedCredits, '学分')
             this.StatBlock(this.unreadCount > 0 ? `${this.unreadCount}` : '00', '通知')
-            this.StatBlock('02', '待办')
+            this.StatBlock(this.pad2(this.leavePending), '待办')
           }
           .width('100%')
           .padding({ top: 10, bottom: 10 })
@@ -225,7 +243,7 @@ struct MinePage {
                         angle: 135,
                         colors: [[ElysiaTheme.SURFACE, 0], [ElysiaTheme.ROSE_100, 1]]
                       })
-                      .border({ width: 1, color: '#80FFB3CE' })
+                      .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
                       Text(it.label)
                         .fontSize(10)
                         .fontColor(ElysiaTheme.INK_SOFT)
@@ -233,7 +251,6 @@ struct MinePage {
                     }
                     .onClick(() => {
                       if (it.route.length > 0) AppRoute.go(it.route);
-                      else promptAction.showToast({ message: '该功能正在建设中' });
                     })
                     .accessibilityText(it.label)
                   }
@@ -246,7 +263,7 @@ struct MinePage {
               .padding({ left: 16, right: 16 })
 
               RoseDivider({ label: '我 的 事 务' })
-              this.EntryGroup(this.affairs)
+              this.EntryGroup(this.makeAffairs())
 
               RoseDivider({ label: '偏好与系统' })
               this.EntryGroup(this.prefs)
@@ -281,7 +298,7 @@ struct MinePage {
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-        .backgroundColor('#66000000')
+        .backgroundColor(ElysiaTheme.scrim(this.darkMode))
       }
 
       // Bottom tab bar
@@ -370,7 +387,7 @@ struct MinePage {
         .accessibilityText(it.title)
         .onClick(() => { this.handleEntryTap(it); })
         if (idx !== undefined && idx < items.length - 1) {
-          Divider().strokeWidth(1).color('#80FFB3CE')
+          Divider().strokeWidth(1).color(ElysiaTheme.hairline(this.darkMode))
         }
       }, (it: MineEntry) => it.title)
     }
@@ -379,7 +396,7 @@ struct MinePage {
     .margin({ left: 16, right: 16 })
     .backgroundColor(ElysiaTheme.SURFACE)
     .borderRadius(22)
-    .border({ width: 1, color: '#66FFB3CE' })
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
     .shadow({ radius: 16, color: '#1FD85487', offsetX: 0, offsetY: 4 })
   }
 }

@@ -1,29 +1,68 @@
-// 实践与公服 · Practice
+// 实践与公服 · Practice（Tab 页）
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, RoseDivider, Pill } from '../common/Components';
+import { TopBar, Pill } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
-import { ProfileRepository } from '../repositories/ProfileRepository';
-import { PracticeEntry } from '../models/Misc';
+import { StudentTabBar } from '../common/widgets/TabBars';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
+import { PracticeRepository } from '../repositories/PracticeRepository';
+import { PracticeProject, PracticeCategory } from '../models/PracticeModels';
+import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
+
+// 分类筛选项：value 为空字符串表示「全部」。
+class PracticeFilter {
+  value: string = '';
+  label: string = '';
+  constructor(value: string, label: string) {
+    this.value = value;
+    this.label = label;
+  }
+}
+
+const FILTERS: PracticeFilter[] = [
+  new PracticeFilter('', '全部'),
+  new PracticeFilter('internship', '企业实习'),
+  new PracticeFilter('research', '科研训练'),
+  new PracticeFilter('social', '社会实践'),
+  new PracticeFilter('volunteer', '志愿服务')
+];
+
+function categoryLabel(c: PracticeCategory): string {
+  if (c === 'internship') return '企业实习';
+  if (c === 'research') return '科研训练';
+  if (c === 'social') return '社会实践';
+  return '志愿服务';
+}
 
 @Entry
 @Component
 struct PracticePage {
+  @State projects: PracticeProject[] = [];
+  @State category: string = '';
   @State loading: boolean = true;
   @State errorMsg: string = '';
-  @State entries: PracticeEntry[] = [];
+  @State actionError: string = '';
+  @State busyId: string = '';
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Practice)) {
+      return;
+    }
     this.loadData();
+  }
+
+  private currentCategory(): PracticeCategory | undefined {
+    return this.category.length > 0 ? this.category as PracticeCategory : undefined;
   }
 
   private loadData(): void {
     this.loading = true;
     this.errorMsg = '';
-    ProfileRepository.get().getPracticeEntries().then((list: PracticeEntry[]) => {
-      this.entries = list;
+    this.actionError = '';
+    PracticeRepository.get().getProjects(this.currentCategory()).then((list: PracticeProject[]) => {
+      this.projects = list;
       this.loading = false;
     }).catch((e: object) => {
       this.errorMsg = e instanceof Error ? e.message : '加载失败';
@@ -31,81 +70,196 @@ struct PracticePage {
     });
   }
 
+  private reloadProjects(): void {
+    this.actionError = '';
+    PracticeRepository.get().getProjects(this.currentCategory()).then((list: PracticeProject[]) => {
+      this.projects = list;
+    }).catch((e: object) => {
+      this.actionError = e instanceof Error ? e.message : '操作失败';
+    });
+  }
+
+  private openDetail(project: PracticeProject): void {
+    const p: Record<string, Object> = { 'id': project.id };
+    AppRoute.go(Routes.PracticeDetail, { params: p });
+  }
+
+  private toggleSignUp(project: PracticeProject): void {
+    if (this.busyId.length > 0) {
+      return;
+    }
+    if (!project.signedUp && project.slotsTaken >= project.slotsTotal) {
+      this.actionError = '该项目名额已满';
+      promptAction.showToast({ message: '该项目名额已满' });
+      return;
+    }
+    this.busyId = project.id;
+    this.actionError = '';
+    const repo = PracticeRepository.get();
+    const isCancel = project.signedUp;
+    const action: Promise<PracticeProject> = isCancel ? repo.cancelSignUp(project.id) : repo.signUp(project.id);
+    action.then(() => {
+      this.busyId = '';
+      promptAction.showToast({ message: isCancel ? '已取消报名' : '报名成功' });
+      this.reloadProjects();
+    }).catch((e: object) => {
+      this.busyId = '';
+      const msg = (e instanceof HttpError) ? (e as HttpError).message : (isCancel ? '取消失败' : '报名失败');
+      this.actionError = msg;
+      promptAction.showToast({ message: msg });
+    });
+  }
+
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({
+          angle: 180,
+          colors: ElysiaTheme.pageGradient(this.darkMode)
+        })
 
       Column() {
         Blank().height(40)
-        TopBar({ title: 'Practice', subtitle: '实 践 与 公 服', onBack: () => AppRoute.back() })
+        TopBar({ title: 'Practice', subtitle: '实 践 与 公 服', showBack: false })
+
+        // 分类筛选
+        Scroll() {
+          Row({ space: 6 }) {
+            ForEach(FILTERS, (f: PracticeFilter) => {
+              Button(f.label).height(28).fontSize(11)
+                .padding({ left: 14, right: 14 })
+                .borderRadius(999)
+                .fontColor(f.value === this.category ? Color.White : ElysiaTheme.ROSE_700)
+                .backgroundColor(f.value === this.category ? '' : ElysiaTheme.glass(this.darkMode))
+                .linearGradient(f.value === this.category
+                  ? { angle: 135, colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]] }
+                  : { angle: 0, colors: [['#00FFFFFF', 0]] })
+                .border({ width: f.value === this.category ? 0 : 1, color: ElysiaTheme.hairline(this.darkMode) })
+                .onClick(() => {
+                  this.category = f.value;
+                  this.loadData();
+                })
+            }, (f: PracticeFilter) => f.value.length > 0 ? f.value : 'all')
+          }.padding({ left: 16, right: 16 })
+        }
+        .scrollable(ScrollDirection.Horizontal)
+        .scrollBar(BarState.Off)
+        .margin({ top: 6, bottom: 8 })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载...' })
+          LoadingState({ tip: '正在加载实践项目...' })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
-        } else if (this.entries.length === 0) {
-          EmptyState({ title: '暂无实践项目' })
+        } else if (this.projects.length === 0) {
+          EmptyState({ icon: 'practice', title: '暂无实践项目' })
         } else {
           Scroll() {
-            Column({ space: 14 }) {
-              // 实践模块
-              Column() {
-                Text('实践模块').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
-                ForEach(this.entries.filter((e: PracticeEntry) =>
-                  e.key === 'intern' || e.key === 'central' || e.key === 'social' || e.key === 'volunteer'
-                ), (item: PracticeEntry) => {
-                  this.EntryCard(item)
-                }, (item: PracticeEntry) => item.key)
-              }.width('100%')
+            Column() {
+              if (this.actionError.length > 0) {
+                Text(this.actionError)
+                  .fontSize(12).fontColor(ElysiaTheme.ROSE_700)
+                  .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+                  .width('100%')
+                  .backgroundColor('#FFEBEE').borderRadius(10)
+                  .margin({ bottom: 10 })
+              }
 
-              RoseDivider({ label: 'public service' })
-
-              // 公共服务
-              Column() {
-                Text('公共服务').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
-                ForEach(this.entries.filter((e: PracticeEntry) =>
-                  e.key !== 'intern' && e.key !== 'central' && e.key !== 'social' && e.key !== 'volunteer'
-                ), (item: PracticeEntry) => {
-                  this.EntryCard(item)
-                }, (item: PracticeEntry) => item.key)
-              }.width('100%')
-
-              Blank().height(40)
-            }.padding({ left: 16, right: 16 })
-          }.scrollBar(BarState.Off).layoutWeight(1)
+              Column({ space: 10 }) {
+                ForEach(this.projects, (project: PracticeProject) => {
+                  this.ProjectCard(project)
+                }, (project: PracticeProject) => project.id)
+              }
+              .margin({ bottom: 20 })
+            }
+            .padding({ left: 16, right: 16 })
+          }
+          .scrollBar(BarState.Off)
+          .layoutWeight(1)
         }
-      }
-    }.width('100%').height('100%')
-  }
 
-  @Builder EntryCard(item: PracticeEntry) {
-    Row() {
-      Column() {
-        Text(item.label).fontSize(14).fontColor(item.available ? ElysiaTheme.INK : ElysiaTheme.INK_MUTE)
-        Text(item.description).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
-      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      if (!item.available) {
-        Pill({ text: '建设中', color: ElysiaTheme.INK_MUTE, bg: '#F0F0F0' })
-      } else {
-        AppIcon({ name: 'forward', iconSize: 16 })
+        StudentTabBar({ active: 'prac', onTap: (id: string, route: string) => { AppRoute.go(route, { replace: true }); } })
       }
     }
+    .width('100%').height('100%')
+  }
+
+  // 项目状态 Pill：可报名 / 已报名 / 已满。
+  @Builder StatusPill(project: PracticeProject) {
+    if (project.signedUp) {
+      Pill({ text: '已报名', bg: '#E6F5EC', color: '#3E8E5E' })
+    } else if (project.slotsTaken >= project.slotsTotal) {
+      Pill({ text: '已满', bg: '#F0F0F0', color: ElysiaTheme.INK_MUTE })
+    } else {
+      Pill({ text: '可报名' })
+    }
+  }
+
+  @Builder ActionButton(project: PracticeProject) {
+    if (project.signedUp) {
+      Button(this.busyId === project.id ? '处理中' : '取消')
+        .height(34).fontSize(11).fontWeight(FontWeight.Bold)
+        .fontColor(ElysiaTheme.ROSE_700)
+        .backgroundColor(ElysiaTheme.glass(this.darkMode))
+        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+        .borderRadius(999)
+        .padding({ left: 14, right: 14 })
+        .enabled(this.busyId.length === 0)
+        .onClick(() => { this.toggleSignUp(project); })
+    } else if (project.slotsTaken >= project.slotsTotal) {
+      Button('已 满')
+        .height(34).fontSize(11).fontWeight(FontWeight.Bold)
+        .fontColor(ElysiaTheme.INK_MUTE)
+        .backgroundColor(ElysiaTheme.glass(this.darkMode))
+        .border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) })
+        .borderRadius(999)
+        .padding({ left: 14, right: 14 })
+        .enabled(false)
+    } else {
+      Button(this.busyId === project.id ? '处理中' : '报 名')
+        .height(34).fontSize(11).fontWeight(FontWeight.Bold)
+        .fontColor(Color.White)
+        .backgroundColor('')
+        .linearGradient({ angle: 135, colors: [['#FF9FBE', 0], [ElysiaTheme.ROSE_500, 1]] })
+        .borderRadius(999)
+        .padding({ left: 14, right: 14 })
+        .enabled(this.busyId.length === 0)
+        .onClick(() => { this.toggleSignUp(project); })
+    }
+  }
+
+  @Builder ProjectCard(project: PracticeProject) {
+    Column({ space: 8 }) {
+      Row() {
+        Column() {
+          Text(project.title).fontSize(14).fontWeight(FontWeight.Bold)
+            .fontColor(ElysiaTheme.INK).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(project.org).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 4 })
+            .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+        }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+        this.StatusPill(project)
+      }.width('100%').alignItems(VerticalAlign.Top)
+
+      Row({ space: 6 }) {
+        Pill({ text: categoryLabel(project.category), bg: '#EFE4FF', color: ElysiaTheme.LAV_500 })
+        Pill({ text: `${project.credits} 学分`, bg: '#FBE6C2', color: ElysiaTheme.GOLD_700 })
+      }.width('100%')
+
+      Row() {
+        AppIcon({ name: 'time', iconSize: 14, mRight: 4 })
+        Text(project.period).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).layoutWeight(1)
+          .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+      }.width('100%').alignItems(VerticalAlign.Center)
+
+      Row() {
+        Text(`已报名 ${project.slotsTaken}/${project.slotsTotal}`)
+          .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
+        this.ActionButton(project)
+      }.width('100%').alignItems(VerticalAlign.Center)
+    }
     .width('100%').padding(14)
-    .backgroundColor(item.available ? ElysiaTheme.SURFACE : '#F8F8F8')
-    .borderRadius(14).border({ width: 1, color: '#66FFB3CE' })
-    .opacity(item.available ? 1.0 : 0.6)
-    .margin({ bottom: 8 })
-    .onClick(() => {
-      if (item.available) {
-        if (item.url !== undefined && item.url.length > 0) {
-          AppRoute.go(item.url);
-        } else {
-          promptAction.showToast({ message: '该功能正在建设中' });
-        }
-      } else {
-        promptAction.showToast({ message: '该功能正在建设中' });
-      }
-    })
+    .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
+    .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
+    .onClick(() => { this.openDetail(project); })
   }
 }

@@ -23,6 +23,14 @@ interface ElysiaPalette {
   inkMute: string;
   surface: string;
   surfaceGlow: string;
+  // 语义化半透明/表面 token —— 为夜间模式适配而引入，替换页面里散落的写死浅色字面量。
+  glass: string;        // 磨砂输入框 / 次按钮填充
+  glassSoft: string;    // 更轻的磨砂层（圆形返回按钮等）
+  barBg: string;        // 底部 TabBar / 操作栏背景
+  pillBg: string;       // 标签 Pill 默认背景
+  hairline: string;     // 描边
+  hairlineSoft: string; // 更淡的描边
+  scrim: string;        // 弹层遮罩
 }
 
 export class ElysiaTheme {
@@ -49,7 +57,14 @@ export class ElysiaTheme {
     inkSoft: '#7A5266',
     inkMute: '#B294A4',
     surface: '#FFFDFB',
-    surfaceGlow: '#FFF1F7'
+    surfaceGlow: '#FFF1F7',
+    glass: '#CCFFFFFF',
+    glassSoft: '#A6FFFFFF',
+    barBg: '#F2FFF6FA',
+    pillBg: '#FFE4EE',
+    hairline: '#80FFB3CE',
+    hairlineSoft: '#66FFB3CE',
+    scrim: '#66000000'
   };
 
   private static readonly darkPalette: ElysiaPalette = {
@@ -73,15 +88,26 @@ export class ElysiaTheme {
     inkSoft: '#E2C9D6',
     inkMute: '#BFA8B4',
     surface: '#241821',
-    surfaceGlow: '#2D1B27'
+    surfaceGlow: '#2D1B27',
+    glass: '#2E2230',
+    glassSoft: '#261C24',
+    barBg: '#F21C121A',
+    pillBg: '#3A2030',
+    hairline: '#40FFB4CE',
+    hairlineSoft: '#26FFB4CE',
+    scrim: '#80000000'
   };
 
   private static get palette(): ElysiaPalette {
     return ElysiaTheme.darkMode ? ElysiaTheme.darkPalette : ElysiaTheme.lightPalette;
   }
 
+  // 同时更新静态调色板开关与 AppStorage。
+  // 静态开关驱动各 getter 返回的色值；AppStorage('darkMode') 驱动所有
+  // 订阅了 @StorageProp('darkMode') 的组件即时重绘——二者缺一不可。
   static setDarkMode(isDark: boolean): void {
     ElysiaTheme.darkMode = isDark;
+    AppStorage.setOrCreate<boolean>('darkMode', isDark);
   }
 
   static isDarkMode(): boolean {
@@ -120,6 +146,28 @@ export class ElysiaTheme {
   // 表面
   static get SURFACE(): string { return ElysiaTheme.palette.surface; }
   static get SURFACE_GLOW(): string { return ElysiaTheme.palette.surfaceGlow; }
+
+  // 语义化半透明 / 表面 / 描边 token（夜间模式自适应）。
+  // 这些方法显式接收 isDark：组件/页面传入 `this.darkMode` 时，既取到正确色值，
+  // 又因在 build() 中读取了 @StorageProp('darkMode') 而订阅夜间模式 → 切换即重绘。
+  // （ArkUI 只重绘 build 里真正读取了的状态，未被读取的 @StorageProp 不会触发刷新。）
+  private static paletteOf(isDark: boolean): ElysiaPalette {
+    return isDark ? ElysiaTheme.darkPalette : ElysiaTheme.lightPalette;
+  }
+  static glass(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).glass; }
+  static glassSoft(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).glassSoft; }
+  static barBg(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).barBg; }
+  static pillBg(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).pillBg; }
+  static hairline(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).hairline; }
+  static hairlineSoft(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).hairlineSoft; }
+  static scrim(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).scrim; }
+  static surfaceOf(isDark: boolean): string { return ElysiaTheme.paletteOf(isDark).surface; }
+
+  // 页面整屏渐变背景的色标。传入 this.darkMode 同样兼具「取色」+「订阅重绘」两职。
+  static pageGradient(isDark: boolean): Array<[string, number]> {
+    const p: ElysiaPalette = ElysiaTheme.paletteOf(isDark);
+    return [[p.rose50, 0.0], [p.cream50, 0.55], [p.surfaceGlow, 1.0]];
+  }
 
   // 字体
   static readonly FONT_DISPLAY: string = 'serif'; // 替换为 Cormorant Garamond

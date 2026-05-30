@@ -19,6 +19,7 @@ struct LoginPage {
   @State remember: boolean = true;
   @State errorMsg: string = '';
   @State submitting: boolean = false;
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     SessionStorage.get().getRememberId().then((id: string) => {
@@ -69,11 +70,7 @@ struct LoginPage {
         .width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: [
-            [ElysiaTheme.ROSE_50, 0],
-            [ElysiaTheme.CREAM_50, 0.55],
-            ['#FFF0F5', 1]
-          ]
+          colors: ElysiaTheme.pageGradient(this.darkMode)
         })
 
       Scroll() {

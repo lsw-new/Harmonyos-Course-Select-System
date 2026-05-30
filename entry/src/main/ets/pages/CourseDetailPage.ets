@@ -13,6 +13,7 @@ struct CourseDetailPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State course: Course | null = null;
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     const id: string = AppRoute.getParam<string>('id', '');
@@ -41,7 +42,7 @@ struct CourseDetailPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -77,7 +78,7 @@ struct CourseDetailPage {
                 this.InfoRow('周次', this.course!.weeks)
                 this.InfoRow('容量', this.course!.capacity ? `${this.course!.selectedCount ?? 0}/${this.course!.capacity}` : '—')
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-              .border({ width: 1, color: '#66FFB3CE' })
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
               // 课程简介
               if (this.course!.description && this.course!.description!.length > 0) {
@@ -86,7 +87,7 @@ struct CourseDetailPage {
                   Text(this.course!.description!)
                     .fontSize(13).fontColor(ElysiaTheme.INK).lineHeight(20)
                 }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-                .border({ width: 1, color: '#66FFB3CE' })
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
               }
 
               // 考核方式
@@ -99,7 +100,7 @@ struct CourseDetailPage {
                     this.AssessBar('期末', this.course!.assessment!.finalDefense, ElysiaTheme.GOLD_500)
                   }.width('100%')
                 }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-                .border({ width: 1, color: '#66FFB3CE' })
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
               }
 
               // 操作

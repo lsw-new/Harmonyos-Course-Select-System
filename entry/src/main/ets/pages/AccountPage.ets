@@ -17,6 +17,7 @@ struct AccountPage {
   @State account: AccountInfo | null = null;
   @State history: LoginHistoryItem[] = [];
   @State showLogoutConfirm: boolean = false;
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     this.loadData();
@@ -67,7 +68,7 @@ struct AccountPage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]]
+          colors: ElysiaTheme.pageGradient(this.darkMode)
         })
 
       Column() {
@@ -108,21 +109,21 @@ struct AccountPage {
                   AppIcon({ name: 'lock', iconSize: 24 })
                   Text('修改密码').fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                 }.layoutWeight(1).padding({ top: 14, bottom: 14 })
-                .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: '#66FFB3CE' })
+                .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
                 .onClick(() => { AppRoute.go(Routes.Password); })
 
                 Column() {
                   AppIcon({ name: 'camera', iconSize: 24 })
                   Text('更换头像').fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                 }.layoutWeight(1).padding({ top: 14, bottom: 14 })
-                .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: '#66FFB3CE' })
+                .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
                 .onClick(() => { AppRoute.go(Routes.EditInfo); })
 
                 Column() {
                   AppIcon({ name: 'close', iconSize: 24 })
                   Text('退出登录').fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                 }.layoutWeight(1).padding({ top: 14, bottom: 14 })
-                .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: '#66FFB3CE' })
+                .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
                 .onClick(() => { this.showLogoutConfirm = true; })
               }.width('100%').margin({ top: 18 })
 
@@ -133,7 +134,7 @@ struct AccountPage {
                 }, (item: LoginHistoryItem) => item.id)
               }
               .width('100%').padding({ left: 14, right: 14 }).margin({ top: 18, bottom: 30 })
-              .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: '#66FFB3CE' })
+              .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
             }
             .padding({ left: 16, right: 16 })
           }
@@ -158,11 +159,11 @@ struct AccountPage {
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
                 .onClick(() => { this.logout(); })
             }.margin({ top: 8 })
-          }.padding(24).backgroundColor(Color.White).borderRadius(22)
+          }.padding(24).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-        .backgroundColor('#66000000')
+        .backgroundColor(ElysiaTheme.scrim(this.darkMode))
         .onClick(() => { this.showLogoutConfirm = false; })
       }
     }
@@ -181,6 +182,6 @@ struct AccountPage {
       }.alignItems(HorizontalAlign.Start).margin({ left: 10 }).layoutWeight(1)
       Text(`在线 ${item.durationMinutes} min`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
     }.width('100%').padding({ top: 10, bottom: 10 })
-    if (!isLast) { Divider().strokeWidth(1).color('#80FFB3CE') }
+    if (!isLast) { Divider().strokeWidth(1).color(ElysiaTheme.hairline(this.darkMode)) }
   }
 }

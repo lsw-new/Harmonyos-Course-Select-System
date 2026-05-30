@@ -30,6 +30,7 @@ export const ADMIN_TABS: TabItem[] = [
 @Component
 export struct StudentTabBar {
   @Prop active: string = 'home';
+  @StorageProp('darkMode') darkMode: boolean = false;
   onTap?: (id: string, route: string) => void;
 
   build() {
@@ -54,14 +55,15 @@ export struct StudentTabBar {
     .width('100%')
     .height(64)
     .padding({ top: 8, bottom: 14, left: 14, right: 14 })
-    .backgroundColor('#F2FFF6FA')
-    .border({ width: { top: 1 }, color: '#33FFB3CE' })
+    .backgroundColor(ElysiaTheme.barBg(this.darkMode))
+    .border({ width: { top: 1 }, color: ElysiaTheme.hairlineSoft(this.darkMode) })
   }
 }
 
 @Component
 export struct AdminTabBar {
   @Prop active: string = 'dashboard';
+  @StorageProp('darkMode') darkMode: boolean = false;
   onTap?: (id: string, route: string) => void;
 
   build() {
@@ -86,7 +88,7 @@ export struct AdminTabBar {
     .width('100%')
     .height(64)
     .padding({ top: 8, bottom: 14, left: 14, right: 14 })
-    .backgroundColor('#F2FFF6FA')
-    .border({ width: { top: 1 }, color: '#33FFB3CE' })
+    .backgroundColor(ElysiaTheme.barBg(this.darkMode))
+    .border({ width: { top: 1 }, color: ElysiaTheme.hairlineSoft(this.darkMode) })
   }
 }

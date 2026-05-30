@@ -21,6 +21,7 @@ struct LeavePage {
   @State loading: boolean = true;
   @State historyErrorMsg: string = '';
   @State history: LeaveRequest[] = [];
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   private typeLabels: string[] = ['病假', '事假', '公假', '其他'];
   private typeKeys: string[] = ['sick', 'personal', 'public', 'other'];
@@ -90,7 +91,7 @@ struct LeavePage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -136,7 +137,7 @@ struct LeavePage {
 
               TextArea({ placeholder: '请假事由', text: this.reason })
                 .height(100).fontSize(13).fontColor(ElysiaTheme.INK)
-                .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+                .backgroundColor(ElysiaTheme.glass(this.darkMode)).border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
                 .onChange((v: string) => { this.reason = v; })
 
               if (this.errorMsg.length > 0) {
@@ -163,7 +164,7 @@ struct LeavePage {
                     }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                     Pill({ text: this.stateLabel(item.state), color: this.stateColor(item.state), bg: '#FFF6FA' })
                   }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-                  .border({ width: 1, color: '#66FFB3CE' })
+                  .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
                 }, (item: LeaveRequest) => item.id)
               }
             }

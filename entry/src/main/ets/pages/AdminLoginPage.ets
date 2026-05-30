@@ -18,6 +18,7 @@ struct AdminLoginPage {
   @State errorMsg: string = '';
   @State submitting: boolean = false;
   @State captchaCode: string = '3A7F';
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   private refreshCaptcha(): void {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -53,7 +54,7 @@ struct AdminLoginPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(60)
@@ -74,7 +75,7 @@ struct AdminLoginPage {
               TextInput({ placeholder: '验证码', text: this.captcha })
                 .type(InputType.Normal).height(46).fontSize(13)
                 .fontColor(ElysiaTheme.INK).placeholderColor(ElysiaTheme.INK_MUTE)
-                .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+                .backgroundColor(ElysiaTheme.glass(this.darkMode)).border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
                 .layoutWeight(1)
                 .onChange((v: string) => { this.captcha = v; })
               Text(this.captchaCode)

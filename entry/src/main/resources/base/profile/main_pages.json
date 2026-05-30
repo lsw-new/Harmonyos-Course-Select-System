@@ -27,16 +27,26 @@
     "pages/EditInfoPage",
     "pages/PasswordPage",
     "pages/SettingsPage",
+    "pages/ServiceHallPage",
+    "pages/PracticeDetailPage",
+    "pages/AboutPage",
+    "pages/DocPage",
 
     "pages/AdminLoginPage",
     "pages/AdminDashboardPage",
     "pages/AdminStudentsPage",
+    "pages/AdminStudentDetailPage",
     "pages/AdminCoursesPage",
     "pages/AdminSelectionPage",
     "pages/AdminGradesPage",
     "pages/AdminNoticePage",
     "pages/AdminEvalPage",
     "pages/AdminApprovalsPage",
-    "pages/AdminProfilePage"
+    "pages/AdminProfilePage",
+    "pages/AdminRolePermPage",
+    "pages/AdminAuditLogPage",
+    "pages/AdminCalendarPage",
+    "pages/AdminSysConfigPage",
+    "pages/AdminPasswordPage"
   ]
 }

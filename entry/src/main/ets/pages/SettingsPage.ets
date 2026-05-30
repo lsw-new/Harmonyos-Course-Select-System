@@ -1,11 +1,23 @@
 // 系统设置 · Settings
 import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar } from '../common/Components';
+import { TopBar, Pill } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
+
+// 字体档位定义
+class FontScaleOption {
+  key: string = '';
+  label: string = '';
+  size: number = 14;
+  constructor(key: string, label: string, size: number) {
+    this.key = key;
+    this.label = label;
+    this.size = size;
+  }
+}
 
 @Entry
 @Component
@@ -14,17 +26,26 @@ struct SettingsPage {
   @State evalReminder: boolean = true;
   @State dndMode: boolean = false;
   @State homeworkReminder: boolean = true;
-  @State darkMode: boolean = false;
+  @StorageProp('darkMode') darkMode: boolean = false;
   @State biometric: boolean = false;
+  @State fontScale: string = 'normal';
   @State showLogoutConfirm: boolean = false;
+  @State showFontSheet: boolean = false;
+
+  private fontOptions: FontScaleOption[] = [
+    new FontScaleOption('small', '小', 13),
+    new FontScaleOption('normal', '标准', 15),
+    new FontScaleOption('large', '大', 18)
+  ];
 
   aboutToAppear(): void {
     PreferenceStorage.get().getBoolean('push', true).then((v: boolean) => { this.pushEnabled = v; });
     PreferenceStorage.get().getBoolean('evalReminder', true).then((v: boolean) => { this.evalReminder = v; });
     PreferenceStorage.get().getBoolean('dndMode', false).then((v: boolean) => { this.dndMode = v; });
     PreferenceStorage.get().getBoolean('homeworkReminder', true).then((v: boolean) => { this.homeworkReminder = v; });
-    PreferenceStorage.get().getBoolean('darkMode', false).then((v: boolean) => { this.darkMode = v; });
+    // darkMode 由 AppStorage 提供（启动时注入），@StorageProp 自动同步，无需在此读取。
     PreferenceStorage.get().getBoolean('biometric', false).then((v: boolean) => { this.biometric = v; });
+    PreferenceStorage.get().getString('fontScale', 'normal').then((v: string) => { this.fontScale = v; });
   }
 
   private togglePref(key: string, value: boolean): void {
@@ -35,7 +56,32 @@ struct SettingsPage {
     this.darkMode = value;
     ElysiaTheme.setDarkMode(value);
     PreferenceStorage.get().putBoolean('darkMode', value);
-    promptAction.showToast({ message: value ? '深色模式已开启' : '深色模式已关闭' });
+    promptAction.showToast({ message: value ? '已切换到深色模式' : '已切换到浅色模式' });
+  }
+
+  private selectFontScale(key: string): void {
+    this.fontScale = key;
+    PreferenceStorage.get().putString('fontScale', key);
+    this.showFontSheet = false;
+    promptAction.showToast({ message: '字体大小已保存，重新进入页面后全局生效' });
+  }
+
+  private fontScaleLabel(): string {
+    for (let i = 0; i < this.fontOptions.length; i++) {
+      if (this.fontOptions[i].key === this.fontScale) {
+        return this.fontOptions[i].label;
+      }
+    }
+    return '标准';
+  }
+
+  private fontSampleSize(): number {
+    for (let i = 0; i < this.fontOptions.length; i++) {
+      if (this.fontOptions[i].key === this.fontScale) {
+        return this.fontOptions[i].size;
+      }
+    }
+    return 15;
   }
 
   private logout(): void {
@@ -70,7 +116,7 @@ struct SettingsPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], [ElysiaTheme.SURFACE_GLOW, 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -97,21 +143,37 @@ struct SettingsPage {
                 this.togglePref('homeworkReminder', v);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: '#66FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
             Column() {
               Text('外观').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.LinkRow('主题', '玫瑰学院风', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+              // 主题：状态 Pill 展示当前浅色/深色，点击切换并持久化
+              Row() {
+                Text('主题').fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
+                Pill({
+                  text: this.darkMode ? '深色' : '浅色',
+                  color: ElysiaTheme.ROSE_700,
+                  bg: ElysiaTheme.SURFACE_GLOW
+                })
+                AppIcon({ name: 'forward', iconSize: 14, dim: true, mLeft: 8 })
+              }.width('100%').padding({ top: 14, bottom: 14 })
+              .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
+              .onClick(() => { this.setDarkModePreference(!this.darkMode); })
+
+              this.LinkRow('字体大小', this.fontScaleLabel(), () => {
+                this.showFontSheet = true;
               })
-              this.LinkRow('字体大小', '标准', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
-              })
-              this.ToggleRow('深色模式', '', this.darkMode, (v: boolean) => {
+              // 字体大小实时预览（本页即时生效）
+              Text(`预览：玫瑰学院 Elysia · 字号 ${this.fontSampleSize()}`)
+                .fontSize(this.fontSampleSize())
+                .fontColor(ElysiaTheme.INK_SOFT)
+                .width('100%')
+                .padding({ top: 10, bottom: 4 })
+              this.ToggleRow('深色模式', '与主题同步', this.darkMode, (v: boolean) => {
                 this.setDarkModePreference(v);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: '#66FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
             Column() {
               Text('安全与存储').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
@@ -127,20 +189,22 @@ struct SettingsPage {
                 promptAction.showToast({ message: '已是最新版本' });
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: '#66FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
             Column() {
               this.LinkRow('用户协议', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                const p: Record<string, Object> = { 'type': 'agreement' };
+                AppRoute.go(Routes.Doc, { params: p });
               })
               this.LinkRow('隐私政策', '', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                const p: Record<string, Object> = { 'type': 'privacy' };
+                AppRoute.go(Routes.Doc, { params: p });
               })
               this.LinkRow('关于', 'Elysia · 教学管理系统', () => {
-                promptAction.showToast({ message: '该功能正在建设中' });
+                AppRoute.go(Routes.About);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: '#66FFB3CE' })
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
             Text('退出登录')
               .fontSize(14).fontColor('#D8546B').fontWeight(FontWeight.Medium)
@@ -176,6 +240,37 @@ struct SettingsPage {
         .backgroundColor('#66000000')
         .onClick(() => { this.showLogoutConfirm = false; })
       }
+
+      if (this.showFontSheet) {
+        Column() {
+          Column({ space: 6 }) {
+            Text('选择字体大小').fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+              .width('100%').textAlign(TextAlign.Start).margin({ bottom: 6 })
+            ForEach(this.fontOptions, (opt: FontScaleOption) => {
+              this.FontOptionRow(opt)
+            }, (opt: FontScaleOption) => opt.key)
+          }.padding(20).width('100%')
+          .backgroundColor(ElysiaTheme.SURFACE)
+          .borderRadius({ topLeft: 22, topRight: 22 })
+          .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: -6 })
+        }.width('100%').height('100%')
+        .justifyContent(FlexAlign.End)
+        .backgroundColor('#66000000')
+        .onClick(() => { this.showFontSheet = false; })
+      }
     }.width('100%').height('100%')
+  }
+
+  @Builder FontOptionRow(opt: FontScaleOption) {
+    Row() {
+      Text(opt.label).fontSize(opt.size).fontColor(ElysiaTheme.INK).layoutWeight(1)
+      if (opt.key === this.fontScale) {
+        AppIcon({ name: 'check', iconSize: 16 })
+      }
+    }
+    .width('100%').padding({ top: 12, bottom: 12, left: 12, right: 12 })
+    .borderRadius(12)
+    .backgroundColor(opt.key === this.fontScale ? ElysiaTheme.SURFACE_GLOW : Color.Transparent)
+    .onClick(() => { this.selectFontScale(opt.key); })
   }
 }

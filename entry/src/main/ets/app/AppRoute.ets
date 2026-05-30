@@ -27,6 +27,10 @@ export class Routes {
   static readonly EditInfo = 'pages/EditInfoPage';
   static readonly Password = 'pages/PasswordPage';
   static readonly Settings = 'pages/SettingsPage';
+  static readonly ServiceHall = 'pages/ServiceHallPage';
+  static readonly PracticeDetail = 'pages/PracticeDetailPage';
+  static readonly About = 'pages/AboutPage';
+  static readonly Doc = 'pages/DocPage';
 
   static readonly AdminLogin = 'pages/AdminLoginPage';
   static readonly AdminDashboard = 'pages/AdminDashboardPage';
@@ -38,6 +42,12 @@ export class Routes {
   static readonly AdminEval = 'pages/AdminEvalPage';
   static readonly AdminApprovals = 'pages/AdminApprovalsPage';
   static readonly AdminProfile = 'pages/AdminProfilePage';
+  static readonly AdminRolePerm = 'pages/AdminRolePermPage';
+  static readonly AdminAuditLog = 'pages/AdminAuditLogPage';
+  static readonly AdminCalendar = 'pages/AdminCalendarPage';
+  static readonly AdminSysConfig = 'pages/AdminSysConfigPage';
+  static readonly AdminPassword = 'pages/AdminPasswordPage';
+  static readonly AdminStudentDetail = 'pages/AdminStudentDetailPage';
 }
 
 const STUDENT_ROUTES: string[] = [
@@ -45,17 +55,21 @@ const STUDENT_ROUTES: string[] = [
   Routes.Schedule, Routes.CourseDetail, Routes.Selection,
   Routes.Grades, Routes.Exam, Routes.Roster,
   Routes.Eval, Routes.Leave, Routes.Feedback, Routes.Practice,
-  Routes.Mine, Routes.Account, Routes.EditInfo, Routes.Password, Routes.Settings
+  Routes.Mine, Routes.Account, Routes.EditInfo, Routes.Password, Routes.Settings,
+  Routes.ServiceHall, Routes.PracticeDetail
 ];
 
 const ADMIN_ROUTES: string[] = [
   Routes.AdminDashboard, Routes.AdminStudents, Routes.AdminCourses,
   Routes.AdminSelection, Routes.AdminGrades, Routes.AdminNotice,
-  Routes.AdminEval, Routes.AdminApprovals, Routes.AdminProfile
+  Routes.AdminEval, Routes.AdminApprovals, Routes.AdminProfile,
+  Routes.AdminRolePerm, Routes.AdminAuditLog, Routes.AdminCalendar,
+  Routes.AdminSysConfig, Routes.AdminPassword, Routes.AdminStudentDetail
 ];
 
 const PUBLIC_ROUTES: string[] = [
-  Routes.Login, Routes.Register, Routes.Forgot, Routes.AdminLogin
+  Routes.Login, Routes.Register, Routes.Forgot, Routes.AdminLogin,
+  Routes.About, Routes.Doc
 ];
 
 export interface NavigateOptions {

@@ -12,6 +12,7 @@ struct RosterPage {
   @State record?: StudentRecord = undefined;
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   aboutToAppear(): void {
     this.loadData();
@@ -36,7 +37,7 @@ struct RosterPage {
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
-          colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]]
+          colors: ElysiaTheme.pageGradient(this.darkMode)
         })
 
       Column() {
@@ -111,7 +112,7 @@ struct RosterPage {
                       Text(kv[1]).fontSize(12).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK)
                     }.width('100%').padding({ top: 10, bottom: 10 })
                     if (i !== undefined && i < 20) {
-                      Divider().strokeWidth(1).color('#80FFB3CE')
+                      Divider().strokeWidth(1).color(ElysiaTheme.hairline(this.darkMode))
                     }
                   },
                   (kv: [string, string]) => kv[0]
@@ -119,7 +120,7 @@ struct RosterPage {
               }
               .width('100%').padding({ left: 14, right: 14, top: 4, bottom: 4 })
               .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
-              .border({ width: 1, color: '#66FFB3CE' })
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
               .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
               .margin({ top: 14, bottom: 30 })
             }

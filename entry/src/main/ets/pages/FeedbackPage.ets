@@ -21,6 +21,7 @@ struct FeedbackPage {
   @State loading: boolean = true;
   @State historyErrorMsg: string = '';
   @State history: FeedbackItem[] = [];
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   private catLabels: string[] = ['Bug', '建议', '服务', '其他'];
   private catKeys: string[] = ['bug', 'suggestion', 'service', 'other'];
@@ -72,7 +73,7 @@ struct FeedbackPage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -116,7 +117,7 @@ struct FeedbackPage {
               ElysiaInput({ placeholder: '标题', value: $title, leadingIcon: 'edit' })
               TextArea({ placeholder: '详细描述', text: this.content })
                 .height(120).fontSize(13).fontColor(ElysiaTheme.INK)
-                .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+                .backgroundColor(ElysiaTheme.glass(this.darkMode)).border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
                 .onChange((v: string) => { this.content = v; })
               ElysiaInput({ placeholder: '联系方式（选填）', value: $contact, leadingIcon: 'phone' })
 
@@ -144,7 +145,7 @@ struct FeedbackPage {
                     }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                     Pill({ text: this.stateLabel(item.state), color: ElysiaTheme.ROSE_700, bg: '#FFF6FA' })
                   }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
-                  .border({ width: 1, color: '#66FFB3CE' })
+                  .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
                 }, (item: FeedbackItem) => item.id)
               }
             }

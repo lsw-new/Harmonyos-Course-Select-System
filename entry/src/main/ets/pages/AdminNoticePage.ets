@@ -20,6 +20,7 @@ struct AdminNoticePage {
   @State errorMsg: string = '';
   @State successMsg: string = '';
   @State showConfirm: boolean = false;
+  @StorageProp('darkMode') darkMode: boolean = false;
 
   private urgencyLabels: string[] = ['普通', '重要', '紧急'];
   private urgencyKeys: string[] = ['normal', 'important', 'urgent'];
@@ -69,7 +70,7 @@ struct AdminNoticePage {
   build() {
     Stack() {
       Column().width('100%').height('100%')
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_50, 0], [ElysiaTheme.CREAM_50, 0.55], ['#FFF0F5', 1]] })
+        .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
         Blank().height(40)
@@ -85,7 +86,7 @@ struct AdminNoticePage {
 
             TextArea({ placeholder: '通知正文', text: this.content })
               .height(160).fontSize(13).fontColor(ElysiaTheme.INK)
-              .backgroundColor('#CCFFFFFF').border({ width: 1, color: '#80FFB3CE' }).borderRadius(14)
+              .backgroundColor(ElysiaTheme.glass(this.darkMode)).border({ width: 1, color: ElysiaTheme.hairline(this.darkMode) }).borderRadius(14)
               .onChange((v: string) => {
                 this.content = v;
                 if (this.successMsg.length > 0) { this.successMsg = ''; }
@@ -159,11 +160,11 @@ struct AdminNoticePage {
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
                 .onClick(() => { this.confirmPublish(); })
             }.margin({ top: 8 })
-          }.padding(24).backgroundColor(Color.White).borderRadius(22)
+          }.padding(24).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
           .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
         }.width('100%').height('100%')
         .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-        .backgroundColor('#66000000')
+        .backgroundColor(ElysiaTheme.scrim(this.darkMode))
         .onClick(() => { this.showConfirm = false; })
       }
     }.width('100%').height('100%')

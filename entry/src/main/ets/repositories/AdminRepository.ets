@@ -84,7 +84,7 @@ export class AdminRepository extends BaseRepository {
     if (!admin) {
       return false;
     }
-    return admin.permissions.some((permission) => permission.code === code && permission.actions.indexOf(action) >= 0);
+    return admin.permissions.some((permission) => permission.code === code && (permission.actions as string[]).indexOf(action) >= 0);
   }
 
   private hasGradePermission(action: string): boolean {
@@ -231,8 +231,9 @@ export class AdminRepository extends BaseRepository {
         status: item.status,
         updatedAt: item.updatedAt.trim()
       };
-      if (item.status === 'rejected' && this.isValidRejectReason(item.rejectReason)) {
-        next.rejectReason = item.rejectReason.trim();
+      const rejectReason = item.rejectReason;
+      if (item.status === 'rejected' && rejectReason !== undefined && this.isValidRejectReason(rejectReason)) {
+        next.rejectReason = rejectReason.trim();
       }
       sanitized.push(next);
     });
