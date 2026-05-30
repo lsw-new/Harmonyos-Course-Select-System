@@ -7,6 +7,18 @@ import { AdminDashboardSummary, DashboardStatCard, TrendPoint, DistributionItem,
 import { AppRoute, Routes } from '../app/AppRoute';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { AppIcon } from '../common/widgets/AppIcon';
+
+class AdminModule {
+  icon: string = '';
+  label: string = '';
+  route: string = '';
+  constructor(icon: string, label: string, route: string) {
+    this.icon = icon;
+    this.label = label;
+    this.route = route;
+  }
+}
 
 @Entry
 @Component
@@ -14,6 +26,13 @@ struct AdminDashboardPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State dashboard: AdminDashboardSummary | null = null;
+
+  private modules: AdminModule[] = [
+    new AdminModule('selection', '选课管理', Routes.AdminSelection),
+    new AdminModule('grades', '成绩审核', Routes.AdminGrades),
+    new AdminModule('evaluation', '评教管理', Routes.AdminEval),
+    new AdminModule('notice', '通知发布', Routes.AdminNotice)
+  ];
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminDashboard)) return;
@@ -39,6 +58,20 @@ struct AdminDashboardPage {
     const maxV: number = Math.max(...trend.map((pt: TrendPoint) => pt.value));
     if (maxV <= 0) return 0;
     return value / maxV * 80;
+  }
+
+  @Builder ModuleCard(m: AdminModule) {
+    Column() {
+      Stack() {
+        AppIcon({ name: m.icon, iconSize: 24 })
+      }
+      .width(46).height(46).borderRadius(14)
+      .linearGradient({ angle: 135, colors: [[ElysiaTheme.SURFACE, 0], [ElysiaTheme.ROSE_100, 1]] })
+      .border({ width: 1, color: ElysiaTheme.hairline() })
+      Text(m.label).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 6 })
+    }
+    .width('25%').padding({ top: 6, bottom: 6 }).alignItems(HorizontalAlign.Center)
+    .onClick(() => { AppRoute.go(m.route); })
   }
 
   build() {
@@ -73,6 +106,17 @@ struct AdminDashboardPage {
                 }, (card: DashboardStatCard) => card.key)
               }
               .columnsTemplate('1fr 1fr').rowsGap(10).columnsGap(10).width('100%')
+
+              // 管理功能入口
+              Column() {
+                Text('管理功能').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 }).width('100%')
+                Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
+                  ForEach(this.modules, (m: AdminModule) => {
+                    this.ModuleCard(m)
+                  }, (m: AdminModule) => m.route)
+                }.width('100%')
+              }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
               // 选课趋势
               Column() {
