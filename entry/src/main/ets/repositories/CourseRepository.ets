@@ -8,6 +8,7 @@ import { mockNotices } from '../mock/mockNotices';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 
 const KEY_SELECTION_COURSES = 'local.selectionCourses.v1';
+const KEY_IMPORTED_SCHEDULE = 'local.importedSchedule.v1';
 const SELECTION_STATUSES: string[] = ['available', 'selected', 'full', 'conflict'];
 const CONTROL_CHAR_PATTERN: RegExp = /[\r\n\u0000-\u001f\u007f]/;
 
@@ -22,6 +23,9 @@ export class CourseRepository extends BaseRepository {
 
   private selections: SelectionCourse[] = JSON.parse(JSON.stringify(mockSelectionCourses)) as SelectionCourse[];
   private isSelectionLoaded: boolean = false;
+  // 导入课表：非空时覆盖 mockSchedule，作为 Schedule/Home/Today 的数据源。
+  private importedSchedule: ScheduleItem[] = [];
+  private isImportedLoaded: boolean = false;
 
   private isFiniteNumber(value: number): boolean {
     return typeof value === 'number' && value === value && value !== Infinity && value !== -Infinity;
@@ -135,8 +139,62 @@ export class CourseRepository extends BaseRepository {
     await LocalDataStore.saveArray<SelectionCourse>(KEY_SELECTION_COURSES, sanitized);
   }
 
+  private isValidScheduleItem(s: ScheduleItem): boolean {
+    if (!s || typeof s !== 'object') {
+      return false;
+    }
+    if (!this.isCleanText(s.id, 1, 64) || !this.isCleanText(s.courseName, 1, 80) || !this.isCleanText(s.teacher, 1, 40)) {
+      return false;
+    }
+    if (!this.isFiniteNumber(s.weekday) || s.weekday < 1 || s.weekday > 7) {
+      return false;
+    }
+    if (!this.isFiniteNumber(s.periodStart) || !this.isFiniteNumber(s.periodEnd)) {
+      return false;
+    }
+    if (Math.floor(s.periodStart) !== s.periodStart || Math.floor(s.periodEnd) !== s.periodEnd) {
+      return false;
+    }
+    if (s.periodStart < 1 || s.periodEnd < s.periodStart || s.periodEnd > 12) {
+      return false;
+    }
+    if (!Array.isArray(s.weeks) || s.weeks.length === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  // 当前生效课表：有导入课表则用导入，否则回退到内置 mockSchedule。
+  private async getActiveSchedule(): Promise<ScheduleItem[]> {
+    if (!this.isImportedLoaded) {
+      const stored = await LocalDataStore.loadArray<ScheduleItem>(KEY_IMPORTED_SCHEDULE, []);
+      this.importedSchedule = stored.filter((s) => this.isValidScheduleItem(s));
+      this.isImportedLoaded = true;
+    }
+    return this.importedSchedule.length > 0 ? this.importedSchedule : mockSchedule;
+  }
+
+  async saveImportedSchedule(items: ScheduleItem[]): Promise<number> {
+    const valid = items.filter((s) => this.isValidScheduleItem(s));
+    this.importedSchedule = valid;
+    this.isImportedLoaded = true;
+    await LocalDataStore.saveArray<ScheduleItem>(KEY_IMPORTED_SCHEDULE, valid);
+    return valid.length;
+  }
+
+  async clearImportedSchedule(): Promise<void> {
+    this.importedSchedule = [];
+    this.isImportedLoaded = true;
+    await LocalDataStore.saveArray<ScheduleItem>(KEY_IMPORTED_SCHEDULE, []);
+  }
+
+  async hasImportedSchedule(): Promise<boolean> {
+    await this.getActiveSchedule();
+    return this.importedSchedule.length > 0;
+  }
+
   async getSchedule(term?: string, week?: number): Promise<ScheduleItem[]> {
-    let items = mockSchedule;
+    let items = await this.getActiveSchedule();
     if (term) {
       items = items.filter((s) => s.term === term);
     }
@@ -147,16 +205,42 @@ export class CourseRepository extends BaseRepository {
   }
 
   async getTodayCourses(weekday: number): Promise<ScheduleItem[]> {
-    const items = mockSchedule.filter((s) => s.weekday === weekday);
+    const all = await this.getActiveSchedule();
+    const items = all.filter((s) => s.weekday === weekday);
     return this.delayCopy<ScheduleItem[]>(items);
   }
 
   async getCourseDetail(courseId: string): Promise<Course> {
     const course = mockCourses.find((c) => c.id === courseId);
-    if (!course) {
-      return this.reject('课程不存在', 'notFound');
+    if (course) {
+      return this.delayCopy<Course>(course);
     }
-    return this.delayCopy<Course>(course);
+    // 导入课表的课程没有独立课程库记录：用课表行兜底构造详情（仅含课表中的真实字段）。
+    const schedule = await this.getActiveSchedule();
+    const matches = schedule.filter((s) => s.courseId === courseId);
+    if (matches.length > 0) {
+      const first = matches[0];
+      const weekTexts = matches.map((s: ScheduleItem) => s.weekText);
+      const derived: Course = {
+        id: courseId,
+        code: courseId,
+        teachingClassNo: '—',
+        name: first.courseName,
+        category: first.courseType,
+        credit: 0,
+        teacher: first.teacher,
+        college: first.campus ?? '—',
+        campus: first.campus,
+        classroom: first.classroom,
+        weeks: weekTexts.join(' / '),
+        periodStart: first.periodStart,
+        periodEnd: first.periodEnd,
+        weekday: first.weekday,
+        description: `本课程信息来自导入课表（${first.term}）。上课时间：周${first.weekday} 第 ${first.periodStart}-${first.periodEnd} 节。`
+      };
+      return this.delayCopy<Course>(derived);
+    }
+    return this.reject('课程不存在', 'notFound');
   }
 
   async getSelectionRound(): Promise<SelectionRoundInfo> {

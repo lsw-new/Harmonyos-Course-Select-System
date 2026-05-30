@@ -6,6 +6,8 @@ import { SessionStorage } from '../main/ets/common/storage/SessionStorage';
 import { PreferenceStorage } from '../main/ets/common/storage/PreferenceStorage';
 import { AdminCourseWritePayload, GradeAuditItem } from '../main/ets/models/Admin';
 import { FileService } from '../main/ets/common/services/FileService';
+import { ScheduleImportService } from '../main/ets/common/services/ScheduleImportService';
+import { ScheduleItem } from '../main/ets/models/Course';
 
 async function clearLocalUnitState(): Promise<void> {
   await SessionStorage.get().clear();
@@ -53,6 +55,53 @@ export default function localUnitTest() {
       await clearLocalUnitState();
     });
     afterAll(() => {
+    });
+
+    it('scheduleImportServiceParsesGridWeeksAndOfferings', 0, () => {
+      const ss = '<?xml version="1.0"?><sst><si><t>软件工程 (VDZ02102903.09) (黄卫东) \n(3-11单,12 上茶苑教8栋512)</t></si>' +
+        '<si><t>中国近现代史纲要 (VMK01100203.43) (谢双明) \n(2-9 实践考察) \n鸿蒙移动应用开发综合实践 (VDZ02119303.10) (王鑫) \n(13-15 上茶苑教9栋401)</t></si></sst>';
+      const sheet = '<worksheet><sheetData>' +
+        '<row r="5"><c r="B5" t="s"><v>0</v></c></row>' +
+        '<row r="9"><c r="C9" t="s"><v>1</v></c></row>' +
+        '</sheetData><mergeCells count="2"><mergeCell ref="B5:B6"/><mergeCell ref="C9:C12"/></mergeCells></worksheet>';
+      const items = ScheduleImportService.parseSchedule(ss, sheet, '2025-2026-2');
+      expect(items.length).assertEqual(3);
+
+      const eng = items.find((s: ScheduleItem) => s.courseName === '软件工程');
+      expect(eng !== undefined).assertTrue();
+      if (eng !== undefined) {
+        expect(eng.weekday).assertEqual(1);
+        expect(eng.periodStart).assertEqual(1);
+        expect(eng.periodEnd).assertEqual(2);
+        expect(eng.startTime).assertEqual('08:00');
+        expect(eng.endTime).assertEqual('09:35');
+        expect(eng.courseType).assertEqual('必修');
+        expect(eng.weeks.join(',')).assertEqual('3,5,7,9,11,12');
+      }
+
+      const hist = items.find((s: ScheduleItem) => s.courseName === '中国近现代史纲要');
+      expect(hist !== undefined).assertTrue();
+      if (hist !== undefined) {
+        expect(hist.weekday).assertEqual(2);
+        expect(hist.periodStart).assertEqual(5);
+        expect(hist.periodEnd).assertEqual(8);
+        expect(hist.courseType).assertEqual('公选');
+        expect(hist.classroom).assertEqual('实践考察');
+        expect(hist.weeks.length).assertEqual(8);
+      }
+
+      const prac = items.find((s: ScheduleItem) => s.courseName === '鸿蒙移动应用开发综合实践');
+      expect(prac !== undefined).assertTrue();
+      if (prac !== undefined) {
+        expect(prac.type).assertEqual('practice');
+        expect(prac.weeks.join(',')).assertEqual('13,14,15');
+      }
+    });
+
+    it('scheduleImportServiceExpandsOddEvenWeeks', 0, () => {
+      expect(ScheduleImportService.expandWeeks('2-10双,17').join(',')).assertEqual('2,4,6,8,10,17');
+      expect(ScheduleImportService.expandWeeks('3-11单').join(',')).assertEqual('3,5,7,9,11');
+      expect(ScheduleImportService.expandWeeks('2-5,7-9').join(',')).assertEqual('2,3,4,5,7,8,9');
     });
 
     it('localDataStoreReturnsFallbackWhenPreferencesAreUnavailable', 0, async () => {

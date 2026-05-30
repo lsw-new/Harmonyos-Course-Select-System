@@ -7,6 +7,9 @@ import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { ScheduleItem } from '../models/Course';
+import { ScheduleImportService, DEFAULT_TERM } from '../common/services/ScheduleImportService';
+import promptAction from '@ohos.promptAction';
+import common from '@ohos.app.ability.common';
 
 function generateWeekNumbers(): number[] {
   let weeks: number[] = [];
@@ -23,6 +26,8 @@ struct SchedulePage {
   @State schedule: ScheduleItem[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  @State importing: boolean = false;
+  @State showImportSheet: boolean = false;
 
   private days: string[] = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -42,6 +47,88 @@ struct SchedulePage {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
         this.loading = false;
       });
+  }
+
+  private importBundled(): void {
+    this.runImport(() => {
+      const ctx = getContext(this) as common.UIAbilityContext;
+      return ScheduleImportService.importBundledSchedule(ctx, DEFAULT_TERM);
+    }, '已导入我的课表');
+  }
+
+  private importFromFile(): void {
+    this.runImport(() => {
+      const ctx = getContext(this) as common.UIAbilityContext;
+      return ScheduleImportService.pickAndImportSchedule(ctx, DEFAULT_TERM);
+    }, '已从文件导入课表');
+  }
+
+  private runImport(load: () => Promise<ScheduleItem[]>, okPrefix: string): void {
+    if (this.importing) {
+      return;
+    }
+    this.importing = true;
+    this.showImportSheet = false;
+    load()
+      .then((items: ScheduleItem[]) => CourseRepository.get().saveImportedSchedule(items))
+      .then((n: number) => {
+        this.importing = false;
+        this.currentWeek = 1;
+        promptAction.showToast({ message: `${okPrefix} · 共 ${n} 节` });
+        this.loadSchedule();
+      })
+      .catch((e: object) => {
+        this.importing = false;
+        promptAction.showToast({ message: e instanceof Error ? e.message : '导入失败' });
+      });
+  }
+
+  private restoreSample(): void {
+    this.showImportSheet = false;
+    CourseRepository.get().clearImportedSchedule().then(() => {
+      promptAction.showToast({ message: '已恢复示例课表' });
+      this.loadSchedule();
+    });
+  }
+
+  @Builder ImportSheet() {
+    Column() {
+      Column({ space: 4 }) {
+        Text('导入课表').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+          .width('100%').textAlign(TextAlign.Start)
+        Text('以教务导出的「学生课表 .xlsx」为模板').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+          .width('100%').textAlign(TextAlign.Start).margin({ bottom: 8 })
+        this.ImportOption('download', '导入我的课表', '内置示例：李仕炜 · 2025-2026 第二学期', () => { this.importBundled(); })
+        this.ImportOption('file', '从文件导入', '选择教务导出的 .xlsx 课表文件', () => { this.importFromFile(); })
+        this.ImportOption('time', '恢复示例课表', '清除导入，回到内置演示数据', () => { this.restoreSample(); })
+      }
+      .width('100%').padding(20)
+      .backgroundColor(ElysiaTheme.SURFACE)
+      .borderRadius({ topLeft: 24, topRight: 24 })
+      .shadow({ radius: 24, color: '#33000000', offsetX: 0, offsetY: -6 })
+    }
+    .width('100%').height('100%')
+    .justifyContent(FlexAlign.End)
+    .backgroundColor('#66000000')
+    .onClick(() => { this.showImportSheet = false; })
+  }
+
+  @Builder ImportOption(icon: string, title: string, desc: string, onTap: () => void) {
+    Row() {
+      Stack() {
+        AppIcon({ name: icon, iconSize: 22 })
+      }
+      .width(44).height(44).borderRadius(14)
+      .backgroundColor(ElysiaTheme.SURFACE_GLOW)
+      Column() {
+        Text(title).fontSize(14).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK)
+        Text(desc).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 }).maxLines(2)
+      }.alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 12 })
+      AppIcon({ name: 'forward', iconSize: 14, dim: true })
+    }
+    .width('100%').padding({ top: 12, bottom: 12 })
+    .border({ width: { bottom: 1 }, color: ElysiaTheme.hairlineSoft() })
+    .onClick(() => { onTap(); })
   }
 
   build() {
@@ -65,7 +152,7 @@ struct SchedulePage {
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)
                 .fontFamily(ElysiaTheme.FONT_DISPLAY)
-              Text(`2025–2026 秋季 · 第 ${this.currentWeek} 周`)
+              Text(`2025–2026 第二学期 · 第 ${this.currentWeek} 周`)
                 .fontSize(10)
                 .fontColor(ElysiaTheme.INK_SOFT)
                 .letterSpacing(2)
@@ -73,6 +160,14 @@ struct SchedulePage {
             .alignItems(HorizontalAlign.Start)
 
             Blank().layoutWeight(1)
+
+            Button({ type: ButtonType.Circle }) { AppIcon({ name: 'download', iconSize: 16 }) }
+              .width(34).height(34)
+              .backgroundColor(ElysiaTheme.glassSoft())
+              .border({ width: 1, color: ElysiaTheme.hairline() })
+              .margin({ right: 6 })
+              .enabled(!this.importing)
+              .onClick(() => { this.showImportSheet = true; })
 
             Button({ type: ButtonType.Circle }) { AppIcon({ name: 'back', iconSize: 16 }) }
               .width(34).height(34)
@@ -202,6 +297,10 @@ struct SchedulePage {
         }
 
         SafeBottom()
+      }
+
+      if (this.showImportSheet) {
+        this.ImportSheet()
       }
     }
     .width('100%').height('100%')
