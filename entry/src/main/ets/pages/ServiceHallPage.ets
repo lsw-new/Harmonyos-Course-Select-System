@@ -3,6 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 class ServiceTile {
   icon: string = '';
@@ -43,7 +44,7 @@ struct ServiceHallPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Service', subtitle: '办 事 大 厅', onBack: () => { AppRoute.back(); } })
 
         Scroll() {
@@ -62,7 +63,7 @@ struct ServiceHallPage {
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
               .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
 
-            Blank().height(40)
+            SafeBottom()
           }
         }.scrollBar(BarState.Off).layoutWeight(1)
       }

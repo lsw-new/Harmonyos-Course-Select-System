@@ -6,6 +6,7 @@ import { AdminRepository } from '../repositories/AdminRepository';
 import { AdminDashboardSummary, DashboardStatCard, TrendPoint, DistributionItem, ApprovalItem } from '../models/Admin';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -47,7 +48,7 @@ struct AdminDashboardPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Tableau', subtitle: '管 理 仪 表 盘', showBack: false })
 
         if (this.loading) {
@@ -122,7 +123,7 @@ struct AdminDashboardPage {
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
-              Blank().height(80)
+              SafeBottom()
             }.padding({ left: 16, right: 16 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }

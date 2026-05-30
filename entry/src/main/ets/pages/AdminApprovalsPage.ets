@@ -9,6 +9,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -107,7 +108,7 @@ struct AdminApprovalsPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Approve', subtitle: '审 批 中 心', showBack: this.activeId.length > 0,
           onBack: () => { this.activeId = ''; } })
 
@@ -210,7 +211,7 @@ struct AdminApprovalsPage {
                   .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
                 }
 
-                Blank().height(40)
+                SafeBottom()
               }.padding({ left: 16, right: 16 })
             }.scrollBar(BarState.Off).layoutWeight(1)
           }

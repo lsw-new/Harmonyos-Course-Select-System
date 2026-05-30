@@ -1,6 +1,7 @@
 // 通知公告 · Notices
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, RoseIcon } from '../common/Components';
+import { SafeTop } from '../common/widgets/SafeArea';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
@@ -45,7 +46,7 @@ struct NoticesPage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Notices', subtitle: '通 知 公 告' })
 
         Scroll() {
@@ -75,37 +76,37 @@ struct NoticesPage {
         .scrollBar(BarState.Off)
         .padding({ left: 16, right: 16, bottom: 10 })
 
-        if (this.loading) {
-          LoadingState({ tip: '正在加载通知...' })
-        } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
-        } else if (this.notices.length === 0) {
-          EmptyState({ title: '暂无通知' })
-        } else {
-          List({ space: 10 }) {
-            ForEach(this.notices, (n: Notice) => {
-              ListItem() {
-                this.NoticeCard(n)
-              }
-            }, (n: Notice) => n.id)
+        Column() {
+          if (this.loading) {
+            LoadingState({ tip: '正在加载通知...' })
+          } else if (this.errorMsg.length > 0) {
+            ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          } else if (this.notices.length === 0) {
+            EmptyState({ title: '暂无通知' })
+          } else {
+            List({ space: 10 }) {
+              ForEach(this.notices, (n: Notice) => {
+                ListItem() {
+                  this.NoticeCard(n)
+                }
+              }, (n: Notice) => n.id)
+            }
+            .listDirection(Axis.Vertical)
+            .scrollBar(BarState.Off)
+            .padding({ left: 16, right: 16 })
+            .layoutWeight(1)
           }
-          .listDirection(Axis.Vertical)
-          .scrollBar(BarState.Off)
-          .padding({ left: 16, right: 16 })
-          .layoutWeight(1)
         }
-      }
-      .width('100%').height('100%')
+        .width('100%').layoutWeight(1)
 
-      Column() {
-        Blank().layoutWeight(1)
         StudentTabBar({
           active: 'pub',
           onTap: (id: string, route: string) => {
             if (id !== 'pub') AppRoute.go(route, { replace: true });
           }
         })
-      }.width('100%').height('100%')
+      }
+      .width('100%').height('100%')
     }
     .width('100%').height('100%')
   }

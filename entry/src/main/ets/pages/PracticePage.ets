@@ -1,6 +1,7 @@
 // 实践与公服 · Practice（Tab 页）
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
@@ -119,7 +120,7 @@ struct PracticePage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Practice', subtitle: '实 践 与 公 服', showBack: false })
 
         // 分类筛选
@@ -170,6 +171,7 @@ struct PracticePage {
                 }, (project: PracticeProject) => project.id)
               }
               .margin({ bottom: 20 })
+              SafeBottom()
             }
             .padding({ left: 16, right: 16 })
           }

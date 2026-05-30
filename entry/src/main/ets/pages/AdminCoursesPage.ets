@@ -8,6 +8,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
+import { SafeTop } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -211,7 +212,7 @@ struct AdminCoursesPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Cours', subtitle: '课 程 管 理', showBack: false })
 
         Column({ space: 10 }) {

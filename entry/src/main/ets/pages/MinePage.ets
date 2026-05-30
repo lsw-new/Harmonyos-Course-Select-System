@@ -1,6 +1,7 @@
 // 我的中心 · Mine
 import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { Monogram, RoseDivider } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { StudentTabBar } from '../common/widgets/TabBars';
@@ -149,7 +150,7 @@ struct MinePage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
 
         // Hero
         Column() {
@@ -222,8 +223,10 @@ struct MinePage {
           colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.ROSE_100, 0.6], [ElysiaTheme.SURFACE_GLOW, 1]]
         })
 
-        if (this.loading) {
-          LoadingState({ tip: '正在加载...' })
+        // 内容区包一层 layoutWeight(1)，底部 TabBar 走正常流，避免全屏覆盖层拦截手势。
+        Column() {
+          if (this.loading) {
+            LoadingState({ tip: '正在加载...' })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else {
@@ -268,12 +271,21 @@ struct MinePage {
               RoseDivider({ label: '偏好与系统' })
               this.EntryGroup(this.prefs)
 
-              Blank().height(120)
+              SafeBottom()
             }
           }
           .scrollBar(BarState.Off)
           .layoutWeight(1)
+          }
         }
+        .width('100%').layoutWeight(1)
+
+        StudentTabBar({
+          active: 'mine',
+          onTap: (id: string, route: string) => {
+            if (id !== 'mine') AppRoute.go(route, { replace: true });
+          }
+        })
       }
 
       // Logout confirm dialog
@@ -301,16 +313,6 @@ struct MinePage {
         .backgroundColor(ElysiaTheme.scrim(this.darkMode))
       }
 
-      // Bottom tab bar
-      Column() {
-        Blank().layoutWeight(1)
-        StudentTabBar({
-          active: 'mine',
-          onTap: (id: string, route: string) => {
-            if (id !== 'mine') AppRoute.go(route, { replace: true });
-          }
-        })
-      }.width('100%').height('100%')
     }
     .width('100%').height('100%')
   }

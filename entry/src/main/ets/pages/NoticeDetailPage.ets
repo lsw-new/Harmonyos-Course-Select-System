@@ -9,6 +9,7 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
 import { FileService } from '../common/services/FileService';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -56,7 +57,7 @@ struct NoticeDetailPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Notice', subtitle: '通 知 详 情', onBack: () => AppRoute.back() })
 
         if (this.loading) {
@@ -113,7 +114,7 @@ struct NoticeDetailPage {
                 .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
               }
 
-              Blank().height(40)
+              SafeBottom()
             }.padding({ left: 16, right: 16 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }

@@ -9,6 +9,7 @@ import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateVie
 import { AppRoute, Routes } from '../app/AppRoute';
 import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 const BAR_LABELS: string[] = ['5 星', '4 星', '3 星', '2 星', '1 星'];
 
@@ -248,7 +249,7 @@ struct AdminEvalPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Évaluation', subtitle: '评 教 管 理', onBack: () => AppRoute.back() })
 
         if (this.loading) {
@@ -262,7 +263,7 @@ struct AdminEvalPage {
               RoseDivider({ label: 'distribution' })
               this.DistributionCard()
               this.TemplatesCard()
-              Blank().height(40)
+              SafeBottom()
             }.padding({ left: 16, right: 16 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }

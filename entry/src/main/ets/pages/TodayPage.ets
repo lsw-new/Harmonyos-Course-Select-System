@@ -1,6 +1,7 @@
 // 今日课程 · Today
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
+import { SafeTop } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
@@ -20,6 +21,8 @@ struct TodayPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @StorageProp('darkMode') darkMode: boolean = false;
+  // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
+  @StorageProp('safeBottom') safeBottom: number = 0;
 
   private todayWeekday: number = toWeekday(new Date().getDay());
   private tomorrowWeekday: number = toWeekday((new Date().getDay() + 1) % 7);
@@ -59,7 +62,7 @@ struct TodayPage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Today', subtitle: '今 日 课 程', onBack: () => AppRoute.back() })
 
         Column() {
@@ -131,7 +134,7 @@ struct TodayPage {
               }, (c: ScheduleItem) => c.id)
             }
             .scrollBar(BarState.Off)
-            .padding({ left: 16, right: 16 })
+            .padding({ left: 16, right: 16, bottom: this.safeBottom + 24 })
             .layoutWeight(1)
           }
         }.layoutWeight(1)

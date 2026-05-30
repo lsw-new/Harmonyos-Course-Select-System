@@ -5,6 +5,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { ValidatorUtils } from '../common/utils/ValidatorUtils';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { HttpError } from '../common/http/HttpError';
+import { SafeTop } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -99,7 +100,7 @@ struct RegisterPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Register', subtitle: '注 册', onBack: () => AppRoute.back() })
 
         Scroll() {

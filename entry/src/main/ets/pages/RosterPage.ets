@@ -5,6 +5,7 @@ import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute } from '../app/AppRoute';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { StudentRecord } from '../models/Academic';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -41,7 +42,7 @@ struct RosterPage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Roster', subtitle: '学 籍 信 息', onBack: () => AppRoute.back() })
 
         if (this.loading) {
@@ -122,7 +123,8 @@ struct RosterPage {
               .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
               .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
-              .margin({ top: 14, bottom: 30 })
+              .margin({ top: 14 })
+              SafeBottom()
             }
             .padding({ left: 16, right: 16 })
           }

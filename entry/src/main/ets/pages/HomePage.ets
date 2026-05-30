@@ -17,6 +17,7 @@ import { UserProfile } from '../models/User';
 import { DateUtils } from '../common/utils/DateUtils';
 import { FileService } from '../common/services/FileService';
 import promptAction from '@ohos.promptAction';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -131,55 +132,57 @@ struct HomePage {
           colors: ElysiaTheme.pageGradient(this.darkMode)
         })
 
+      // 内容区 + 底部 TabBar 按正常纵向流排布，TabBar 不再做全屏覆盖层，
+      // 否则其透明 Blank 会盖在内容之上拦截所有点击与滑动手势（死页面 bug）。
       Column() {
-        if (this.loading) {
-          Blank().height(80)
-          LoadingState({ tip: '正在加载工作台...' })
-        } else if (this.errorMsg.length > 0) {
-          Blank().height(80)
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
-        } else if (this.summary !== undefined && this.profile !== undefined) {
-          Scroll() {
-            Column() {
-              this.WelcomeBlock(this.profile!, this.summary!.unreadNoticeCount)
-              if (this.searchActive) {
-                this.SearchResults()
-              } else {
-                this.HeroTerm(this.summary!.term)
-                RoseDivider({ label: 'quick entrance · 快捷入口' })
-                this.QuickGrid(this.summary!.quickEntries)
-                this.TodaySection(this.summary!.todayCourses)
-                this.NoticeSection(this.summary!.noticeSummary)
-                this.FilesSection(this.summary!.files)
-                if (this.summary!.recentLogin !== undefined) {
-                  this.RecentLoginCard(this.summary!.recentLogin!)
+        Column() {
+          if (this.loading) {
+            Blank().height(80)
+            LoadingState({ tip: '正在加载工作台...' })
+          } else if (this.errorMsg.length > 0) {
+            Blank().height(80)
+            ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          } else if (this.summary !== undefined && this.profile !== undefined) {
+            Scroll() {
+              Column() {
+                this.WelcomeBlock(this.profile!, this.summary!.unreadNoticeCount)
+                if (this.searchActive) {
+                  this.SearchResults()
+                } else {
+                  this.HeroTerm(this.summary!.term)
+                  RoseDivider({ label: 'quick entrance · 快捷入口' })
+                  this.QuickGrid(this.summary!.quickEntries)
+                  this.TodaySection(this.summary!.todayCourses)
+                  this.NoticeSection(this.summary!.noticeSummary)
+                  this.FilesSection(this.summary!.files)
+                  if (this.summary!.recentLogin !== undefined) {
+                    this.RecentLoginCard(this.summary!.recentLogin!)
+                  }
                 }
+                SafeBottom()
               }
-              Blank().height(100)
             }
+            .scrollBar(BarState.Off)
+            .width('100%').layoutWeight(1)
           }
-          .scrollBar(BarState.Off)
-          .width('100%').layoutWeight(1)
         }
-      }
-      .width('100%').height('100%')
+        .width('100%').layoutWeight(1)
 
-      Column() {
-        Blank().layoutWeight(1)
         StudentTabBar({
           active: 'home',
           onTap: (id: string, route: string) => {
             if (id !== 'home') AppRoute.go(route, { replace: true });
           }
         })
-      }.width('100%').height('100%')
+      }
+      .width('100%').height('100%')
     }
     .width('100%').height('100%')
   }
 
   @Builder WelcomeBlock(p: UserProfile, unread: number) {
     Column() {
-      Blank().height(40)
+      SafeTop()
       Row() {
         Row() {
           Monogram({ iconSize: 44 })

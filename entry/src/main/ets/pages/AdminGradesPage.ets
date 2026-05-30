@@ -7,6 +7,7 @@ import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateVie
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
 import promptAction from '@ohos.promptAction';
+import { SafeTop } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -23,6 +24,8 @@ struct AdminGradesPage {
   @State rejectReason: string = '';
   @State submittingId: string = '';
   @StorageProp('darkMode') darkMode: boolean = false;
+  // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
+  @StorageProp('safeBottom') safeBottom: number = 0;
   private statuses: string[] = ['全部', 'pendingAudit', 'inputting', 'rejected', 'published', 'appealed'];
   private statusLabels: string[] = ['全部', '待审核', '录入中', '已驳回', '已发布', '异议'];
 
@@ -149,7 +152,7 @@ struct AdminGradesPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Notes', subtitle: '成 绩 管 理', onBack: () => AppRoute.back() })
 
         Scroll() {
@@ -288,7 +291,7 @@ struct AdminGradesPage {
                 .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
               }.margin({ bottom: 8 })
             }, (item: GradeAuditItem) => item.id)
-          }.layoutWeight(1).padding({ left: 16, right: 16, top: 10 })
+          }.layoutWeight(1).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 })
         }
       }
     }.width('100%').height('100%')

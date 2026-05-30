@@ -8,6 +8,7 @@ import { PracticeRepository } from '../repositories/PracticeRepository';
 import { PracticeProjectDetail, PracticeCategory } from '../models/PracticeModels';
 import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 function categoryLabel(c: PracticeCategory): string {
   if (c === 'internship') return '企业实习';
@@ -126,7 +127,7 @@ struct PracticeDetailPage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Practice', subtitle: '实 践 详 情', onBack: () => AppRoute.back() })
 
         if (this.loading) {
@@ -213,7 +214,7 @@ struct PracticeDetailPage {
             .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
           }
 
-          Blank().height(20)
+          SafeBottom()
         }
         .padding({ left: 16, right: 16, top: 4 })
       }

@@ -10,6 +10,7 @@ import { AuthRepository } from '../repositories/AuthRepository';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { HttpError } from '../common/http/HttpError';
 import { LoginResult } from '../models/User';
+import { SafeTop } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -76,7 +77,7 @@ struct LoginPage {
       Scroll() {
         Column() {
           // 顶部状态栏占位
-          Blank().height(50)
+          SafeTop()
 
           // Monogram + 欢迎语
           Column() {

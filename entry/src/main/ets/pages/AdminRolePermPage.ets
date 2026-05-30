@@ -1,6 +1,7 @@
 // 角色与权限 · Roles & Permissions（角色 / 权限矩阵 / 我的权限）
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
@@ -219,7 +220,7 @@ struct AdminRolePermPage {
           }, (group: PermModuleGroup) => `mg-${group.module}`)
         }
 
-        Blank().height(40)
+        SafeBottom()
       }.padding({ left: 16, right: 16, top: 8 })
     }.scrollBar(BarState.Off).layoutWeight(1)
   }
@@ -230,7 +231,7 @@ struct AdminRolePermPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Roles', subtitle: '角 色 权 限', onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {

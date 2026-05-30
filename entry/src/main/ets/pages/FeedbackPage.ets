@@ -6,6 +6,7 @@ import { FeedbackItem } from '../models/Misc';
 import { HttpError } from '../common/http/HttpError';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute } from '../app/AppRoute';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -76,7 +77,7 @@ struct FeedbackPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Feedback', subtitle: '意 见 反 馈', onBack: () => AppRoute.back() })
 
         Row({ space: 0 }) {
@@ -149,7 +150,7 @@ struct FeedbackPage {
                 }, (item: FeedbackItem) => item.id)
               }
             }
-            Blank().height(40)
+            SafeBottom()
           }.padding({ left: 16, right: 16, top: 12 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }

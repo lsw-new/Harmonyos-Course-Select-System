@@ -2,6 +2,7 @@
 import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, PrimaryButton, GhostButton, ElysiaInput, Pill, Monogram } from '../common/Components';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppRoute, Routes } from '../app/AppRoute';
@@ -57,7 +58,7 @@ struct AdminLoginPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(60)
+        SafeTop()
 
         Column({ space: 6 }) {
           Monogram({ iconSize: 56 })
@@ -104,7 +105,7 @@ struct AdminLoginPage {
               }
             })
 
-            Blank().height(40)
+            SafeBottom()
           }.padding({ left: 24, right: 24 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }

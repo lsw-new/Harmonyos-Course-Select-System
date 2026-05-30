@@ -6,6 +6,7 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 // 字体档位定义
 class FontScaleOption {
@@ -119,7 +120,7 @@ struct SettingsPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Settings', subtitle: '系 统 设 置', onBack: () => AppRoute.back() })
 
         Scroll() {
@@ -213,7 +214,7 @@ struct SettingsPage {
               .border({ width: 1, color: '#40D8546B' })
               .onClick(() => { this.showLogoutConfirm = true; })
 
-            Blank().height(40)
+            SafeBottom()
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }

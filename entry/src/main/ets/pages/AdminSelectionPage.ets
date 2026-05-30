@@ -3,6 +3,7 @@
 // 非法流转给出提示；结束需二次确认；可展开查看冲突明细。
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, PrimaryButton, GhostButton, ElysiaInput, RoseDivider } from '../common/Components';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { SelectionAdminRepository } from '../repositories/SelectionAdminRepository';
 import { AdminRound, RoundConflict, RoundTimePayload } from '../models/SelectionAdminModels';
@@ -172,7 +173,7 @@ struct AdminSelectionPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Sélection', subtitle: '选 课 轮 次', onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {
@@ -187,7 +188,7 @@ struct AdminSelectionPage {
               ForEach(this.rounds, (r: AdminRound) => {
                 this.RoundCard(r)
               }, (r: AdminRound) => r.id)
-              Blank().height(40)
+              SafeBottom()
             }.padding({ left: 16, right: 16, top: 10 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }

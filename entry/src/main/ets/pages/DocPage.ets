@@ -2,6 +2,7 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar } from '../common/Components';
 import { AppRoute } from '../app/AppRoute';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 class DocSection {
   heading: string = '';
@@ -86,7 +87,7 @@ struct DocPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: this.docTitle(), subtitle: this.docSubtitle(), onBack: () => { AppRoute.back(); } })
 
         Scroll() {
@@ -112,7 +113,7 @@ struct DocPage {
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
               .width('100%').textAlign(TextAlign.Center).margin({ top: 4 })
 
-            Blank().height(40)
+            SafeBottom()
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }

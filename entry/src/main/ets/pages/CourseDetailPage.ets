@@ -6,6 +6,7 @@ import { Course } from '../models/Course';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { HttpError } from '../common/http/HttpError';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -45,7 +46,7 @@ struct CourseDetailPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Course', subtitle: '课 程 详 情', onBack: () => AppRoute.back() })
 
         if (this.loading) {
@@ -108,7 +109,7 @@ struct CourseDetailPage {
                 GhostButton({ text: '进入评教', onTap: () => AppRoute.go(Routes.Eval) })
               }.width('100%')
 
-              Blank().height(40)
+              SafeBottom()
             }.padding({ left: 16, right: 16 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }

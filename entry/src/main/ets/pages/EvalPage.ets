@@ -1,6 +1,7 @@
 // 量化评教 · Evaluation（接入 EvaluationRepository + 内联问卷）
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar } from '../common/Components';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
@@ -208,46 +209,46 @@ struct EvalPage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Evaluation', subtitle: '量 化 评 教', onBack: () => AppRoute.back() })
 
-        if (this.loading) {
-          LoadingState({ tip: '正在加载评教任务...' })
-        } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
-        } else {
-          Scroll() {
-            Column() {
-              this.ProgressHero()
-              if (this.tasks.length === 0) {
-                EmptyState({ icon: 'evaluation', title: '暂无评教任务' })
-              } else {
-                Column({ space: 10 }) {
-                  ForEach(this.tasks, (task: EvaluationTask) => {
-                    this.TaskCard(task)
-                  }, (task: EvaluationTask) => task.id)
+        Column() {
+          if (this.loading) {
+            LoadingState({ tip: '正在加载评教任务...' })
+          } else if (this.errorMsg.length > 0) {
+            ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          } else {
+            Scroll() {
+              Column() {
+                this.ProgressHero()
+                if (this.tasks.length === 0) {
+                  EmptyState({ icon: 'evaluation', title: '暂无评教任务' })
+                } else {
+                  Column({ space: 10 }) {
+                    ForEach(this.tasks, (task: EvaluationTask) => {
+                      this.TaskCard(task)
+                    }, (task: EvaluationTask) => task.id)
+                  }
+                  .margin({ top: 14, bottom: 30 })
                 }
-                .margin({ top: 14, bottom: 30 })
+                SafeBottom()
               }
-              Blank().height(100)
+              .padding({ left: 16, right: 16 })
             }
-            .padding({ left: 16, right: 16 })
+            .scrollBar(BarState.Off)
+            .layoutWeight(1)
           }
-          .scrollBar(BarState.Off)
-          .layoutWeight(1)
         }
-      }
-      .width('100%').height('100%')
+        .width('100%').layoutWeight(1)
 
-      Column() {
-        Blank().layoutWeight(1)
         StudentTabBar({
           active: 'eval',
           onTap: (id: string, route: string) => {
             if (id !== 'eval') AppRoute.go(route, { replace: true });
           }
         })
-      }.width('100%').height('100%')
+      }
+      .width('100%').height('100%')
 
       if (this.sheetOpen) {
         this.QuestionnaireSheet()

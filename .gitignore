@@ -28,3 +28,11 @@
 **/*provision*
 **/*password*
 **/*secret*
+
+# 例外：上面的宽泛保密名规则会误伤同名 ArkTS 源码页（如 AdminPasswordPage.ets、
+# AdminProfilePage.ets）。这里放行 entry 源码树下的 .ets 页面；真正的密钥/证书/
+# 签名材料仍按扩展名(.p12/.key/.pem/.keystore 等)被忽略。
+!entry/src/**/*Password*.ets
+!entry/src/**/*Profile*.ets
+!entry/src/**/*Secret*.ets
+!entry/src/**/*Provision*.ets

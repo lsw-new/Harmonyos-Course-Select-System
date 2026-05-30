@@ -1,6 +1,7 @@
 // 系统配置（审批流 / 消息模板 / 安全策略）· Config
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, PrimaryButton, GhostButton, ElysiaInput } from '../common/Components';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { SysConfigRepository } from '../repositories/SysConfigRepository';
 import {
@@ -392,7 +393,7 @@ struct AdminSysConfigPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Config', subtitle: '系 统 配 置', onBack: () => AppRoute.back() })
 
         if (this.loading) {
@@ -405,7 +406,7 @@ struct AdminSysConfigPage {
               this.ApprovalFlowSection()
               this.MsgTemplateSection()
               this.SecurityPolicySection()
-              Blank().height(40)
+              SafeBottom()
             }.width('100%').padding({ left: 16, right: 16, top: 6 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }

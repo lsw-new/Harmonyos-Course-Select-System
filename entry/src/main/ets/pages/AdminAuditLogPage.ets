@@ -1,6 +1,7 @@
 // 操作日志 · Audit Log（按操作类型筛选的操作流水）
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
+import { SafeTop } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
@@ -17,6 +18,8 @@ struct AdminAuditLogPage {
   @State logs: AuditLogEntry[] = [];
   @State activeType: string = '全部';
   @StorageProp('darkMode') darkMode: boolean = false;
+  // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
+  @StorageProp('safeBottom') safeBottom: number = 0;
 
   private filters: string[] = ['全部'].concat(AUDIT_ACTION_TYPES);
 
@@ -113,7 +116,7 @@ struct AdminAuditLogPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Audit', subtitle: '操 作 日 志', onBack: () => { AppRoute.back(); } })
 
         this.FilterChips()
@@ -131,7 +134,7 @@ struct AdminAuditLogPage {
                 this.LogRow(log)
               }.margin({ bottom: 8 })
             }, (log: AuditLogEntry) => `log-${log.id}`)
-          }.layoutWeight(1).padding({ left: 16, right: 16, top: 10 }).scrollBar(BarState.Off)
+          }.layoutWeight(1).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 }).scrollBar(BarState.Off)
         }
       }.width('100%').height('100%')
     }.width('100%').height('100%')

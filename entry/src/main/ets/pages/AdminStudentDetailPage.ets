@@ -8,6 +8,7 @@ import { StudentAdminRepository } from '../repositories/StudentAdminRepository';
 import { StudentDetail, StudentStatus } from '../models/StudentDetailModels';
 import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -263,7 +264,7 @@ struct AdminStudentDetailPage {
           this.AcademicCard(this.detail!)
           this.ContactCard(this.detail!)
           this.StatusActions(this.detail!)
-          Blank().height(20)
+          SafeBottom()
         }.width('100%')
       }
       .layoutWeight(1)
@@ -279,7 +280,7 @@ struct AdminStudentDetailPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Étudiant', subtitle: '学 籍 详 情', onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {

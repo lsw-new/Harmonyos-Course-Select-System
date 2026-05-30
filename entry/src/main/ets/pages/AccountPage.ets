@@ -8,6 +8,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { AccountInfo, LoginHistoryItem } from '../models/User';
+import { SafeTop } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -72,7 +73,7 @@ struct AccountPage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Account', subtitle: '我 的 账 户', onBack: () => AppRoute.back() })
 
         if (this.loading) {

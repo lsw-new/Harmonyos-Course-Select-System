@@ -5,6 +5,7 @@ import { AdminRepository } from '../repositories/AdminRepository';
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
 import promptAction from '@ohos.promptAction';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -73,7 +74,7 @@ struct AdminNoticePage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Annonce', subtitle: '发 布 通 知', onBack: () => AppRoute.back() })
 
         Scroll() {
@@ -140,7 +141,7 @@ struct AdminNoticePage {
 
             PrimaryButton({ text: this.submitting ? '发布中...' : '发布通知', onTap: () => this.publish() })
 
-            Blank().height(40)
+            SafeBottom()
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }

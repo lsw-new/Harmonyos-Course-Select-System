@@ -8,6 +8,7 @@ import { HttpError } from '../common/http/HttpError';
 import { UserProfile } from '../models/User';
 import { LoadingState } from '../common/widgets/StateViews';
 import { FileService } from '../common/services/FileService';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -102,7 +103,7 @@ struct EditInfoPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Edit', subtitle: '修 改 资 料', onBack: () => AppRoute.back() })
 
         if (this.loading) {
@@ -161,7 +162,7 @@ struct EditInfoPage {
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft(this.darkMode) })
 
-              Blank().height(40)
+              SafeBottom()
             }.padding({ left: 16, right: 16 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }

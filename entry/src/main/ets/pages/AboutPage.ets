@@ -3,6 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Monogram, Pill, RoseDivider } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 class CreditItem {
   icon: string = '';
@@ -34,7 +35,7 @@ struct AboutPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'About', subtitle: '关 于', onBack: () => { AppRoute.back(); } })
 
         Scroll() {
@@ -85,7 +86,7 @@ struct AboutPage {
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
               .width('100%').textAlign(TextAlign.Center).margin({ top: 4 })
 
-            Blank().height(40)
+            SafeBottom()
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }

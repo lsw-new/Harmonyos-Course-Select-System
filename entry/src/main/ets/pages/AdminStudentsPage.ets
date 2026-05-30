@@ -7,6 +7,7 @@ import { StudentAdminItem } from '../models/Admin';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { AppIcon } from '../common/widgets/AppIcon';
+import { SafeTop } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -61,7 +62,7 @@ struct AdminStudentsPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Students', subtitle: '学 生 管 理', showBack: false })
 
         Column({ space: 10 }) {

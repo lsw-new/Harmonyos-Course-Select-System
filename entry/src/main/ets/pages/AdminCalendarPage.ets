@@ -1,6 +1,7 @@
 // 校历管理 · Calendar
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, PrimaryButton, GhostButton, ElysiaInput } from '../common/Components';
+import { SafeTop } from '../common/widgets/SafeArea';
 import { SysConfigRepository } from '../repositories/SysConfigRepository';
 import { CalendarEvent, CalendarEventType, CalendarEventPayload } from '../models/SysConfigModels';
 import { AppRoute, Routes } from '../app/AppRoute';
@@ -22,6 +23,8 @@ struct AdminCalendarPage {
   @State type: string = 'term';
   @State pendingDeleteId: string = '';
   @StorageProp('darkMode') darkMode: boolean = false;
+  // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
+  @StorageProp('safeBottom') safeBottom: number = 0;
   private types: string[] = ['term', 'exam', 'holiday', 'selection', 'makeup', 'other'];
   private typeLabels: string[] = ['开学', '考试周', '假期', '选课', '补缓考', '其他'];
 
@@ -194,7 +197,7 @@ struct AdminCalendarPage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Calendar', subtitle: '校 历 管 理', onBack: () => AppRoute.back() })
 
         Row() {
@@ -222,7 +225,7 @@ struct AdminCalendarPage {
                 this.EventCard(item)
               }.margin({ bottom: 8 })
             }, (item: CalendarEvent) => item.id)
-          }.layoutWeight(1).padding({ left: 16, right: 16, top: 10 })
+          }.layoutWeight(1).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 })
         }
       }
     }.width('100%').height('100%')

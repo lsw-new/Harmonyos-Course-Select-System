@@ -1,6 +1,7 @@
 // 我的成绩 · Grades
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, Pill } from '../common/Components';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute } from '../app/AppRoute';
 import { AcademicRepository } from '../repositories/AcademicRepository';
@@ -49,7 +50,7 @@ struct GradesPage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Grades', subtitle: '我 的 成 绩', onBack: () => AppRoute.back() })
 
         // 学期切换 tabs
@@ -147,6 +148,7 @@ struct GradesPage {
                 .letterSpacing(4)
                 .fontFamily(ElysiaTheme.FONT_DISPLAY)
                 .margin({ top: 16, bottom: 30 })
+              SafeBottom()
             }
           }
           .scrollBar(BarState.Off)

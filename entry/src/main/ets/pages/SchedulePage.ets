@@ -1,6 +1,7 @@
 // 我的课表 · Schedule
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar } from '../common/Components';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
@@ -53,7 +54,7 @@ struct SchedulePage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Schedule', subtitle: '我 的 课 表', onBack: () => AppRoute.back() })
 
         // 周次切换
@@ -201,7 +202,7 @@ struct SchedulePage {
           .padding({ left: 12, right: 12, top: 8 })
         }
 
-        Blank().height(20)
+        SafeBottom()
       }
     }
     .width('100%').height('100%')

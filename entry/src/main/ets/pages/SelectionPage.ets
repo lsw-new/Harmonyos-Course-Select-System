@@ -6,6 +6,7 @@ import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateVie
 import { AppRoute } from '../app/AppRoute';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { SelectionCourse, SelectionRoundInfo } from '../models/Course';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 const CATEGORIES: string[] = ['全部', '必修', '选修', '公选'];
 
@@ -71,7 +72,7 @@ struct SelectionPage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Selection', subtitle: '选 课 中 心', onBack: () => AppRoute.back() })
 
         if (this.loading) {
@@ -256,7 +257,7 @@ struct SelectionPage {
                     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
                   }, (c: SelectionCourse) => c.course.id)
                 }
-                .margin({ bottom: 30 })
+                SafeBottom()
               }
             }
             .padding({ left: 16, right: 16 })

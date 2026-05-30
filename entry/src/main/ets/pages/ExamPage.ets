@@ -7,6 +7,7 @@ import { AppRoute } from '../app/AppRoute';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { ExamArrangement } from '../models/Academic';
 import { DateUtils } from '../common/utils/DateUtils';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -79,7 +80,7 @@ struct ExamPage {
         })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Exams', subtitle: '考 试 安 排', onBack: () => AppRoute.back() })
 
         if (this.loading) {
@@ -169,7 +170,8 @@ struct ExamPage {
                   .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
                 }, (e: ExamArrangement) => e.id)
               }
-              .margin({ top: 14, bottom: 30 })
+              .margin({ top: 14 })
+              SafeBottom()
             }
             .padding({ left: 16, right: 16 })
           }

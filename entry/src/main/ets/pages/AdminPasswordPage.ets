@@ -1,69 +1,71 @@
-// 修改密码 · Password
+// 管理员修改密码 · Password
 import { ElysiaTheme } from '../common/Theme';
-import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, GlowCard, Pill } from '../common/Components';
-import { ValidatorUtils } from '../common/utils/ValidatorUtils';
-import { AuthRepository } from '../repositories/AuthRepository';
+import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill } from '../common/Components';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { SysConfigRepository } from '../repositories/SysConfigRepository';
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
-import { SessionStorage } from '../common/storage/SessionStorage';
-import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import promptAction from '@ohos.promptAction';
+
+const LETTER_PATTERN: RegExp = /[A-Za-z]/;
+const DIGIT_PATTERN: RegExp = /[0-9]/;
+const MIN_PWD_LENGTH = 8;
 
 @Entry
 @Component
-struct PasswordPage {
+struct AdminPasswordPage {
   @State oldPassword: string = '';
   @State newPassword: string = '';
   @State confirmPassword: string = '';
   @State errorMsg: string = '';
   @State submitting: boolean = false;
-  @State successMsg: string = '';
   @StorageProp('darkMode') darkMode: boolean = false;
 
-  private getStrengthLabel(): string {
-    if (this.newPassword.length === 0) return '';
-    const s = ValidatorUtils.passwordStrength(this.newPassword);
-    if (s === 'weak') return '弱';
-    if (s === 'medium') return '中';
-    return '强';
-  }
-
-  private getStrengthColor(): string {
-    const s = ValidatorUtils.passwordStrength(this.newPassword);
-    if (s === 'weak') return '#D8546B';
-    if (s === 'medium') return '#D9B675';
-    return '#7BB07B';
+  aboutToAppear(): void {
+    AppRoute.guard(Routes.AdminPassword);
   }
 
   private validate(): boolean {
-    const r1 = ValidatorUtils.required(this.oldPassword, '原密码');
-    if (!r1.ok) { this.errorMsg = r1.message ?? ''; return false; }
+    if (this.oldPassword.trim().length === 0) {
+      this.errorMsg = '请输入原密码';
+      return false;
+    }
+    if (this.newPassword.length === 0) {
+      this.errorMsg = '请输入新密码';
+      return false;
+    }
+    if (this.newPassword.length < MIN_PWD_LENGTH) {
+      this.errorMsg = '新密码长度至少为 8 位';
+      return false;
+    }
+    if (!LETTER_PATTERN.test(this.newPassword) || !DIGIT_PATTERN.test(this.newPassword)) {
+      this.errorMsg = '新密码需同时包含字母和数字';
+      return false;
+    }
     if (this.newPassword === this.oldPassword) {
       this.errorMsg = '新密码不能与原密码相同';
       return false;
     }
-    const r2 = ValidatorUtils.password(this.newPassword);
-    if (!r2.ok) { this.errorMsg = r2.message ?? ''; return false; }
-    const r3 = ValidatorUtils.match(this.newPassword, this.confirmPassword, '两次新密码');
-    if (!r3.ok) { this.errorMsg = r3.message ?? ''; return false; }
+    if (this.confirmPassword.length === 0) {
+      this.errorMsg = '请再次输入新密码';
+      return false;
+    }
+    if (this.newPassword !== this.confirmPassword) {
+      this.errorMsg = '两次新密码不一致';
+      return false;
+    }
     this.errorMsg = '';
     return true;
   }
 
   private submit(): void {
-    if (!this.validate() || this.submitting) return;
+    if (this.submitting) return;
+    if (!this.validate()) return;
     this.submitting = true;
-    AuthRepository.get().changePassword({
-      oldPassword: this.oldPassword,
-      newPassword: this.newPassword,
-      confirmPassword: this.confirmPassword
-    }).then((_res: boolean) => {
+    SysConfigRepository.get().changeAdminPassword(this.oldPassword, this.newPassword).then((_res: boolean) => {
       this.submitting = false;
-      this.successMsg = '密码修改成功，请重新登录';
-      AuthRepository.get().logout().then((_r: boolean) => {
-        return SessionStorage.get().clear();
-      }).then(() => {
-        AppRoute.clearTo(Routes.Login);
-      });
+      promptAction.showToast({ message: '密码修改成功' });
+      AppRoute.back();
     }).catch((e: object) => {
       this.submitting = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '修改失败';
@@ -83,9 +85,9 @@ struct PasswordPage {
           Column() {
             Column() {
               Pill({ text: 'Keep it Safe' })
-              Text('修改登录密码')
+              Text('修改管理员密码')
                 .fontSize(18).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 10 })
-              Text('修改后需重新登录')
+              Text('新密码至少 8 位，且包含字母与数字')
                 .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 4 })
             }
             .width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(22)
@@ -96,22 +98,10 @@ struct PasswordPage {
             Column({ space: 14 }) {
               ElysiaInput({ placeholder: '原密码', value: $oldPassword, secure: true, leadingIcon: 'lock' })
               ElysiaInput({ placeholder: '新密码', value: $newPassword, secure: true, leadingIcon: 'unlock' })
-
-              if (this.newPassword.length > 0) {
-                Row() {
-                  Text('密码强度：').fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
-                  Text(this.getStrengthLabel()).fontSize(11).fontWeight(FontWeight.Bold).fontColor(this.getStrengthColor())
-                }
-                .width('100%').padding({ left: 4 })
-              }
-
               ElysiaInput({ placeholder: '确认新密码', value: $confirmPassword, secure: true, leadingIcon: 'unlock' })
 
               if (this.errorMsg.length > 0) {
                 Text(this.errorMsg).fontSize(12).fontColor('#D8546B').margin({ top: 4 })
-              }
-              if (this.successMsg.length > 0) {
-                Text(this.successMsg).fontSize(12).fontColor('#7BB07B').margin({ top: 4 })
               }
 
               PrimaryButton({ text: this.submitting ? '提交中...' : '确认修改', onTap: () => this.submit() })

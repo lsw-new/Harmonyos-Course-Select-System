@@ -9,6 +9,7 @@ import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { AdminProfile, ApprovalItem } from '../models/Admin';
 import { AdminRepository } from '../repositories/AdminRepository';
+import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
 @Component
@@ -107,7 +108,7 @@ struct AdminProfilePage {
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient(this.darkMode) })
 
       Column() {
-        Blank().height(40)
+        SafeTop()
         TopBar({ title: 'Madame', subtitle: '管 理 员 中 心', showBack: false })
 
         Scroll() {
@@ -200,7 +201,7 @@ struct AdminProfilePage {
               .border({ width: 1, color: '#40D8546B' })
               .onClick(() => { this.showLogoutConfirm = true; })
 
-            Blank().height(80)
+            SafeBottom()
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
 
