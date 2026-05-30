@@ -393,7 +393,7 @@ struct AdminSysConfigPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Config', subtitle: '系 统 配 置', onBack: () => AppRoute.back() })
+        TopBar({ title: '系统配置', subtitle: '系 统 配 置', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})

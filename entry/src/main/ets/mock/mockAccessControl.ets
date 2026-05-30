@@ -77,15 +77,15 @@ export const mockRoles: AdminRoleView[] = [
 
 // 约 12 条操作日志，覆盖多种操作类型与成功 / 失败两种结果（按时间倒序）
 export const mockAuditLogs: AuditLogEntry[] = [
-  { id: 'log-12', operatorName: '苏知夏', operatorId: 'A20251001', action: '登录管理控制台', actionType: '登录', target: '管理后台', timestamp: '2026-05-29 09:02:11', result: 'success', ip: '10.21.4.18' },
-  { id: 'log-11', operatorName: '苏知夏', operatorId: 'A20251001', action: '通过请假审批', actionType: '审批', target: '审批单 ap-1 · 林夏', timestamp: '2026-05-29 09:15:43', result: 'success', ip: '10.21.4.18' },
+  { id: 'log-12', operatorName: '爱莉希雅', operatorId: 'A20251001', action: '登录管理控制台', actionType: '登录', target: '管理后台', timestamp: '2026-05-29 09:02:11', result: 'success', ip: '10.21.4.18' },
+  { id: 'log-11', operatorName: '爱莉希雅', operatorId: 'A20251001', action: '通过请假审批', actionType: '审批', target: '审批单 ap-1 · 李仕炜', timestamp: '2026-05-29 09:15:43', result: 'success', ip: '10.21.4.18' },
   { id: 'log-10', operatorName: '陆清和', operatorId: 'A20250087', action: '编辑课程信息', actionType: '编辑', target: '课程 CS101 · 数据结构与算法', timestamp: '2026-05-29 10:31:07', result: 'success', ip: '10.21.7.66' },
   { id: 'log-09', operatorName: '韩予', operatorId: 'A20250112', action: '发布教学通知', actionType: '发布', target: '通知 · 期末考试安排', timestamp: '2026-05-29 11:08:22', result: 'success', ip: '10.21.7.91' },
   { id: 'log-08', operatorName: '岳明远', operatorId: 'A20251033', action: '删除重复课程', actionType: '删除', target: '课程 CS401 · 操作系统原理', timestamp: '2026-05-29 11:46:50', result: 'failed', ip: '10.21.5.40' },
   { id: 'log-07', operatorName: '审计员·郑舟', operatorId: 'A20250003', action: '导出操作日志', actionType: '导出', target: '操作日志 2026-05 全量', timestamp: '2026-05-28 16:20:09', result: 'success', ip: '10.21.9.12' },
   { id: 'log-06', operatorName: '林婉如', operatorId: 'A20250214', action: '驳回成绩复核', actionType: '审批', target: '审批单 ap-3 · 陆清和', timestamp: '2026-05-28 15:02:33', result: 'success', ip: '10.21.7.30' },
   { id: 'log-05', operatorName: '宋衍', operatorId: 'A20250455', action: '登录管理控制台', actionType: '登录', target: '管理后台', timestamp: '2026-05-28 08:55:01', result: 'failed', ip: '203.0.113.77' },
-  { id: 'log-04', operatorName: '苏知夏', operatorId: 'A20251001', action: '编辑学生培养信息', actionType: '编辑', target: '学生 202221001234 · 林夏', timestamp: '2026-05-27 14:12:46', result: 'success', ip: '10.21.4.18' },
+  { id: 'log-04', operatorName: '爱莉希雅', operatorId: 'A20251001', action: '编辑学生培养信息', actionType: '编辑', target: '学生 2023307020941 · 李仕炜', timestamp: '2026-05-27 14:12:46', result: 'success', ip: '10.21.4.18' },
   { id: 'log-03', operatorName: '韩予', operatorId: 'A20250112', action: '发布选课提醒', actionType: '发布', target: '通知 · 第二轮正选开放', timestamp: '2026-05-27 09:40:18', result: 'success', ip: '10.21.7.91' },
   { id: 'log-02', operatorName: '岳明远', operatorId: 'A20251033', action: '删除草稿通知', actionType: '删除', target: '通知草稿 · 校历调整', timestamp: '2026-05-26 17:55:24', result: 'success', ip: '10.21.5.40' },
   { id: 'log-01', operatorName: '审计员·郑舟', operatorId: 'A20250003', action: '登录管理控制台', actionType: '登录', target: '管理后台', timestamp: '2026-05-26 08:30:00', result: 'success', ip: '10.21.9.12' }

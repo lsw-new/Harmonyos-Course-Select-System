@@ -116,7 +116,7 @@ struct AdminAuditLogPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Audit', subtitle: '操 作 日 志', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: '操作日志', subtitle: '操 作 日 志', onBack: () => { AppRoute.back(); } })
 
         this.FilterChips()
 

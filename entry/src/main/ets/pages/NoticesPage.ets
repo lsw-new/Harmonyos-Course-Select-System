@@ -46,7 +46,7 @@ struct NoticesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Notices', subtitle: '通 知 公 告' })
+        TopBar({ title: '通知公告', subtitle: '通 知 公 告' })
 
         Scroll() {
           Row({ space: 6 }) {

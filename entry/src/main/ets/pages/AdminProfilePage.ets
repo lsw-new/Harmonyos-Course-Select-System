@@ -99,7 +99,7 @@ struct AdminProfilePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Madame', subtitle: '管 理 员 中 心', showBack: false })
+        TopBar({ title: '管理中心', subtitle: '管 理 员 中 心', showBack: false })
 
         Scroll() {
           Column({ space: 14 }) {

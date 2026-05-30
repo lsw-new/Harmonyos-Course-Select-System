@@ -5,8 +5,8 @@ import { StudentDetail } from '../models/StudentDetailModels';
 
 export const mockStudentDetails: StudentDetail[] = [
   {
-    studentId: '202221001234',
-    name: '林夏',
+    studentId: '2023307020941',
+    name: '李仕炜',
     gender: '女',
     college: '人文与艺术学院',
     major: '汉语言文学',
@@ -16,7 +16,7 @@ export const mockStudentDetails: StudentDetail[] = [
     earnedCredits: 96,
     totalCredits: 160,
     phone: '138 0000 1234',
-    email: 'linxia@elysia.edu',
+    email: 'lishiwei@elysia.edu',
     dormitory: '紫藤苑 6 栋 412',
     advisor: '陈舟',
     status: 'active',

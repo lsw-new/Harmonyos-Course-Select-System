@@ -80,7 +80,7 @@ struct ExamPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Exams', subtitle: '考 试 安 排', onBack: () => AppRoute.back() })
+        TopBar({ title: '考试安排', subtitle: '考 试 安 排', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({ tip: '正在加载考试安排...' })

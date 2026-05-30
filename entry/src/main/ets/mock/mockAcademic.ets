@@ -57,8 +57,8 @@ export const mockExams: ExamArrangement[] = [
 ];
 
 export const mockStudentRecord: StudentRecord = {
-  studentId: '202221001234',
-  name: '林夏',
+  studentId: '2023307020941',
+  name: '李仕炜',
   englishName: 'Lin Xia',
   gender: '女',
   grade: '2022 级',

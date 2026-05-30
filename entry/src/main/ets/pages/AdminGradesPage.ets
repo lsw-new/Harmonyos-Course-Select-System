@@ -152,7 +152,7 @@ struct AdminGradesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Notes', subtitle: '成 绩 管 理', onBack: () => AppRoute.back() })
+        TopBar({ title: '成绩管理', subtitle: '成 绩 管 理', onBack: () => AppRoute.back() })
 
         Scroll() {
           Row({ space: 8 }) {

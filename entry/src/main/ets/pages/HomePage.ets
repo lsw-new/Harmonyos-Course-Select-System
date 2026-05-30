@@ -149,7 +149,7 @@ struct HomePage {
                   this.SearchResults()
                 } else {
                   this.HeroTerm(this.summary!.term)
-                  RoseDivider({ label: 'quick entrance · 快捷入口' })
+                  RoseDivider({ label: '快捷入口' })
                   this.QuickGrid(this.summary!.quickEntries)
                   this.TodaySection(this.summary!.todayCourses)
                   this.NoticeSection(this.summary!.noticeSummary)
@@ -186,7 +186,7 @@ struct HomePage {
         Row() {
           Monogram({ iconSize: 44 })
           Column() {
-            Text('Bonjour ✦').fontSize(11).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
+            Text('你好 ✦').fontSize(11).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
             Text(`${p.name} · ${p.studentId}`)
               .fontSize(17).fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
@@ -239,7 +239,7 @@ struct HomePage {
       Text(`${term.academicYear} · ${term.semester.toUpperCase()}`)
         .fontSize(10).fontColor(ElysiaTheme.ROSE_700).letterSpacing(4)
       Row() {
-        Text(`W ${term.weekIndex < 10 ? '0' + term.weekIndex : term.weekIndex}`)
+        Text(`周 ${term.weekIndex < 10 ? '0' + term.weekIndex : term.weekIndex}`)
           .fontSize(46).fontStyle(FontStyle.Italic)
           .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
         Text(`  第 ${term.weekIndex} 教学周`)
@@ -306,7 +306,7 @@ struct HomePage {
           .fontSize(10).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
       }.alignItems(HorizontalAlign.Start)
       Blank().layoutWeight(1)
-      Text('view all ›').fontSize(10).fontStyle(FontStyle.Italic)
+      Text('查看全部 ›').fontSize(10).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
         .onClick(() => AppRoute.go(Routes.Today))
     }.width('100%').padding({ left: 20, right: 20, top: 18 })
@@ -364,10 +364,10 @@ struct HomePage {
 
   @Builder NoticeSection(items: Notice[]) {
     Row() {
-      Text('From the Hall').fontSize(18).fontStyle(FontStyle.Italic)
+      Text('办事大厅').fontSize(18).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
       Blank().layoutWeight(1)
-      Text('more ›').fontSize(10).fontStyle(FontStyle.Italic)
+      Text('更多 ›').fontSize(10).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
         .onClick(() => AppRoute.go(Routes.Notices))
     }.width('100%').padding({ left: 20, right: 20, top: 18 })
@@ -505,7 +505,7 @@ struct HomePage {
 
   @Builder FilesSection(files: DownloadFile[]) {
     Row() {
-      Text('Files').fontSize(18).fontStyle(FontStyle.Italic)
+      Text('文件').fontSize(18).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
       Blank().layoutWeight(1)
       Text(`${files.length} 项`).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)

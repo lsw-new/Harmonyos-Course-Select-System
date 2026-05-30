@@ -108,7 +108,7 @@ struct AdminApprovalsPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Approve', subtitle: '审 批 中 心', showBack: this.activeId.length > 0,
+        TopBar({ title: '审批中心', subtitle: '审 批 中 心', showBack: this.activeId.length > 0,
           onBack: () => { this.activeId = ''; } })
 
         if (this.activeId.length === 0) {

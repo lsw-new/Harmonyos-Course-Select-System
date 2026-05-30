@@ -61,7 +61,7 @@ struct AdminLoginPage {
 
         Column({ space: 6 }) {
           Monogram({ iconSize: 56 })
-          Pill({ text: 'ADMIN · 教务' })
+          Pill({ text: '管理员 · 教务' })
           Text('管理员控制台登录')
             .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 8 }).padding({ bottom: 24 })
         }.width('100%').alignItems(HorizontalAlign.Center)

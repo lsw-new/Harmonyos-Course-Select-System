@@ -104,7 +104,7 @@ struct ForgotPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Recover', subtitle: '找 回 密 码', onBack: () => AppRoute.back() })
+        TopBar({ title: '找回密码', subtitle: '找 回 密 码', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column() {
@@ -120,7 +120,7 @@ struct ForgotPage {
               })
               .shadow({ radius: 24, color: '#99F2709C', offsetX: 0, offsetY: 12 })
 
-              Text('Reclaim the rose')
+              Text('重拾玫瑰')
                 .fontSize(24)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)

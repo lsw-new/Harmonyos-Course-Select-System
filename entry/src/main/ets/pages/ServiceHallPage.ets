@@ -44,7 +44,7 @@ struct ServiceHallPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Service', subtitle: '办 事 大 厅', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: '办事大厅', subtitle: '办 事 大 厅', onBack: () => { AppRoute.back(); } })
 
         Scroll() {
           Column() {

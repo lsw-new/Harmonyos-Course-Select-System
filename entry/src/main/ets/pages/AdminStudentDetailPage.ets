@@ -280,7 +280,7 @@ struct AdminStudentDetailPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Étudiant', subtitle: '学 籍 详 情', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: '学籍详情', subtitle: '学 籍 详 情', onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {
           LoadingState({})

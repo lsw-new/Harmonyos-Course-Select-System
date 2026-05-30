@@ -78,12 +78,12 @@ struct AdminPasswordPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Password', subtitle: '修 改 密 码', onBack: () => AppRoute.back() })
+        TopBar({ title: '修改密码', subtitle: '修 改 密 码', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column() {
             Column() {
-              Pill({ text: 'Keep it Safe' })
+              Pill({ text: '账户安全' })
               Text('修改管理员密码')
                 .fontSize(18).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 10 })
               Text('新密码至少 8 位，且包含字母与数字')
@@ -92,7 +92,7 @@ struct AdminPasswordPage {
             .width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(22)
             .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.LAV_200, 1]] })
 
-            RoseDivider({ label: 'form' })
+            RoseDivider({ label: '表单' })
 
             Column({ space: 14 }) {
               ElysiaInput({ placeholder: '原密码', value: $oldPassword, secure: true, leadingIcon: 'lock' })

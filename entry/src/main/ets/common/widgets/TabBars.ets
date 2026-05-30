@@ -12,19 +12,19 @@ export interface TabItem {
 }
 
 export const STUDENT_TABS: TabItem[] = [
-  { id: 'home', label: 'Home', icon: 'home', route: 'pages/HomePage' },
-  { id: 'mine', label: 'Mine', icon: 'mine', route: 'pages/MinePage' },
-  { id: 'eval', label: 'Eval', icon: 'evaluation', route: 'pages/EvalPage' },
-  { id: 'prac', label: 'Prac', icon: 'practice', route: 'pages/PracticePage' },
-  { id: 'pub', label: 'Pub', icon: 'public', route: 'pages/NoticesPage' }
+  { id: 'home', label: '首页', icon: 'home', route: 'pages/HomePage' },
+  { id: 'mine', label: '我的', icon: 'mine', route: 'pages/MinePage' },
+  { id: 'eval', label: '评教', icon: 'evaluation', route: 'pages/EvalPage' },
+  { id: 'prac', label: '实践', icon: 'practice', route: 'pages/PracticePage' },
+  { id: 'pub', label: '公告', icon: 'public', route: 'pages/NoticesPage' }
 ];
 
 export const ADMIN_TABS: TabItem[] = [
-  { id: 'dashboard', label: 'Tableau', icon: 'dashboard', route: 'pages/AdminDashboardPage' },
-  { id: 'students', label: 'Students', icon: 'students', route: 'pages/AdminStudentsPage' },
-  { id: 'courses', label: 'Cours', icon: 'course', route: 'pages/AdminCoursesPage' },
-  { id: 'approvals', label: 'Approve', icon: 'approve', route: 'pages/AdminApprovalsPage' },
-  { id: 'mine', label: 'Madame', icon: 'madame', route: 'pages/AdminProfilePage' }
+  { id: 'dashboard', label: '仪表盘', icon: 'dashboard', route: 'pages/AdminDashboardPage' },
+  { id: 'students', label: '学生', icon: 'students', route: 'pages/AdminStudentsPage' },
+  { id: 'courses', label: '课程', icon: 'course', route: 'pages/AdminCoursesPage' },
+  { id: 'approvals', label: '审批', icon: 'approve', route: 'pages/AdminApprovalsPage' },
+  { id: 'mine', label: '我的', icon: 'madame', route: 'pages/AdminProfilePage' }
 ];
 
 @Component

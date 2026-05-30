@@ -21,8 +21,8 @@ class CreditItem {
 struct AboutPage {
   private credits: CreditItem[] = [
     new CreditItem('info', '版本', 'V1.0.0 (build 20260529)'),
-    new CreditItem('star', '出品', 'Salon de Elysia 教务工作室'),
-    new CreditItem('students', '研发团队', 'Elysia Frontend · Platform 组'),
+    new CreditItem('star', '出品', '爱莉希雅 教务工作室'),
+    new CreditItem('students', '研发团队', '爱莉希雅前端 · 平台组'),
     new CreditItem('mail', '联系邮箱', 'support@elysia.edu'),
     new CreditItem('phone', '服务热线', '400-820-0000'),
     new CreditItem('location', '地址', '玫瑰湾校区 · 行政楼 3F')
@@ -35,16 +35,16 @@ struct AboutPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'About', subtitle: '关 于', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: '关于', subtitle: '关 于', onBack: () => { AppRoute.back(); } })
 
         Scroll() {
           Column({ space: 14 }) {
             // 品牌卡片
             Column({ space: 8 }) {
               Monogram({ iconSize: 76 })
-              Text('Elysia 教学管理系统')
+              Text('爱莉希雅 教学管理系统')
                 .fontSize(20).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 6 })
-              Text('Salon de Elysia · Teaching Suite')
+              Text('爱莉希雅 · 教学管理套件')
                 .fontSize(12).fontStyle(FontStyle.Italic).fontColor(ElysiaTheme.ROSE_700)
                 .fontFamily(ElysiaTheme.FONT_DISPLAY)
               Pill({ text: 'V1.0.0', color: ElysiaTheme.ROSE_700, bg: ElysiaTheme.SURFACE_GLOW })
@@ -55,7 +55,7 @@ struct AboutPage {
             // 简介
             Column({ space: 8 }) {
               Text('关于本系统').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
-              Text('Elysia 教学管理系统是一套面向高校师生的一体化教务平台，覆盖课表、选课、成绩、考试、评教、请假与办事大厅等核心场景。我们以「玫瑰学院」为视觉灵感，致力于把繁琐的教务流程打磨成优雅、顺手的日常体验，让每一次操作都安心、清晰、有温度。')
+              Text('爱莉希雅 教学管理系统是一套面向高校师生的一体化教务平台，覆盖课表、选课、成绩、考试、评教、请假与办事大厅等核心场景。我们以「玫瑰学院」为视觉灵感，致力于把繁琐的教务流程打磨成优雅、顺手的日常体验，让每一次操作都安心、清晰、有温度。')
                 .fontSize(13).fontColor(ElysiaTheme.INK_SOFT).lineHeight(22)
             }.width('100%').alignItems(HorizontalAlign.Start).padding(16)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
@@ -81,7 +81,7 @@ struct AboutPage {
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-            Text('© 2026 Salon de Elysia · 保留所有权利')
+            Text('© 2026 爱莉希雅 · 保留所有权利')
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
               .width('100%').textAlign(TextAlign.Center).margin({ top: 4 })
 

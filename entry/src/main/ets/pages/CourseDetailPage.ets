@@ -46,7 +46,7 @@ struct CourseDetailPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Course', subtitle: '课 程 详 情', onBack: () => AppRoute.back() })
+        TopBar({ title: '课程详情', subtitle: '课 程 详 情', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})

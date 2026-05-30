@@ -173,7 +173,7 @@ struct AdminSelectionPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Sélection', subtitle: '选 课 轮 次', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: '选课轮次', subtitle: '选 课 轮 次', onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {
           LoadingState({})
@@ -225,7 +225,7 @@ struct AdminSelectionPage {
         this.MiniStat('冲突', String(r.conflictCount))
       }.width('100%')
 
-      RoseDivider({ label: 'actions' })
+      RoseDivider({ label: '操作' })
 
       // 操作区：根据状态切换二次确认 / 普通按钮
       if (this.pendingEndId === r.id) {
@@ -317,8 +317,8 @@ struct AdminSelectionPage {
               AppIcon({ name: 'students', iconSize: 12, mRight: 5 })
               Text(`${c.studentName} · ${c.studentId}`).fontSize(12).fontColor(ElysiaTheme.INK).layoutWeight(1)
             }.width('100%').alignItems(VerticalAlign.Center)
-            Text(`A：${c.courseA}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
-            Text(`B：${c.courseB}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+            Text(`甲：${c.courseA}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+            Text(`乙：${c.courseB}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
           }.width('100%').alignItems(HorizontalAlign.Start)
           .padding(10).backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(12)
           .border({ width: 1, color: '#33D8546B' })

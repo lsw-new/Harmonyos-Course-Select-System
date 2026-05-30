@@ -120,7 +120,7 @@ struct PracticePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Practice', subtitle: '实 践 与 公 服', showBack: false })
+        TopBar({ title: '实践', subtitle: '实 践 与 公 服', showBack: false })
 
         // 分类筛选
         Scroll() {

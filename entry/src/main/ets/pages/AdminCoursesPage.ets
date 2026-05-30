@@ -212,7 +212,7 @@ struct AdminCoursesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Cours', subtitle: '课 程 管 理', showBack: false })
+        TopBar({ title: '课程管理', subtitle: '课 程 管 理', showBack: false })
 
         Column({ space: 10 }) {
           Row({ space: 10 }) {

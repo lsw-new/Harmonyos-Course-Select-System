@@ -57,7 +57,7 @@ struct NoticeDetailPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Notice', subtitle: '通 知 详 情', onBack: () => AppRoute.back() })
+        TopBar({ title: '通知详情', subtitle: '通 知 详 情', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({ tip: '正在加载通知...' })
@@ -82,7 +82,7 @@ struct NoticeDetailPage {
               }.width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(22)
               .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.LAV_200, 1]] })
 
-              RoseDivider({ label: 'content' })
+              RoseDivider({ label: '正文' })
 
               // 正文
               Column() {

@@ -127,7 +127,7 @@ struct PracticeDetailPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Practice', subtitle: '实 践 详 情', onBack: () => AppRoute.back() })
+        TopBar({ title: '实践', subtitle: '实 践 详 情', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({ tip: '正在加载项目详情...' })

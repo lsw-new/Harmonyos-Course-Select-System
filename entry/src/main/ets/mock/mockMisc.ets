@@ -34,7 +34,7 @@ export const mockFeedback: FeedbackItem[] = [
     id: 'fb-1', category: 'bug',
     title: '课表页面在 iPad 横屏会错位',
     content: '切换到横屏模式时，周三的课程格出现重叠。',
-    contact: 'linxia@example.edu.cn',
+    contact: 'lishiwei@example.edu.cn',
     screenshots: [],
     submittedAt: '2026-05-20 16:00',
     state: 'processing'

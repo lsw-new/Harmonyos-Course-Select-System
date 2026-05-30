@@ -103,7 +103,7 @@ struct EditInfoPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Edit', subtitle: '修 改 资 料', onBack: () => AppRoute.back() })
+        TopBar({ title: '修改资料', subtitle: '修 改 资 料', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})
@@ -138,7 +138,7 @@ struct EditInfoPage {
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-              RoseDivider({ label: 'editable' })
+              RoseDivider({ label: '可编辑' })
 
               Column({ space: 12 }) {
                 ElysiaInput({ placeholder: '手机号', value: $phone, leadingIcon: 'phone' })

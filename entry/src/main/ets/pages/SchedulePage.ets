@@ -141,13 +141,13 @@ struct SchedulePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Schedule', subtitle: '我 的 课 表', onBack: () => AppRoute.back() })
+        TopBar({ title: '课程表', subtitle: '我 的 课 表', onBack: () => AppRoute.back() })
 
         // 周次切换
         Column() {
           Row() {
             Column() {
-              Text(`Week ${this.romanize(this.currentWeek)}`)
+              Text(`第 ${this.currentWeek} 周`)
                 .fontSize(18)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)
@@ -366,10 +366,5 @@ struct SchedulePage {
     if (courseType === '选修') return [[ElysiaTheme.LAV_200, 0], [ElysiaTheme.LAV_300, 1]];
     if (courseType === '公选') return [['#FFF1D6', 0], [ElysiaTheme.GOLD_300, 1]];
     return [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.ROSE_300, 1]];
-  }
-
-  romanize(n: number): string {
-    const romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII'];
-    return romans[n - 1] || `${n}`;
   }
 }

@@ -95,7 +95,7 @@ struct LeavePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Leave', subtitle: '请 假 申 请', onBack: () => AppRoute.back() })
+        TopBar({ title: '请假申请', subtitle: '请 假 申 请', onBack: () => AppRoute.back() })
 
         Row({ space: 0 }) {
           Text('新建申请').fontSize(13)
@@ -132,8 +132,8 @@ struct LeavePage {
                 }, (label: string, idx: number) => `type-${idx}`)
               }.width('100%').margin({ top: 4 })
 
-              ElysiaInput({ placeholder: '开始日期 (YYYY-MM-DD)', value: $startDate, leadingIcon: 'calendar' })
-              ElysiaInput({ placeholder: '结束日期 (YYYY-MM-DD)', value: $endDate, leadingIcon: 'calendar' })
+              ElysiaInput({ placeholder: '开始日期（年-月-日）', value: $startDate, leadingIcon: 'calendar' })
+              ElysiaInput({ placeholder: '结束日期（年-月-日）', value: $endDate, leadingIcon: 'calendar' })
 
               TextArea({ placeholder: '请假事由', text: this.reason })
                 .height(100).fontSize(13).fontColor(ElysiaTheme.INK)

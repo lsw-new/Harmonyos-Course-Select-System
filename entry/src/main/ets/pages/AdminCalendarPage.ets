@@ -197,7 +197,7 @@ struct AdminCalendarPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Calendar', subtitle: '校 历 管 理', onBack: () => AppRoute.back() })
+        TopBar({ title: '校历管理', subtitle: '校 历 管 理', onBack: () => AppRoute.back() })
 
         Row() {
           Text('校历事件').fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)

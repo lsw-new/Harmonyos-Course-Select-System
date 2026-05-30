@@ -62,7 +62,7 @@ struct AdminStudentsPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Students', subtitle: '学 生 管 理', showBack: false })
+        TopBar({ title: '学生管理', subtitle: '学 生 管 理', showBack: false })
 
         Column({ space: 10 }) {
           TextInput({ placeholder: '搜索学号/姓名/班级', text: this.query })
@@ -98,7 +98,7 @@ struct AdminStudentsPage {
                   Column() {
                     Text(s.name).fontSize(14).fontColor(ElysiaTheme.INK)
                     Text(`${s.studentId} · ${s.className}`).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
-                    Text(`${s.college} · GPA ${s.gpa ?? '—'}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                    Text(`${s.college} · 绩点 ${s.gpa ?? '—'}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                   }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                   Pill({ text: this.statusLabel(s.status), color: this.statusColor(s.status), bg: '#FFF6FA' })
                   AppIcon({ name: 'forward', iconSize: 16, mLeft: 8, dim: true })

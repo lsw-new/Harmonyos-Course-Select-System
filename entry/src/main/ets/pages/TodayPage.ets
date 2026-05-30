@@ -62,7 +62,7 @@ struct TodayPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Today', subtitle: '今 日 课 程', onBack: () => AppRoute.back() })
+        TopBar({ title: '今日课程', subtitle: '今 日 课 程', onBack: () => AppRoute.back() })
 
         Column() {
           Scroll() {

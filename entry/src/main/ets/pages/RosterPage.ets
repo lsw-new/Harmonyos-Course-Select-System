@@ -42,7 +42,7 @@ struct RosterPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Roster', subtitle: '学 籍 信 息', onBack: () => AppRoute.back() })
+        TopBar({ title: '学籍信息', subtitle: '学 籍 信 息', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({ tip: '正在加载学籍信息...' })
@@ -54,7 +54,7 @@ struct RosterPage {
               // Profile header card
               Row() {
                 Stack() {
-                  Text('PHOTO').fontSize(9).fontColor(ElysiaTheme.ROSE_700).letterSpacing(2).fontFamily('monospace')
+                  Text('照片').fontSize(9).fontColor(ElysiaTheme.ROSE_700).letterSpacing(2).fontFamily('monospace')
                 }
                 .width(84).height(108).borderRadius(12).backgroundColor(ElysiaTheme.ROSE_200)
 

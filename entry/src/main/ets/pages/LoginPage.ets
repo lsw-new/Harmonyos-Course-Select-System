@@ -81,13 +81,13 @@ struct LoginPage {
           // Monogram + 欢迎语
           Column() {
             Monogram({ iconSize: 72 })
-            Text('Bonjour,')
+            Text('你好，')
               .fontSize(32)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700)
               .fontFamily(ElysiaTheme.FONT_DISPLAY)
               .margin({ top: 18 })
-            Text('Elysia.')
+            Text('爱莉希雅')
               .fontSize(32)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700)
@@ -104,17 +104,17 @@ struct LoginPage {
           .margin({ top: 24 })
 
           // 分隔
-          RoseDivider({ label: 'sign in' })
+          RoseDivider({ label: '登录' })
 
           // 表单
           Column({ space: 12 }) {
             ElysiaInput({
-              placeholder: '学号 / Student ID',
+              placeholder: '学号',
               value: $studentId,
               leadingIcon: 'mine'
             })
             ElysiaInput({
-              placeholder: '密码 / Password',
+              placeholder: '密码',
               value: $password,
               secure: true,
               leadingIcon: 'lock'
@@ -134,7 +134,7 @@ struct LoginPage {
 
               Blank().layoutWeight(1)
 
-              Text('forgot password ?')
+              Text('忘记密码？')
                 .fontSize(11)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)
@@ -163,13 +163,13 @@ struct LoginPage {
               onTap: () => { this.doLogin(); }
             })
             GhostButton({
-              text: '注册新账号 · Register',
+              text: '注册新账号',
               onTap: () => {
                 AppRoute.go(Routes.Register);
               }
             })
             GhostButton({
-              text: '管理员登录 · Admin',
+              text: '管理员登录',
               onTap: () => {
                 AppRoute.go(Routes.AdminLogin);
               }
@@ -179,7 +179,7 @@ struct LoginPage {
           .margin({ top: 22 })
 
           // 底部 slogan
-          Text('— Pardon me, may I have the pleasure of your name? —')
+          Text('— 敢问芳名？ —')
             .fontSize(10)
             .fontColor(ElysiaTheme.INK_MUTE)
             .letterSpacing(2)

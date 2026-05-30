@@ -100,11 +100,11 @@ struct RegisterPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Register', subtitle: '注 册', onBack: () => AppRoute.back() })
+        TopBar({ title: '注册', subtitle: '注 册', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column() {
-            Text('Create your story')
+            Text('开启你的故事')
               .fontSize(24)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700)
@@ -117,8 +117,8 @@ struct RegisterPage {
               .margin({ bottom: 16 })
 
             Column({ space: 10 }) {
-              ElysiaInput({ placeholder: '学号 / ID', value: $sid })
-              ElysiaInput({ placeholder: '姓名 / Name', value: $name })
+              ElysiaInput({ placeholder: '学号', value: $sid })
+              ElysiaInput({ placeholder: '姓名', value: $name })
               ElysiaInput({ placeholder: '手机号 / +86 13800138000', value: $phone })
               Row({ space: 8 }) {
                 Column() { ElysiaInput({ placeholder: '6 位验证码', value: $code }) }.layoutWeight(1)
@@ -131,8 +131,8 @@ struct RegisterPage {
                   .padding({ left: 14, right: 14 })
                   .onClick(() => { this.sendSms(); })
               }
-              ElysiaInput({ placeholder: '初始密码 / Password', value: $pwd, secure: true })
-              ElysiaInput({ placeholder: '确认密码 / Confirm', value: $pwd2, secure: true })
+              ElysiaInput({ placeholder: '初始密码', value: $pwd, secure: true })
+              ElysiaInput({ placeholder: '确认密码', value: $pwd2, secure: true })
             }
             .width('100%')
 
@@ -178,7 +178,7 @@ struct RegisterPage {
             Row() {
               Text('已有账号？')
                 .fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
-              Text('  Sign in')
+              Text('  登录')
                 .fontSize(11)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)

@@ -249,7 +249,7 @@ struct AdminEvalPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Évaluation', subtitle: '评 教 管 理', onBack: () => AppRoute.back() })
+        TopBar({ title: '评教管理', subtitle: '评 教 管 理', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})
@@ -259,7 +259,7 @@ struct AdminEvalPage {
           Scroll() {
             Column({ space: 14 }) {
               this.PeriodCard()
-              RoseDivider({ label: 'distribution' })
+              RoseDivider({ label: '分布' })
               this.DistributionCard()
               this.TemplatesCard()
               SafeBottom()

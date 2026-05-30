@@ -72,7 +72,7 @@ struct SelectionPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Selection', subtitle: '选 课 中 心', onBack: () => AppRoute.back() })
+        TopBar({ title: '选课中心', subtitle: '选 课 中 心', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({ tip: '正在加载选课信息...' })

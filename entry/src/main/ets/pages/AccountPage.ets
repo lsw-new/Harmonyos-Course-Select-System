@@ -73,7 +73,7 @@ struct AccountPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Account', subtitle: '我 的 账 户', onBack: () => AppRoute.back() })
+        TopBar({ title: '账户', subtitle: '我 的 账 户', onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({ tip: '正在加载账户信息...' })
@@ -180,7 +180,7 @@ struct AccountPage {
         Text(`${item.location} · ${item.ipAddress}`)
           .fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
       }.alignItems(HorizontalAlign.Start).margin({ left: 10 }).layoutWeight(1)
-      Text(`在线 ${item.durationMinutes} min`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
+      Text(`在线 ${item.durationMinutes} 分钟`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
     }.width('100%').padding({ top: 10, bottom: 10 })
     if (!isLast) { Divider().strokeWidth(1).color(ElysiaTheme.hairline()) }
   }

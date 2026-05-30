@@ -74,7 +74,7 @@ struct AdminNoticePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Annonce', subtitle: '发 布 通 知', onBack: () => AppRoute.back() })
+        TopBar({ title: '发布通知', subtitle: '发 布 通 知', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column({ space: 14 }) {
@@ -124,7 +124,7 @@ struct AdminNoticePage {
               }
               if (this.receiverType === 'custom') {
                 ElysiaInput({
-                  placeholder: '输入接收范围，逗号分隔（如：CS2101,CS2102）',
+                  placeholder: '输入接收范围，逗号分隔（如：计科2101、计科2102）',
                   value: $scopeText,
                   leadingIcon: 'public'
                 })

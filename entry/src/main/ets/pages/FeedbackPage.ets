@@ -77,7 +77,7 @@ struct FeedbackPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Feedback', subtitle: '意 见 反 馈', onBack: () => AppRoute.back() })
+        TopBar({ title: '意见反馈', subtitle: '意 见 反 馈', onBack: () => AppRoute.back() })
 
         Row({ space: 0 }) {
           Text('提交反馈').fontSize(13)

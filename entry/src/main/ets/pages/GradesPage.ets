@@ -50,7 +50,7 @@ struct GradesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Grades', subtitle: '我 的 成 绩', onBack: () => AppRoute.back() })
+        TopBar({ title: '我的成绩', subtitle: '我 的 成 绩', onBack: () => AppRoute.back() })
 
         // 学期切换 tabs
         Scroll() {
@@ -100,7 +100,7 @@ struct GradesPage {
                       .fontStyle(FontStyle.Italic)
                       .fontColor(ElysiaTheme.ROSE_700)
                       .fontFamily(ElysiaTheme.FONT_DISPLAY)
-                    Text('  学期 · GPA')
+                    Text('  学期 · 绩点')
                       .fontSize(11)
                       .fontColor(ElysiaTheme.INK_SOFT)
                   }
@@ -140,7 +140,7 @@ struct GradesPage {
                 .padding({ left: 16, right: 16 })
               }
 
-              Text('— sweet rewards —')
+              Text('— 努力的回报 —')
                 .fontSize(11)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.INK_MUTE)

@@ -112,7 +112,7 @@ struct SettingsPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Settings', subtitle: '系 统 设 置', onBack: () => AppRoute.back() })
+        TopBar({ title: '系统设置', subtitle: '系 统 设 置', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column({ space: 14 }) {
@@ -143,7 +143,7 @@ struct SettingsPage {
                 this.showFontSheet = true;
               })
               // 字体大小实时预览（本页即时生效）
-              Text(`预览：玫瑰学院 Elysia · 字号 ${this.fontSampleSize()}`)
+              Text(`预览：玫瑰学院 爱莉希雅 · 字号 ${this.fontSampleSize()}`)
                 .fontSize(this.fontSampleSize())
                 .fontColor(ElysiaTheme.INK_SOFT)
                 .width('100%')
@@ -176,7 +176,7 @@ struct SettingsPage {
                 const p: Record<string, Object> = { 'type': 'privacy' };
                 AppRoute.go(Routes.Doc, { params: p });
               })
-              this.LinkRow('关于', 'Elysia · 教学管理系统', () => {
+              this.LinkRow('关于', '爱莉希雅 · 教学管理系统', () => {
                 AppRoute.go(Routes.About);
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)

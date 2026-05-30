@@ -40,7 +40,7 @@ export struct Monogram {
   @Prop iconSize: number = 56;
   build() {
     Stack() {
-      Text('É')
+      Text('爱')
         .fontSize(this.iconSize * 0.5)
         .fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700)

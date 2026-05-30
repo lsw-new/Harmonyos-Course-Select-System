@@ -209,7 +209,7 @@ struct EvalPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Evaluation', subtitle: '量 化 评 教', onBack: () => AppRoute.back() })
+        TopBar({ title: '量化评教', subtitle: '量 化 评 教', onBack: () => AppRoute.back() })
 
         Column() {
           if (this.loading) {
@@ -258,7 +258,7 @@ struct EvalPage {
 
   @Builder ProgressHero() {
     Column() {
-      Text('Voice of the Rose').fontSize(18).fontStyle(FontStyle.Italic)
+      Text('玫瑰之声').fontSize(18).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
       Text('每一份诚挚的反馈，都是花瓣般温柔的力量。')
         .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).lineHeight(18).margin({ top: 6 })

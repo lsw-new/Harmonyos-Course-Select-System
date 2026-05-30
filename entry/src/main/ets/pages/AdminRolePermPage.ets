@@ -231,7 +231,7 @@ struct AdminRolePermPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Roles', subtitle: '角 色 权 限', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: '角色权限', subtitle: '角 色 权 限', onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {
           LoadingState({})

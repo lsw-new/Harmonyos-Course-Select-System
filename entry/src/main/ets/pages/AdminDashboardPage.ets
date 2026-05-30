@@ -48,7 +48,7 @@ struct AdminDashboardPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Tableau', subtitle: '管 理 仪 表 盘', showBack: false })
+        TopBar({ title: '管理仪表盘', subtitle: '管 理 仪 表 盘', showBack: false })
 
         if (this.loading) {
           LoadingState({})

@@ -76,12 +76,12 @@ struct PasswordPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: 'Password', subtitle: '修 改 密 码', onBack: () => AppRoute.back() })
+        TopBar({ title: '修改密码', subtitle: '修 改 密 码', onBack: () => AppRoute.back() })
 
         Scroll() {
           Column() {
             Column() {
-              Pill({ text: 'Keep it Safe' })
+              Pill({ text: '账户安全' })
               Text('修改登录密码')
                 .fontSize(18).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 10 })
               Text('修改后需重新登录')
@@ -90,7 +90,7 @@ struct PasswordPage {
             .width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(22)
             .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.LAV_200, 1]] })
 
-            RoseDivider({ label: 'form' })
+            RoseDivider({ label: '表单' })
 
             Column({ space: 14 }) {
               ElysiaInput({ placeholder: '原密码', value: $oldPassword, secure: true, leadingIcon: 'lock' })
