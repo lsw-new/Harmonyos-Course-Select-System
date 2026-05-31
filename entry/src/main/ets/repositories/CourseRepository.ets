@@ -3,11 +3,13 @@
 import { BaseRepository } from './BaseRepository';
 import { Course, ScheduleItem, SelectionCourse, SelectionRoundInfo, SelectionStatus } from '../models/Course';
 import { Notice } from '../models/Notice';
-import { mockCourses, mockSchedule, mockSelectionCourses, mockSelectionRound } from '../mock/mockCourses';
+import { mockCourses, mockSchedule, mockSelectionCourses } from '../mock/mockCourses';
 import { mockNotices } from '../mock/mockNotices';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { NoticeStore } from '../common/services/NoticeStore';
+import { SelectionAdminRepository } from './SelectionAdminRepository';
 
+const CREDIT_LIMIT: number = 28; // 学分上限：选课事务据此校验，超出则拒绝
 const KEY_SELECTION_COURSES = 'local.selectionCourses.v1';
 const KEY_IMPORTED_SCHEDULE = 'local.importedSchedule.v1';
 const SELECTION_STATUSES: string[] = ['available', 'selected', 'full', 'conflict'];
@@ -244,12 +246,157 @@ export class CourseRepository extends BaseRepository {
     return this.reject('课程不存在', 'notFound');
   }
 
+  // ============ 选课事务（轮次 / 容量 / 学分 / 冲突 校验） ============
+
+  // 解析课程周次文本（形如 "1-16 周" / "2-15 周" / "1,3,5 周"）为周次数组
+  private parseCourseWeeks(weeksStr: string): number[] {
+    const out: number[] = [];
+    const cleaned = weeksStr.replace(/[^0-9,\-]/g, '');
+    const tokens = cleaned.split(',');
+    for (let t = 0; t < tokens.length; t++) {
+      const tok = tokens[t];
+      if (tok.length === 0) {
+        continue;
+      }
+      const dash = tok.indexOf('-');
+      if (dash > 0) {
+        const a = parseInt(tok.substring(0, dash), 10);
+        const b = parseInt(tok.substring(dash + 1), 10);
+        if (!Number.isNaN(a) && !Number.isNaN(b)) {
+          for (let w = a; w <= b; w++) {
+            if (out.indexOf(w) < 0) {
+              out.push(w);
+            }
+          }
+        }
+      } else {
+        const w = parseInt(tok, 10);
+        if (!Number.isNaN(w) && out.indexOf(w) < 0) {
+          out.push(w);
+        }
+      }
+    }
+    return out;
+  }
+
+  // 两门课是否时间冲突：同一星期、节次区间重叠、且周次有交集
+  private coursesConflict(a: Course, b: Course): boolean {
+    if (a.weekday !== b.weekday) {
+      return false;
+    }
+    if (a.periodStart > b.periodEnd || b.periodStart > a.periodEnd) {
+      return false;
+    }
+    const wa = this.parseCourseWeeks(a.weeks);
+    const wb = this.parseCourseWeeks(b.weeks);
+    for (let i = 0; i < wa.length; i++) {
+      if (wb.indexOf(wa[i]) >= 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // 用新的已选人数构造课程副本（不可变更新，名额随选/退课同步）
+  private withSelectedCount(course: Course, count: number): Course {
+    const next: Course = {
+      id: course.id,
+      code: course.code,
+      teachingClassNo: course.teachingClassNo,
+      name: course.name,
+      category: course.category,
+      credit: course.credit,
+      teacher: course.teacher,
+      college: course.college,
+      campus: course.campus,
+      classroom: course.classroom,
+      weeks: course.weeks,
+      periodStart: course.periodStart,
+      periodEnd: course.periodEnd,
+      weekday: course.weekday,
+      capacity: course.capacity,
+      selectedCount: count,
+      description: course.description,
+      assessment: course.assessment
+    };
+    return next;
+  }
+
+  // 展示态：已选保持 selected；其余按容量/冲突派生 full / conflict / available
+  private decorateStatuses(selections: SelectionCourse[]): SelectionCourse[] {
+    const selected = selections.filter((s) => s.status === 'selected');
+    return selections.map((item) => {
+      if (item.status === 'selected') {
+        const sel: SelectionCourse = { course: item.course, status: 'selected', conflictWith: undefined };
+        return sel;
+      }
+      const cap = item.course.capacity;
+      const cnt = item.course.selectedCount;
+      if (cap !== undefined && cnt !== undefined && cnt >= cap) {
+        const full: SelectionCourse = { course: item.course, status: 'full', conflictWith: undefined };
+        return full;
+      }
+      let conflictName: string = '';
+      for (let i = 0; i < selected.length; i++) {
+        if (this.coursesConflict(item.course, selected[i].course)) {
+          conflictName = selected[i].course.name;
+          break;
+        }
+      }
+      if (conflictName.length > 0) {
+        const conf: SelectionCourse = { course: item.course, status: 'conflict', conflictWith: `与「${conflictName}」时间冲突` };
+        return conf;
+      }
+      const avail: SelectionCourse = { course: item.course, status: 'available', conflictWith: undefined };
+      return avail;
+    });
+  }
+
+  private computeRemainingSeconds(endTime: string): number {
+    const end = Date.parse(endTime.replace(' ', 'T'));
+    if (Number.isNaN(end)) {
+      return 0;
+    }
+    const diff = Math.floor((end - Date.now()) / 1000);
+    return diff > 0 ? diff : 0;
+  }
+
+  // 选课轮次：与管理端「进行中」轮次共享同一事实来源
   async getSelectionRound(): Promise<SelectionRoundInfo> {
-    return this.delayCopy<SelectionRoundInfo>(mockSelectionRound);
+    const active = await SelectionAdminRepository.get().getActiveRound();
+    const selections = await this.getSelections();
+    let selectedCredits = 0;
+    for (let i = 0; i < selections.length; i++) {
+      if (selections[i].status === 'selected') {
+        selectedCredits += selections[i].course.credit;
+      }
+    }
+    if (!active) {
+      const closed: SelectionRoundInfo = {
+        roundName: '当前无进行中的选课轮次',
+        startTime: '—',
+        endTime: '—',
+        remainingSeconds: 0,
+        selectedCredits: selectedCredits,
+        creditLimit: CREDIT_LIMIT,
+        inProgress: false
+      };
+      return this.delayCopy<SelectionRoundInfo>(closed);
+    }
+    const info: SelectionRoundInfo = {
+      roundName: active.name,
+      startTime: active.startTime,
+      endTime: active.endTime,
+      remainingSeconds: this.computeRemainingSeconds(active.endTime),
+      selectedCredits: selectedCredits,
+      creditLimit: CREDIT_LIMIT,
+      inProgress: true
+    };
+    return this.delayCopy<SelectionRoundInfo>(info);
   }
 
   async getSelectionCourses(query?: string, category?: string): Promise<SelectionCourse[]> {
-    let items = await this.getSelections();
+    let items = this.decorateStatuses(await this.getSelections());
     if (query && query.length > 0) {
       const q = query.toLowerCase();
       items = items.filter((s) =>
@@ -265,30 +412,49 @@ export class CourseRepository extends BaseRepository {
   }
 
   async selectCourse(courseId: string): Promise<boolean> {
+    // 轮次门禁：管理端无进行中轮次时不能选课
+    const active = await SelectionAdminRepository.get().getActiveRound();
+    if (!active) {
+      return this.reject('当前不在选课时间，暂不能选课');
+    }
     const selections = await this.getSelections();
     const target = selections.find((s) => s.course.id === courseId);
     if (!target) {
       return this.reject('课程不存在', 'notFound');
     }
-    if (target.status === 'full') {
+    if (target.status === 'selected') {
+      return this.reject('已选该课程');
+    }
+    const cap = target.course.capacity;
+    const cnt = target.course.selectedCount;
+    if (cap !== undefined && cnt !== undefined && cnt >= cap) {
       return this.reject('课程容量已满');
     }
-    if (target.status === 'conflict') {
-      return this.reject(`时间冲突：${target.conflictWith ?? ''}`);
+    // 学分上限与时间冲突：基于当前已选课程
+    let selectedCredits = 0;
+    const selected: SelectionCourse[] = [];
+    for (let i = 0; i < selections.length; i++) {
+      if (selections[i].status === 'selected') {
+        selectedCredits += selections[i].course.credit;
+        selected.push(selections[i]);
+      }
     }
-    if (target.status === 'selected') {
-      return this.reject('已选课程');
+    if (selectedCredits + target.course.credit > CREDIT_LIMIT) {
+      return this.reject(`超过学分上限（${CREDIT_LIMIT} 学分）`);
     }
+    for (let i = 0; i < selected.length; i++) {
+      if (this.coursesConflict(target.course, selected[i].course)) {
+        return this.reject(`与「${selected[i].course.name}」时间冲突`);
+      }
+    }
+    const newCount = (cnt !== undefined ? cnt : 0) + 1;
+    const updatedCourse = this.withSelectedCount(target.course, newCount);
     const next = selections.map((item) => {
       if (item.course.id !== courseId) {
         return item;
       }
-      const updated: SelectionCourse = {
-        course: item.course,
-        status: 'selected',
-        conflictWith: item.conflictWith
-      };
-      return updated;
+      const sel: SelectionCourse = { course: updatedCourse, status: 'selected', conflictWith: undefined };
+      return sel;
     });
     await this.saveSelections(next);
     return this.delay<boolean>(true);
@@ -303,16 +469,16 @@ export class CourseRepository extends BaseRepository {
     if (target.status !== 'selected') {
       return this.reject('该课程未被选中');
     }
+    // 退课：名额恢复（selectedCount - 1）
+    const cnt = target.course.selectedCount;
+    const newCount = (cnt !== undefined && cnt > 0) ? cnt - 1 : 0;
+    const updatedCourse = this.withSelectedCount(target.course, newCount);
     const next = selections.map((item) => {
       if (item.course.id !== courseId) {
         return item;
       }
-      const updated: SelectionCourse = {
-        course: item.course,
-        status: 'available' as SelectionStatus,
-        conflictWith: item.conflictWith
-      };
-      return updated;
+      const avail: SelectionCourse = { course: updatedCourse, status: 'available', conflictWith: undefined };
+      return avail;
     });
     await this.saveSelections(next);
     return this.delay<boolean>(true);

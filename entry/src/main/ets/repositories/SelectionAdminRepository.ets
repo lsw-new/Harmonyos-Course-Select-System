@@ -187,6 +187,12 @@ export class SelectionAdminRepository extends BaseRepository {
     return this.delayCopy<AdminRound[]>(items);
   }
 
+  // 当前进行中的选课轮次（供学生端选课门禁与轮次展示共享同一事实来源）
+  async getActiveRound(): Promise<AdminRound | undefined> {
+    const items = await this.getRoundItems();
+    return items.find((item) => item.status === 'running');
+  }
+
   async getConflicts(roundId: string): Promise<RoundConflict[]> {
     const list = mockRoundConflicts.filter((c) => c.roundId === roundId);
     return this.delayCopy<RoundConflict[]>(list);
