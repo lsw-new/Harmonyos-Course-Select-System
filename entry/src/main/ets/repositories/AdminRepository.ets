@@ -479,6 +479,42 @@ export class AdminRepository extends BaseRepository {
     return this.delayCopy<AdminCourseItem[]>(items);
   }
 
+  // 选课人数调整：学生端选/退课时回写同一份课程数据，使课程容量/已选成为单一事实来源
+  async adjustEnrollment(code: string, delta: number): Promise<void> {
+    const items = await this.getCourseItems();
+    const key = code.trim().toLowerCase();
+    let changed = false;
+    const next = items.map((item) => {
+      if (item.code.trim().toLowerCase() !== key) {
+        return item;
+      }
+      let count = item.selectedCount + delta;
+      if (count < 0) {
+        count = 0;
+      }
+      if (count > item.capacity) {
+        count = item.capacity;
+      }
+      changed = true;
+      const updated: AdminCourseItem = {
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        teacher: item.teacher,
+        category: item.category,
+        credit: item.credit,
+        timeText: item.timeText,
+        capacity: item.capacity,
+        selectedCount: count,
+        status: item.status
+      };
+      return updated;
+    });
+    if (changed) {
+      await this.saveCourses(next);
+    }
+  }
+
   async createCourse(payload: AdminCourseWritePayload): Promise<AdminCourseItem> {
     if (!this.hasCourseWritePermission('create')) {
       return this.rejectUnauthorized();

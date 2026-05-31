@@ -2,12 +2,14 @@
 
 import { BaseRepository } from './BaseRepository';
 import { Course, ScheduleItem, SelectionCourse, SelectionRoundInfo, SelectionStatus } from '../models/Course';
+import { AdminCourseItem } from '../models/Admin';
 import { Notice } from '../models/Notice';
 import { mockCourses, mockSchedule, mockSelectionCourses } from '../mock/mockCourses';
 import { mockNotices } from '../mock/mockNotices';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { NoticeStore } from '../common/services/NoticeStore';
 import { SelectionAdminRepository } from './SelectionAdminRepository';
+import { AdminRepository } from './AdminRepository';
 
 const CREDIT_LIMIT: number = 28; // 学分上限：选课事务据此校验，超出则拒绝
 const KEY_SELECTION_COURSES = 'local.selectionCourses.v1';
@@ -125,7 +127,8 @@ export class CourseRepository extends BaseRepository {
     return sanitized;
   }
 
-  private async getSelections(): Promise<SelectionCourse[]> {
+  // 学生本地选课记录（成员关系 + 课表结构字段），仅作底座，课程属性以管理端为准
+  private async loadSelections(): Promise<SelectionCourse[]> {
     if (!this.isSelectionLoaded) {
       const stored = await LocalDataStore.loadArray<SelectionCourse>(KEY_SELECTION_COURSES, mockSelectionCourses);
       const sanitized = this.sanitizeSelections(stored);
@@ -133,6 +136,61 @@ export class CourseRepository extends BaseRepository {
       this.isSelectionLoaded = true;
     }
     return this.selections;
+  }
+
+  // 选课读取：以管理端课程为单一事实来源，按课程代码叠加 名称/教师/学分/容量/已选/类型
+  private async getSelections(): Promise<SelectionCourse[]> {
+    const base = await this.loadSelections();
+    const adminCourses = await AdminRepository.get().getCourses();
+    return this.overlayAdmin(base, adminCourses);
+  }
+
+  private mapCategory(category: string): string {
+    if (category === 'required') {
+      return '必修';
+    }
+    if (category === 'elective') {
+      return '选修';
+    }
+    if (category === 'public') {
+      return '公选';
+    }
+    if (category === 'practice') {
+      return '实践';
+    }
+    return category;
+  }
+
+  private overlayAdmin(base: SelectionCourse[], adminCourses: AdminCourseItem[]): SelectionCourse[] {
+    return base.map((item) => {
+      const code = item.course.code.trim().toLowerCase();
+      const admin = adminCourses.find((ac) => ac.code.trim().toLowerCase() === code);
+      if (!admin) {
+        return item;
+      }
+      const merged: Course = {
+        id: item.course.id,
+        code: item.course.code,
+        teachingClassNo: item.course.teachingClassNo,
+        name: admin.name,
+        category: this.mapCategory(admin.category),
+        credit: admin.credit,
+        teacher: admin.teacher,
+        college: item.course.college,
+        campus: item.course.campus,
+        classroom: item.course.classroom,
+        weeks: item.course.weeks,
+        periodStart: item.course.periodStart,
+        periodEnd: item.course.periodEnd,
+        weekday: item.course.weekday,
+        capacity: admin.capacity,
+        selectedCount: admin.selectedCount,
+        description: item.course.description,
+        assessment: item.course.assessment
+      };
+      const overlaid: SelectionCourse = { course: merged, status: item.status, conflictWith: item.conflictWith };
+      return overlaid;
+    });
   }
 
   private async saveSelections(next: SelectionCourse[]): Promise<void> {
@@ -216,7 +274,11 @@ export class CourseRepository extends BaseRepository {
   async getCourseDetail(courseId: string): Promise<Course> {
     const course = mockCourses.find((c) => c.id === courseId);
     if (course) {
-      return this.delayCopy<Course>(course);
+      // 详情同样以管理端课程为准（名称/教师/学分/容量/已选）
+      const wrapped: SelectionCourse = { course: course, status: 'available', conflictWith: undefined };
+      const adminCourses = await AdminRepository.get().getCourses();
+      const overlaid = this.overlayAdmin([wrapped], adminCourses);
+      return this.delayCopy<Course>(overlaid[0].course);
     }
     // 导入课表的课程没有独立课程库记录：用课表行兜底构造详情（仅含课表中的真实字段）。
     const schedule = await this.getActiveSchedule();
@@ -281,6 +343,9 @@ export class CourseRepository extends BaseRepository {
 
   // 两门课是否时间冲突：同一星期、节次区间重叠、且周次有交集
   private coursesConflict(a: Course, b: Course): boolean {
+    if (a.weekday < 1 || b.weekday < 1) {
+      return false; // 未排课（如集中实践）不参与冲突判定
+    }
     if (a.weekday !== b.weekday) {
       return false;
     }
@@ -295,31 +360,6 @@ export class CourseRepository extends BaseRepository {
       }
     }
     return false;
-  }
-
-  // 用新的已选人数构造课程副本（不可变更新，名额随选/退课同步）
-  private withSelectedCount(course: Course, count: number): Course {
-    const next: Course = {
-      id: course.id,
-      code: course.code,
-      teachingClassNo: course.teachingClassNo,
-      name: course.name,
-      category: course.category,
-      credit: course.credit,
-      teacher: course.teacher,
-      college: course.college,
-      campus: course.campus,
-      classroom: course.classroom,
-      weeks: course.weeks,
-      periodStart: course.periodStart,
-      periodEnd: course.periodEnd,
-      weekday: course.weekday,
-      capacity: course.capacity,
-      selectedCount: count,
-      description: course.description,
-      assessment: course.assessment
-    };
-    return next;
   }
 
   // 展示态：已选保持 selected；其余按容量/冲突派生 full / conflict / available
@@ -447,40 +487,39 @@ export class CourseRepository extends BaseRepository {
         return this.reject(`与「${selected[i].course.name}」时间冲突`);
       }
     }
-    const newCount = (cnt !== undefined ? cnt : 0) + 1;
-    const updatedCourse = this.withSelectedCount(target.course, newCount);
-    const next = selections.map((item) => {
+    // 持久化成员关系（底座保留原始课表字段），选课人数回写管理端单一事实来源
+    const base = await this.loadSelections();
+    const next = base.map((item) => {
       if (item.course.id !== courseId) {
         return item;
       }
-      const sel: SelectionCourse = { course: updatedCourse, status: 'selected', conflictWith: undefined };
+      const sel: SelectionCourse = { course: item.course, status: 'selected', conflictWith: item.conflictWith };
       return sel;
     });
     await this.saveSelections(next);
+    await AdminRepository.get().adjustEnrollment(target.course.code, 1);
     return this.delay<boolean>(true);
   }
 
   async dropCourse(courseId: string): Promise<boolean> {
-    const selections = await this.getSelections();
-    const target = selections.find((s) => s.course.id === courseId);
+    const base = await this.loadSelections();
+    const target = base.find((s) => s.course.id === courseId);
     if (!target) {
       return this.reject('课程不存在', 'notFound');
     }
     if (target.status !== 'selected') {
       return this.reject('该课程未被选中');
     }
-    // 退课：名额恢复（selectedCount - 1）
-    const cnt = target.course.selectedCount;
-    const newCount = (cnt !== undefined && cnt > 0) ? cnt - 1 : 0;
-    const updatedCourse = this.withSelectedCount(target.course, newCount);
-    const next = selections.map((item) => {
+    const next = base.map((item) => {
       if (item.course.id !== courseId) {
         return item;
       }
-      const avail: SelectionCourse = { course: updatedCourse, status: 'available', conflictWith: undefined };
+      const avail: SelectionCourse = { course: item.course, status: 'available', conflictWith: item.conflictWith };
       return avail;
     });
     await this.saveSelections(next);
+    // 退课：名额回退到管理端单一事实来源
+    await AdminRepository.get().adjustEnrollment(target.course.code, -1);
     return this.delay<boolean>(true);
   }
 
