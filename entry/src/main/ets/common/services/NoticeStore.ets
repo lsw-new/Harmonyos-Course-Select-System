@@ -113,11 +113,12 @@ export class NoticeStore {
     const reads = await LocalDataStore.loadArray<NoticeReadMark>(KEY_NOTICE_READS, []);
     const exists = reads.some((item) => item.noticeId === id && item.ownerId === ownerId);
     if (!exists) {
-      await LocalDataStore.saveArray<NoticeReadMark>(KEY_NOTICE_READS, [{
+      const mark: NoticeReadMark = {
         noticeId: id,
         ownerId: ownerId,
         readAt: new Date().toISOString()
-      }].concat(reads));
+      };
+      await LocalDataStore.saveArray<NoticeReadMark>(KEY_NOTICE_READS, [mark].concat(reads));
     }
   }
 

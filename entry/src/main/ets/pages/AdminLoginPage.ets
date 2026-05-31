@@ -34,11 +34,17 @@ struct AdminLoginPage {
     if (this.adminId.trim().length === 0) { this.errorMsg = '请输入工号'; return; }
     if (this.password.length === 0) { this.errorMsg = '请输入密码'; return; }
     if (this.captcha.length !== 4) { this.errorMsg = '请输入 4 位验证码'; return; }
+    if (this.captcha.trim().toUpperCase() !== this.captchaCode.toUpperCase()) {
+      this.refreshCaptcha();
+      this.captcha = '';
+      this.errorMsg = '验证码错误，请重新输入';
+      return;
+    }
     this.errorMsg = '';
     this.submitting = true;
     AuthRepository.get().adminLogin({
       adminId: this.adminId, password: this.password,
-      captcha: this.captcha, remember: this.remember
+      captcha: this.captcha, expectedCaptcha: this.captchaCode, remember: this.remember
     }).then((res: AdminLoginResult) => {
       SessionStorage.get().setAdminSession(res.token, res.profile).then(() => {
         AppRoute.clearTo(Routes.AdminDashboard);

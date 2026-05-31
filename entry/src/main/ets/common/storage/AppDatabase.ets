@@ -25,7 +25,7 @@ export class AppDatabase {
       return AppDatabase.initTask;
     }
     AppDatabase.initTask = AppDatabase.openAndMigrate(context)
-      .catch((err) => {
+      .catch((err: Object): Promise<void> => {
         AppDatabase.initTask = undefined;
         return Promise.reject(err);
       });

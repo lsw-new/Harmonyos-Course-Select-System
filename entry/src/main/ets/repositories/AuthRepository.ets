@@ -76,7 +76,10 @@ export class AuthRepository extends BaseRepository {
 
   // 管理端
   async adminLogin(req: AdminLoginRequest): Promise<AdminLoginResult> {
-    if (req.captcha.length !== 4) {
+    const input: string = req.captcha.trim().toUpperCase();
+    const expected: string = (req.expectedCaptcha ?? '').trim().toUpperCase();
+    // 必须比对页面展示的验证码挑战值，而不是只校验长度
+    if (input.length !== 4 || expected.length !== 4 || input !== expected) {
       return this.reject('图形验证码错误');
     }
     if (req.adminId.trim() !== TEST_ADMIN_ID || req.password !== TEST_ADMIN_PASSWORD) {

@@ -28,6 +28,10 @@ const END_TIMES: string[] = ['', '08:45', '09:35', '10:45', '11:35', '14:45', '1
 
 export const DEFAULT_TERM: string = '2025-2026-2';
 
+// 导入安全边界：仅接受 .xlsx，限制压缩包体积，避免不可信文件耗尽内存。
+const ALLOWED_EXT: string = '.xlsx';
+const MAX_IMPORT_FILE_SIZE: number = 5 * 1024 * 1024; // 5 MB
+
 export class ScheduleImportService {
   // ============ 纯解析（可单测） ============
 
@@ -271,9 +275,18 @@ export class ScheduleImportService {
       throw new Error('未选择文件');
     }
     const uri: string = uris[0];
+    if (!uri.toLowerCase().endsWith(ALLOWED_EXT)) {
+      throw new Error('仅支持学校官方课表模板（.xlsx 文件）');
+    }
     const file = fs.openSync(uri, fs.OpenMode.READ_ONLY);
     try {
       const stat = fs.statSync(file.fd);
+      if (stat.size <= 0) {
+        throw new Error('课表文件为空');
+      }
+      if (stat.size > MAX_IMPORT_FILE_SIZE) {
+        throw new Error('课表文件过大（上限 5 MB），请确认是否为官方课表模板');
+      }
       const buf: ArrayBuffer = new ArrayBuffer(stat.size);
       fs.readSync(file.fd, buf);
       return await ScheduleImportService.importFromBuffer(context, buf, term);
@@ -283,36 +296,45 @@ export class ScheduleImportService {
   }
 
   private static async importFromBuffer(context: common.UIAbilityContext, buffer: ArrayBuffer, term: string): Promise<ScheduleItem[]> {
-    const cache: string = context.cacheDir;
-    const zipPath: string = cache + '/elysia_schedule_import.zip';
-    const outDir: string = cache + '/elysia_schedule_import_out';
+    // 每次导入使用独立临时目录，避免并发/重复导入互相覆盖
+    const unique: string = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+    const workDir: string = `${context.cacheDir}/schedule_import_${unique}`;
+    const zipPath: string = `${workDir}/source.zip`;
+    const outDir: string = `${workDir}/out`;
 
-    // 写入临时 zip
-    const zf = fs.openSync(zipPath, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
-    fs.writeSync(zf.fd, buffer);
-    fs.closeSync(zf);
-
-    // 清理并重建解压目录
+    fs.mkdirSync(workDir);
     try {
-      fs.rmdirSync(outDir);
-    } catch (e) {
-      // 目录不存在则忽略
-    }
-    fs.mkdirSync(outDir);
+      fs.mkdirSync(outDir);
 
-    await zlib.decompressFile(zipPath, outDir);
+      // 写入临时 zip
+      const zf = fs.openSync(zipPath, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+      try {
+        fs.writeSync(zf.fd, buffer);
+      } finally {
+        fs.closeSync(zf);
+      }
 
-    const ssPath: string = outDir + '/xl/sharedStrings.xml';
-    const sheetPath: string = outDir + '/xl/worksheets/sheet1.xml';
-    if (!fs.accessSync(ssPath) || !fs.accessSync(sheetPath)) {
-      throw new Error('课表文件格式不正确（缺少工作表数据）');
+      await zlib.decompressFile(zipPath, outDir);
+
+      const ssPath: string = outDir + '/xl/sharedStrings.xml';
+      const sheetPath: string = outDir + '/xl/worksheets/sheet1.xml';
+      if (!fs.accessSync(ssPath) || !fs.accessSync(sheetPath)) {
+        throw new Error('课表文件格式不正确（缺少工作表数据）');
+      }
+      const ss: string = fs.readTextSync(ssPath);
+      const sheet: string = fs.readTextSync(sheetPath);
+      const items: ScheduleItem[] = ScheduleImportService.parseSchedule(ss, sheet, term);
+      if (items.length === 0) {
+        throw new Error('未从该课表中解析到任何课程');
+      }
+      return items;
+    } finally {
+      // 无论成功失败都清理临时目录（含 zip 与解压产物）
+      try {
+        fs.rmdirSync(workDir);
+      } catch (e) {
+        // 目录已不存在则忽略
+      }
     }
-    const ss: string = fs.readTextSync(ssPath);
-    const sheet: string = fs.readTextSync(sheetPath);
-    const items: ScheduleItem[] = ScheduleImportService.parseSchedule(ss, sheet, term);
-    if (items.length === 0) {
-      throw new Error('未从该课表中解析到任何课程');
-    }
-    return items;
   }
 }

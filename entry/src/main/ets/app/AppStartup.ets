@@ -24,7 +24,13 @@ export class AppStartup {
         });
     });
     FileService.configure(context);
-    await AppDatabase.init(context);
+    // 本地 RDB 初始化失败不应阻断启动：降级为 Preferences 回退，仓储层通过 isReady() 判断
+    try {
+      await AppDatabase.init(context);
+    } catch (e) {
+      const msg: string = (e instanceof Error) ? e.message : String(e);
+      console.error('[AppStartup] 本地数据库初始化失败，进入 Preferences 回退模式: ' + msg);
+    }
     const preferences = PreferenceStorage.get();
     await preferences.init(context);
     const session = SessionStorage.get();

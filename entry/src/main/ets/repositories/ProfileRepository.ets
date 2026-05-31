@@ -4,7 +4,7 @@ import { BaseRepository } from './BaseRepository';
 import { UserProfile } from '../models/User';
 import { ApprovalItem } from '../models/Admin';
 import { HomeSummary } from '../models/Home';
-import { LeaveRequest, FeedbackItem, PracticeEntry, LeaveType, FeedbackCategory } from '../models/Misc';
+import { LeaveRequest, FeedbackItem, PracticeEntry, LeaveType, FeedbackCategory, ApprovalState } from '../models/Misc';
 import { mockStudentProfile } from '../mock/mockUser';
 import { mockHomeSummary } from '../mock/mockHome';
 import { mockLeaveRequests, mockFeedback, mockPracticeEntries } from '../mock/mockMisc';
@@ -221,7 +221,7 @@ export class ProfileRepository extends BaseRepository {
           endDate: resultSet.getString(resultSet.getColumnIndex('end_date')),
           reason: resultSet.getString(resultSet.getColumnIndex('reason')),
           attachments: this.parseStringArray(resultSet.getString(resultSet.getColumnIndex('attachments_json'))),
-          state: resultSet.getString(resultSet.getColumnIndex('status')) as LeaveRequest['state'],
+          state: resultSet.getString(resultSet.getColumnIndex('status')) as ApprovalState,
           submittedAt: resultSet.getString(resultSet.getColumnIndex('submitted_at')),
           feedback: resultSet.getString(resultSet.getColumnIndex('feedback'))
         };

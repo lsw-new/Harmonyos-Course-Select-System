@@ -35,6 +35,8 @@ export interface AdminLoginRequest {
   adminId: string;
   password: string;
   captcha: string;
+  // 页面展示的验证码挑战值；仓储据此校验用户输入是否正确
+  expectedCaptcha?: string;
   remember?: boolean;
 }
 

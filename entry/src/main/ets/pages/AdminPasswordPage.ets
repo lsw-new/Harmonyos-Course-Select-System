@@ -21,7 +21,9 @@ struct AdminPasswordPage {
   @State submitting: boolean = false;
 
   aboutToAppear(): void {
-    AppRoute.guard(Routes.AdminPassword);
+    if (!AppRoute.guard(Routes.AdminPassword)) {
+      return;
+    }
   }
 
   private validate(): boolean {

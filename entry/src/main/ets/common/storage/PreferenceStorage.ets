@@ -79,7 +79,15 @@ export class PreferenceStorage {
 
   async remove(key: string): Promise<void> {
     if (!this.store) {
-      delete this.memory[key];
+      // ArkTS 不支持 delete 运算符：重建一份不含该键的内存副本
+      const next: Record<string, string | boolean> = {};
+      const keys = Object.keys(this.memory);
+      for (let i = 0; i < keys.length; i++) {
+        if (keys[i] !== key) {
+          next[keys[i]] = this.memory[keys[i]];
+        }
+      }
+      this.memory = next;
       return;
     }
     await this.store.delete(key);
