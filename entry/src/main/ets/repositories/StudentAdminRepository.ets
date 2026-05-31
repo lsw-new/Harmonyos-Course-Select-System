@@ -8,6 +8,7 @@ import { StudentAdminItem, StudentAdminStatus, StudentEducationLevel } from '../
 import { StudentDetail, StudentStatus } from '../models/StudentDetailModels';
 import { mockStudentDetails } from '../mock/mockStudentDetail';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
+import { AuthorizationService } from '../common/security/AuthorizationService';
 
 const KEY_ADMIN_STUDENTS = 'local.adminStudents.v1';
 const STUDENT_STATUSES: string[] = ['active', 'suspended', 'graduating', 'graduated'];
@@ -148,6 +149,9 @@ export class StudentAdminRepository extends BaseRepository {
   }
 
   async updateStatus(studentId: string, nextStatus: StudentStatus): Promise<StudentDetail> {
+    if (!AuthorizationService.hasAdminPermission('students.manage', 'update')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     if (!this.isAllowedStatus(nextStatus)) {
       return this.reject('学籍状态不合法');
     }

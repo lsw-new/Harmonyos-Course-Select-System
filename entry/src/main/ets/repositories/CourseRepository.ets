@@ -6,6 +6,7 @@ import { Notice } from '../models/Notice';
 import { mockCourses, mockSchedule, mockSelectionCourses, mockSelectionRound } from '../mock/mockCourses';
 import { mockNotices } from '../mock/mockNotices';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
+import { NoticeStore } from '../common/services/NoticeStore';
 
 const KEY_SELECTION_COURSES = 'local.selectionCourses.v1';
 const KEY_IMPORTED_SCHEDULE = 'local.importedSchedule.v1';
@@ -325,7 +326,7 @@ export class CourseRepository extends BaseRepository {
 
   // 通知
   async getNotices(category?: string): Promise<Notice[]> {
-    let items = mockNotices;
+    let items = await NoticeStore.list(mockNotices, category);
     if (category && category !== '全部') {
       items = items.filter((n) => n.category === category);
     }
@@ -333,7 +334,7 @@ export class CourseRepository extends BaseRepository {
   }
 
   async getNoticeDetail(id: string): Promise<Notice> {
-    const item = mockNotices.find((n) => n.id === id);
+    const item = await NoticeStore.detail(mockNotices, id);
     if (!item) {
       return this.reject('通知不存在', 'notFound');
     }
@@ -341,10 +342,7 @@ export class CourseRepository extends BaseRepository {
   }
 
   async markNoticeRead(id: string): Promise<boolean> {
-    const item = mockNotices.find((n) => n.id === id);
-    if (item) {
-      item.isRead = true;
-    }
+    await NoticeStore.markRead(id);
     return this.delay<boolean>(true);
   }
 }

@@ -2,16 +2,19 @@
 
 import { BaseRepository } from './BaseRepository';
 import { UserProfile } from '../models/User';
+import { ApprovalItem } from '../models/Admin';
 import { HomeSummary } from '../models/Home';
 import { LeaveRequest, FeedbackItem, PracticeEntry, LeaveType, FeedbackCategory } from '../models/Misc';
 import { mockStudentProfile } from '../mock/mockUser';
 import { mockHomeSummary } from '../mock/mockHome';
 import { mockLeaveRequests, mockFeedback, mockPracticeEntries } from '../mock/mockMisc';
+import { AppDatabase } from '../common/storage/AppDatabase';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 
 const KEY_LOCAL_LEAVES = 'local.leaveRequests.v1';
 const KEY_LOCAL_FEEDBACK = 'local.feedback.v1';
+const KEY_ADMIN_APPROVALS = 'local.adminApprovals.v1';
 
 export interface ProfileEditPatch {
   avatarUrl?: string;
@@ -54,10 +57,8 @@ export class ProfileRepository extends BaseRepository {
   private isFeedbackLoaded: boolean = false;
 
   private async getLocalLeaves(): Promise<LeaveRequest[]> {
-    if (!this.isLeavesLoaded) {
-      this.localLeaves = await LocalDataStore.loadArray<LeaveRequest>(KEY_LOCAL_LEAVES, []);
-      this.isLeavesLoaded = true;
-    }
+    this.localLeaves = await LocalDataStore.loadArray<LeaveRequest>(KEY_LOCAL_LEAVES, []);
+    this.isLeavesLoaded = true;
     return this.localLeaves;
   }
 
@@ -67,6 +68,169 @@ export class ProfileRepository extends BaseRepository {
       this.isFeedbackLoaded = true;
     }
     return this.localFeedback;
+  }
+
+  private leaveTypeLabel(type: LeaveType): string {
+    if (type === 'sick') {
+      return '\u75c5\u5047';
+    }
+    if (type === 'personal') {
+      return '\u4e8b\u5047';
+    }
+    if (type === 'public') {
+      return '\u516c\u5047';
+    }
+    return '\u5176\u4ed6';
+  }
+
+  private buildLeaveApproval(item: LeaveRequest): ApprovalItem {
+    const student = this.getCurrentStudentProfile();
+    const approval: ApprovalItem = {
+      id: `ap-${item.id}`,
+      type: '\u8bf7\u5047',
+      applicantName: student.name,
+      applicantId: student.studentId,
+      title: `${this.leaveTypeLabel(item.type)}\u8bf7\u5047\u7533\u8bf7`,
+      reason: item.reason,
+      status: 'pending',
+      isUrgent: false,
+      submittedAt: item.submittedAt
+    };
+    return approval;
+  }
+
+  private async appendLeaveApproval(item: LeaveRequest): Promise<void> {
+    const approval = this.buildLeaveApproval(item);
+    const stored = await LocalDataStore.loadArray<ApprovalItem>(KEY_ADMIN_APPROVALS, []);
+    const exists = stored.some((cur) => cur.id === approval.id);
+    if (!exists) {
+      await LocalDataStore.saveArray<ApprovalItem>(KEY_ADMIN_APPROVALS, [approval].concat(stored));
+    }
+  }
+
+  private getCurrentStudentProfile(): UserProfile {
+    return SessionStorage.get().getStudent() ?? this.workingProfile;
+  }
+
+  private parseStringArray(raw: string): string[] {
+    if (!raw) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(raw) as string[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  private async upsertStudentProfile(profile: UserProfile): Promise<void> {
+    await AppDatabase.execute(
+      `INSERT OR REPLACE INTO student_profiles (
+        student_id, account_id, name, gender, college, major, class_name, grade, phone, email,
+        address, emergency_contact, avatar_url, bio, status, updated_at
+      ) VALUES (
+        ${AppDatabase.sqlText(profile.studentId)},
+        NULL,
+        ${AppDatabase.sqlText(profile.name)},
+        NULL,
+        ${AppDatabase.sqlText(profile.college)},
+        ${AppDatabase.sqlText(profile.major)},
+        ${AppDatabase.sqlText(profile.className)},
+        ${AppDatabase.sqlText(profile.grade)},
+        ${AppDatabase.sqlNullableText(profile.phone)},
+        ${AppDatabase.sqlNullableText(profile.email)},
+        ${AppDatabase.sqlNullableText(profile.address)},
+        ${AppDatabase.sqlNullableText(profile.emergencyContact)},
+        ${AppDatabase.sqlNullableText(profile.avatarUrl)},
+        ${AppDatabase.sqlNullableText(profile.bio)},
+        'active',
+        CURRENT_TIMESTAMP
+      )`
+    );
+  }
+
+  private async saveLeaveToRdb(item: LeaveRequest): Promise<void> {
+    const student = this.getCurrentStudentProfile();
+    const approval = this.buildLeaveApproval(item);
+    await this.upsertStudentProfile(student);
+    await AppDatabase.execute(
+      `INSERT OR REPLACE INTO leave_requests (
+        leave_id, student_id, type, start_date, end_date, reason, attachments_json, status, feedback, submitted_at, updated_at
+      ) VALUES (
+        ${AppDatabase.sqlText(item.id)},
+        ${AppDatabase.sqlText(student.studentId)},
+        ${AppDatabase.sqlText(item.type)},
+        ${AppDatabase.sqlText(item.startDate)},
+        ${AppDatabase.sqlText(item.endDate)},
+        ${AppDatabase.sqlText(item.reason)},
+        ${AppDatabase.sqlText(JSON.stringify(item.attachments))},
+        ${AppDatabase.sqlText(item.state)},
+        ${AppDatabase.sqlNullableText(item.feedback)},
+        ${AppDatabase.sqlText(item.submittedAt)},
+        CURRENT_TIMESTAMP
+      )`
+    );
+    await AppDatabase.execute(
+      `INSERT OR REPLACE INTO approval_instances (
+        approval_id, biz_type, biz_id, applicant_id, title, reason, status, current_step, is_urgent, submitted_at, updated_at
+      ) VALUES (
+        ${AppDatabase.sqlText(approval.id)},
+        'leave',
+        ${AppDatabase.sqlText(item.id)},
+        ${AppDatabase.sqlText(student.studentId)},
+        ${AppDatabase.sqlText(approval.title)},
+        ${AppDatabase.sqlText(approval.reason)},
+        ${AppDatabase.sqlText(approval.status)},
+        1,
+        0,
+        ${AppDatabase.sqlText(approval.submittedAt)},
+        CURRENT_TIMESTAMP
+      )`
+    );
+    await AppDatabase.execute(
+      `INSERT OR REPLACE INTO approval_steps (
+        step_id, approval_id, step_order, node_name, approver_role, status
+      ) VALUES (
+        ${AppDatabase.sqlText(`step-${approval.id}-1`)},
+        ${AppDatabase.sqlText(approval.id)},
+        1,
+        ${AppDatabase.sqlText('\u6559\u52a1\u5ba1\u6279')},
+        ${AppDatabase.sqlText('\u6559\u52a1\u7ba1\u7406\u5458')},
+        'pending'
+      )`
+    );
+  }
+
+  private async getLeaveRequestsFromRdb(): Promise<LeaveRequest[]> {
+    const student = this.getCurrentStudentProfile();
+    const resultSet = await AppDatabase.query(
+      `SELECT leave_id, type, start_date, end_date, reason, COALESCE(attachments_json, '[]') AS attachments_json,
+        status, submitted_at, COALESCE(feedback, '') AS feedback
+       FROM leave_requests
+       WHERE student_id = ${AppDatabase.sqlText(student.studentId)}
+       ORDER BY submitted_at DESC`
+    );
+    const items: LeaveRequest[] = [];
+    try {
+      while (resultSet.goToNextRow()) {
+        const item: LeaveRequest = {
+          id: resultSet.getString(resultSet.getColumnIndex('leave_id')),
+          type: resultSet.getString(resultSet.getColumnIndex('type')) as LeaveType,
+          startDate: resultSet.getString(resultSet.getColumnIndex('start_date')),
+          endDate: resultSet.getString(resultSet.getColumnIndex('end_date')),
+          reason: resultSet.getString(resultSet.getColumnIndex('reason')),
+          attachments: this.parseStringArray(resultSet.getString(resultSet.getColumnIndex('attachments_json'))),
+          state: resultSet.getString(resultSet.getColumnIndex('status')) as LeaveRequest['state'],
+          submittedAt: resultSet.getString(resultSet.getColumnIndex('submitted_at')),
+          feedback: resultSet.getString(resultSet.getColumnIndex('feedback'))
+        };
+        items.push(item);
+      }
+    } finally {
+      resultSet.close();
+    }
+    return items;
   }
 
   async getProfile(): Promise<UserProfile> {
@@ -100,6 +264,12 @@ export class ProfileRepository extends BaseRepository {
   }
 
   async getLeaveRequests(): Promise<LeaveRequest[]> {
+    if (AppDatabase.isReady()) {
+      const rdbItems = await this.getLeaveRequestsFromRdb();
+      const ids = rdbItems.map((item) => item.id);
+      const seeded = mockLeaveRequests.filter((item) => ids.indexOf(item.id) < 0);
+      return this.delayCopy<LeaveRequest[]>(rdbItems.concat(seeded));
+    }
     const localItems = await this.getLocalLeaves();
     const items = localItems.concat(mockLeaveRequests);
     return this.delayCopy<LeaveRequest[]>(items);
@@ -116,11 +286,16 @@ export class ProfileRepository extends BaseRepository {
       state: 'pending',
       submittedAt: new Date().toISOString()
     };
+    if (AppDatabase.isReady()) {
+      await this.saveLeaveToRdb(item);
+      return this.delay<LeaveRequest>(item);
+    }
     const localItems = await this.getLocalLeaves();
     const next = [item].concat(localItems);
     this.localLeaves = next;
     this.isLeavesLoaded = true;
     await LocalDataStore.saveArray<LeaveRequest>(KEY_LOCAL_LEAVES, next);
+    await this.appendLeaveApproval(item);
     return this.delay<LeaveRequest>(item);
   }
 

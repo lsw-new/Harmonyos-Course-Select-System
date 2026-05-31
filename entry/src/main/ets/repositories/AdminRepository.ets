@@ -3,18 +3,23 @@
 import { BaseRepository } from './BaseRepository';
 import {
   AdminDashboardSummary, StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound,
-  GradeAuditItem, GradeInputPayload, GradeRejectPayload, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus
+  GradeAuditItem, GradeInputPayload, GradeRejectPayload, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
+  AdminPermissionAction
 } from '../models/Admin';
+import { LeaveRequest, ApprovalState } from '../models/Misc';
 import {
   mockAdminDashboard, mockAdminStudents, mockAdminCourses, mockSelectionRounds,
   mockGradeAudits, mockEvaluationStats, mockApprovals, mockApprovalDetail
 } from '../mock/mockAdmin';
+import { AppDatabase } from '../common/storage/AppDatabase';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
-import { SessionStorage } from '../common/storage/SessionStorage';
+import { AuthorizationService } from '../common/security/AuthorizationService';
+import { NoticeStore } from '../common/services/NoticeStore';
 
 const KEY_ADMIN_APPROVALS = 'local.adminApprovals.v1';
 const KEY_ADMIN_GRADES = 'local.adminGrades.v1';
 const KEY_ADMIN_COURSES = 'local.adminCourses.v1';
+const KEY_LOCAL_LEAVES = 'local.leaveRequests.v1';
 const COURSE_CATEGORIES: string[] = ['required', 'elective', 'public', 'practice'];
 const COURSE_STATUSES: string[] = ['draft', 'open', 'closed', 'archived'];
 const GRADE_STATUSES: string[] = ['pendingAudit', 'inputting', 'published', 'appealed', 'rejected'];
@@ -38,10 +43,16 @@ export class AdminRepository extends BaseRepository {
   private isCoursesLoaded: boolean = false;
 
   private async getApprovalItems(): Promise<ApprovalItem[]> {
-    if (!this.isApprovalsLoaded) {
-      this.approvals = await LocalDataStore.loadArray<ApprovalItem>(KEY_ADMIN_APPROVALS, mockApprovals);
+    if (AppDatabase.isReady()) {
+      const rdbItems = await this.getApprovalItemsFromRdb();
+      const stored = await LocalDataStore.loadArray<ApprovalItem>(KEY_ADMIN_APPROVALS, []);
+      this.approvals = this.mergeApprovalItems(this.mergeApprovalItems(rdbItems, stored), mockApprovals);
       this.isApprovalsLoaded = true;
+      return this.approvals;
     }
+    const stored = await LocalDataStore.loadArray<ApprovalItem>(KEY_ADMIN_APPROVALS, []);
+    this.approvals = this.mergeApprovalItems(stored, mockApprovals);
+    this.isApprovalsLoaded = true;
     return this.approvals;
   }
 
@@ -71,23 +82,15 @@ export class AdminRepository extends BaseRepository {
     await LocalDataStore.saveArray<AdminCourseItem>(KEY_ADMIN_COURSES, next);
   }
 
-  private hasCourseWritePermission(action: string): boolean {
+  private hasCourseWritePermission(action: AdminPermissionAction): boolean {
     return this.hasAdminPermission('courses.manage', action);
   }
 
-  private hasAdminPermission(code: string, action: string): boolean {
-    const session = SessionStorage.get();
-    if (!session.isAuthenticated() || session.getRole() !== 'admin') {
-      return false;
-    }
-    const admin = session.getAdmin();
-    if (!admin) {
-      return false;
-    }
-    return admin.permissions.some((permission) => permission.code === code && (permission.actions as string[]).indexOf(action) >= 0);
+  private hasAdminPermission(code: string, action: AdminPermissionAction): boolean {
+    return AuthorizationService.hasAdminPermission(code, action);
   }
 
-  private hasGradePermission(action: string): boolean {
+  private hasGradePermission(action: AdminPermissionAction): boolean {
     return this.hasAdminPermission('grades.approve', action);
   }
 
@@ -95,7 +98,7 @@ export class AdminRepository extends BaseRepository {
     return this.hasGradePermission('create') || this.hasGradePermission('update');
   }
 
-  private hasApprovalPermission(action: string): boolean {
+  private hasApprovalPermission(action: AdminPermissionAction): boolean {
     return this.hasAdminPermission('approvals.handle', action);
   }
 
@@ -320,10 +323,110 @@ export class AdminRepository extends BaseRepository {
     };
   }
 
+  private mergeApprovalItems(localItems: ApprovalItem[], seedItems: ApprovalItem[]): ApprovalItem[] {
+    const result: ApprovalItem[] = JSON.parse(JSON.stringify(localItems)) as ApprovalItem[];
+    seedItems.forEach((item) => {
+      const exists = result.some((cur) => cur.id === item.id);
+      if (!exists) {
+        result.push(item);
+      }
+    });
+    return result;
+  }
+
+  private async getApprovalItemsFromRdb(): Promise<ApprovalItem[]> {
+    const resultSet = await AppDatabase.query(
+      `SELECT
+        ai.approval_id,
+        ai.biz_type,
+        COALESCE(sp.name, ai.applicant_id, '') AS applicant_name,
+        COALESCE(ai.applicant_id, '') AS applicant_id,
+        ai.title,
+        COALESCE(ai.reason, '') AS reason,
+        ai.status,
+        CASE WHEN ai.is_urgent = 1 THEN 'true' ELSE 'false' END AS is_urgent,
+        ai.submitted_at
+       FROM approval_instances ai
+       LEFT JOIN student_profiles sp ON sp.student_id = ai.applicant_id
+       ORDER BY ai.submitted_at DESC`
+    );
+    const items: ApprovalItem[] = [];
+    try {
+      while (resultSet.goToNextRow()) {
+        const item: ApprovalItem = {
+          id: resultSet.getString(resultSet.getColumnIndex('approval_id')),
+          type: resultSet.getString(resultSet.getColumnIndex('biz_type')) === 'leave' ? '\u8bf7\u5047' : resultSet.getString(resultSet.getColumnIndex('biz_type')),
+          applicantName: resultSet.getString(resultSet.getColumnIndex('applicant_name')),
+          applicantId: resultSet.getString(resultSet.getColumnIndex('applicant_id')),
+          title: resultSet.getString(resultSet.getColumnIndex('title')),
+          reason: resultSet.getString(resultSet.getColumnIndex('reason')),
+          status: resultSet.getString(resultSet.getColumnIndex('status')) as ApprovalStatus,
+          isUrgent: resultSet.getString(resultSet.getColumnIndex('is_urgent')) === 'true',
+          submittedAt: resultSet.getString(resultSet.getColumnIndex('submitted_at'))
+        };
+        items.push(item);
+      }
+    } finally {
+      resultSet.close();
+    }
+    return items;
+  }
+
   private async saveApprovals(next: ApprovalItem[]): Promise<void> {
     this.approvals = next;
     this.isApprovalsLoaded = true;
     await LocalDataStore.saveArray<ApprovalItem>(KEY_ADMIN_APPROVALS, next);
+  }
+
+  private async saveApprovalStatusToRdb(id: string, status: ApprovalStatus, comment: string): Promise<void> {
+    await AppDatabase.execute(
+      `UPDATE approval_instances
+       SET status = ${AppDatabase.sqlText(status)}, updated_at = CURRENT_TIMESTAMP
+       WHERE approval_id = ${AppDatabase.sqlText(id)}`
+    );
+    await AppDatabase.execute(
+      `UPDATE approval_steps
+       SET status = ${AppDatabase.sqlText(status)}, comment = ${AppDatabase.sqlText(comment)}, handled_at = CURRENT_TIMESTAMP
+       WHERE approval_id = ${AppDatabase.sqlText(id)} AND step_order = 1`
+    );
+  }
+
+  private async updateLinkedLeave(approvalId: string, state: ApprovalState, feedback: string): Promise<void> {
+    if (approvalId.indexOf('ap-lv-') !== 0) {
+      return;
+    }
+    const leaveId = approvalId.substring(3);
+    if (AppDatabase.isReady()) {
+      await AppDatabase.execute(
+        `UPDATE leave_requests
+         SET status = ${AppDatabase.sqlText(state)}, feedback = ${AppDatabase.sqlText(feedback)}, updated_at = CURRENT_TIMESTAMP
+         WHERE leave_id = ${AppDatabase.sqlText(leaveId)}`
+      );
+      return;
+    }
+    const leaves = await LocalDataStore.loadArray<LeaveRequest>(KEY_LOCAL_LEAVES, []);
+    let changed = false;
+    const next = leaves.map((item) => {
+      if (item.id !== leaveId) {
+        return item;
+      }
+      changed = true;
+      const updated: LeaveRequest = {
+        id: item.id,
+        type: item.type,
+        startDate: item.startDate,
+        endDate: item.endDate,
+        reason: item.reason,
+        attachments: item.attachments,
+        state: state,
+        submittedAt: item.submittedAt,
+        feedback: feedback
+      };
+      return updated;
+    });
+    if (changed) {
+      await LocalDataStore.saveArray<LeaveRequest>(KEY_LOCAL_LEAVES, next);
+    }
   }
 
   private async saveGrades(next: GradeAuditItem[]): Promise<void> {
@@ -569,12 +672,16 @@ export class AdminRepository extends BaseRepository {
   }
 
   async publishNotice(draft: NoticeDraft): Promise<boolean> {
-    if (!draft.title || !draft.content) {
+    if (!this.hasAdminPermission('notices.publish', 'publish')) {
+      return this.rejectUnauthorized();
+    }
+    if (!draft.title.trim() || !draft.content.trim()) {
       return this.reject('标题和正文不能为空');
     }
     if (draft.receiverScope.length === 0 && draft.receiverType === 'custom') {
       return this.reject('请选择接收范围');
     }
+    await NoticeStore.publish(draft);
     return this.delay<boolean>(true);
   }
 
@@ -642,7 +749,12 @@ export class AdminRepository extends BaseRepository {
       };
       return updated;
     });
-    await this.saveApprovals(next);
+    if (AppDatabase.isReady() && id.indexOf('ap-lv-') === 0) {
+      await this.saveApprovalStatusToRdb(id, 'approved', comment.trim());
+    } else {
+      await this.saveApprovals(next);
+    }
+    await this.updateLinkedLeave(id, 'approved', comment.trim());
     return this.delay<boolean>(true);
   }
 
@@ -678,7 +790,12 @@ export class AdminRepository extends BaseRepository {
       };
       return updated;
     });
-    await this.saveApprovals(next);
+    if (AppDatabase.isReady() && id.indexOf('ap-lv-') === 0) {
+      await this.saveApprovalStatusToRdb(id, 'rejected', comment.trim());
+    } else {
+      await this.saveApprovals(next);
+    }
+    await this.updateLinkedLeave(id, 'rejected', comment.trim());
     return this.delay<boolean>(true);
   }
 }

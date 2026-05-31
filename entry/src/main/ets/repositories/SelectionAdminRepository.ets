@@ -6,6 +6,7 @@ import { BaseRepository } from './BaseRepository';
 import { AdminRound, RoundStatus, RoundConflict, RoundTimePayload } from '../models/SelectionAdminModels';
 import { mockAdminRounds, mockRoundConflicts } from '../mock/mockSelectionAdmin';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
+import { AuthorizationService } from '../common/security/AuthorizationService';
 
 const KEY_ADMIN_ROUNDS = 'local.adminRounds.v1';
 const CONTROL_CHAR_PATTERN: RegExp = new RegExp("[\r\n\u0000-\u001f\u007f]");
@@ -164,6 +165,9 @@ export class SelectionAdminRepository extends BaseRepository {
   }
 
   private async applyTransition(id: string, to: RoundStatus): Promise<AdminRound> {
+    if (!AuthorizationService.hasAdminPermission('selection.manage', 'update')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const items = await this.getRoundItems();
     const target = items.find((item) => item.id === id);
     if (!target) {
@@ -201,6 +205,9 @@ export class SelectionAdminRepository extends BaseRepository {
   }
 
   async updateRoundTime(payload: RoundTimePayload): Promise<AdminRound> {
+    if (!AuthorizationService.hasAdminPermission('selection.manage', 'update')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const start = payload.startTime.trim();
     const end = payload.endTime.trim();
     if (!this.isValidTime(start) || !this.isValidTime(end)) {

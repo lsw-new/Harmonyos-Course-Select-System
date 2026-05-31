@@ -11,6 +11,10 @@ export const mockAdminProfile: AdminProfile = {
   avatarUrl: '',
   onlineStatus: 'online',
   permissions: [
+    { code: 'students.manage', name: '\u5b66\u7c4d\u7ba1\u7406', module: 'students', actions: ['view', 'update'] },
+    { code: 'selection.manage', name: '\u9009\u8bfe\u8f6e\u6b21\u7ba1\u7406', module: 'selection', actions: ['view', 'update'] },
+    { code: 'evaluation.manage', name: '\u8bc4\u6559\u7ba1\u7406', module: 'evaluation', actions: ['view', 'create', 'update', 'delete'] },
+    { code: 'system.config', name: '\u7cfb\u7edf\u914d\u7f6e', module: 'system', actions: ['view', 'create', 'update', 'delete'] },
     { code: 'students.view', name: '学生查看', module: 'students', actions: ['view'] },
     { code: 'courses.manage', name: '课程管理', module: 'courses', actions: ['view', 'create', 'update', 'delete'] },
     { code: 'grades.approve', name: '成绩审核', module: 'grades', actions: ['view', 'create', 'update', 'approve'] },

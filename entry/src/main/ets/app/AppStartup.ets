@@ -1,6 +1,7 @@
 // 应用启动：依赖注入 / 持久化加载 / 全局 token 桥接
 
 import common from '@ohos.app.ability.common';
+import { AppDatabase } from '../common/storage/AppDatabase';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { apiClient } from '../common/http/ApiClient';
@@ -23,6 +24,7 @@ export class AppStartup {
         });
     });
     FileService.configure(context);
+    await AppDatabase.init(context);
     const preferences = PreferenceStorage.get();
     await preferences.init(context);
     const session = SessionStorage.get();

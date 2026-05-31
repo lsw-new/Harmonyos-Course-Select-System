@@ -8,6 +8,7 @@ import {
 import { mockEvalAdminStats, mockEvalTemplates } from '../mock/mockEvalAdmin';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
+import { AuthorizationService } from '../common/security/AuthorizationService';
 
 const KEY_EVAL_PERIOD = 'local.evalPeriod.v1';
 const KEY_EVAL_TEMPLATES = 'local.evalTemplates.v1';
@@ -190,6 +191,9 @@ export class EvalAdminRepository extends BaseRepository {
   }
 
   async setPeriodOpen(open: boolean): Promise<boolean> {
+    if (!AuthorizationService.hasAdminPermission('evaluation.manage', 'update')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     this.periodOpen = open;
     this.isPeriodLoaded = true;
     await PreferenceStorage.get().putBoolean(KEY_EVAL_PERIOD, open);
@@ -202,6 +206,9 @@ export class EvalAdminRepository extends BaseRepository {
   }
 
   async createTemplate(payload: TemplateWritePayload): Promise<QuestionnaireTemplate> {
+    if (!AuthorizationService.hasAdminPermission('evaluation.manage', 'create')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const items = await this.getTemplateItems();
     const normalized = this.normalizeTemplatePayload(payload);
     const error = this.validateTemplatePayload(normalized, items);
@@ -221,6 +228,9 @@ export class EvalAdminRepository extends BaseRepository {
   }
 
   async updateTemplate(id: string, payload: TemplateWritePayload): Promise<QuestionnaireTemplate> {
+    if (!AuthorizationService.hasAdminPermission('evaluation.manage', 'update')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const items = await this.getTemplateItems();
     const target = items.find((item) => item.id === id);
     if (!target) {
@@ -244,6 +254,9 @@ export class EvalAdminRepository extends BaseRepository {
   }
 
   async deleteTemplate(id: string): Promise<boolean> {
+    if (!AuthorizationService.hasAdminPermission('evaluation.manage', 'delete')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const items = await this.getTemplateItems();
     const target = items.find((item) => item.id === id);
     if (!target) {

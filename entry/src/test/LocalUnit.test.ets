@@ -1,18 +1,29 @@
 import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from '@ohos/hypium';
 import { LocalDataStore } from '../main/ets/common/storage/LocalDataStore';
 import { AdminRepository } from '../main/ets/repositories/AdminRepository';
+import { CourseRepository } from '../main/ets/repositories/CourseRepository';
+import { ProfileRepository } from '../main/ets/repositories/ProfileRepository';
+import { StudentAdminRepository } from '../main/ets/repositories/StudentAdminRepository';
 import { mockAdminProfile } from '../main/ets/mock/mockAdmin';
+import { mockStudentProfile } from '../main/ets/mock/mockUser';
 import { SessionStorage } from '../main/ets/common/storage/SessionStorage';
 import { PreferenceStorage } from '../main/ets/common/storage/PreferenceStorage';
-import { AdminCourseWritePayload, GradeAuditItem } from '../main/ets/models/Admin';
+import { AppDatabase } from '../main/ets/common/storage/AppDatabase';
+import { DATABASE_NAME, DATABASE_SCHEMA_SQL, DATABASE_VERSION } from '../main/ets/common/storage/DatabaseSchema';
+import { AdminCourseWritePayload, GradeAuditItem, NoticeDraft } from '../main/ets/models/Admin';
+import { LeaveRequest } from '../main/ets/models/Misc';
 import { FileService } from '../main/ets/common/services/FileService';
 import { ScheduleImportService } from '../main/ets/common/services/ScheduleImportService';
 import { ScheduleItem } from '../main/ets/models/Course';
 
 async function clearLocalUnitState(): Promise<void> {
   await SessionStorage.get().clear();
+  await PreferenceStorage.get().remove('local.adminApprovals.v1');
   await PreferenceStorage.get().remove('local.adminGrades.v1');
   await PreferenceStorage.get().remove('local.adminCourses.v1');
+  await PreferenceStorage.get().remove('local.leaveRequests.v1');
+  await PreferenceStorage.get().remove('local.notices.v1');
+  await PreferenceStorage.get().remove('local.noticeReads.v1');
   await PreferenceStorage.get().remove('local.downloadHistory.v1');
 }
 
@@ -109,6 +120,19 @@ export default function localUnitTest() {
       const result = await LocalDataStore.loadArray<string>('test.unavailable', fallback);
       expect(result.length).assertEqual(1);
       expect(result[0]).assertEqual('mock');
+    });
+
+    it('databaseSchemaDefinesCoreBusinessTables', 0, () => {
+      const schemaText = DATABASE_SCHEMA_SQL.join('\n');
+      expect(DATABASE_NAME).assertEqual('dtest2_app.db');
+      expect(DATABASE_VERSION).assertEqual(1);
+      expect(schemaText).assertContain('CREATE TABLE IF NOT EXISTS notices');
+      expect(schemaText).assertContain('CREATE TABLE IF NOT EXISTS notice_reads');
+      expect(schemaText).assertContain('CREATE TABLE IF NOT EXISTS leave_requests');
+      expect(schemaText).assertContain('CREATE TABLE IF NOT EXISTS approval_instances');
+      expect(schemaText).assertContain('CREATE TABLE IF NOT EXISTS courses');
+      expect(schemaText).assertContain('CREATE TABLE IF NOT EXISTS grades');
+      expect(AppDatabase.sqlText("a'b")).assertEqual("'a''b'");
     });
 
     it('fileServiceReturnsStableMockPathAndRejectsUnsafeFileNames', 0, async () => {
@@ -236,6 +260,10 @@ export default function localUnitTest() {
         await repo.rejectGrade({ id: 'ga-1', reason: '无权限单测' });
       });
       expect(rejectGradeError).assertContain('无权限');
+      const updateStudentError = await captureErrorMessage(async () => {
+        await StudentAdminRepository.get().updateStatus('2023307020941', 'suspended');
+      });
+      expect(updateStudentError).assertContain('\u65e0\u6743\u9650');
     });
 
     it('adminGradeInputRejectApproveFlowTransitionsStatus', 0, async () => {
@@ -268,6 +296,64 @@ export default function localUnitTest() {
       expect(approved).assertTrue();
       const published = await repo.getGradeAudits('published');
       expect(published.some((item: GradeAuditItem) => item.id === 'ga-2' && item.rejectReason === undefined)).assertTrue();
+    });
+
+    it('adminNoticePublishPersistsToStudentNoticeList', 0, async () => {
+      await SessionStorage.get().setAdminSession('unit-admin-token', mockAdminProfile);
+      const title = `UT Notice ${Date.now()}`;
+      const draft: NoticeDraft = {
+        title: title,
+        content: 'Unit test notice content',
+        publisher: mockAdminProfile.name,
+        category: 'unit',
+        urgency: 'normal',
+        receiverType: 'students',
+        receiverScope: []
+      };
+
+      const published = await AdminRepository.get().publishNotice(draft);
+      expect(published).assertTrue();
+
+      await SessionStorage.get().setStudentSession('unit-student-token', mockStudentProfile);
+      const notices = await CourseRepository.get().getNotices();
+      const item = notices.find((notice) => notice.title === title);
+      expect(item !== undefined).assertTrue();
+      if (item !== undefined) {
+        expect(item.isRead).assertFalse();
+        await CourseRepository.get().markNoticeRead(item.id);
+        const detail = await CourseRepository.get().getNoticeDetail(item.id);
+        expect(detail.isRead).assertTrue();
+      }
+    });
+
+    it('studentLeaveCreatesAdminApprovalAndApprovalUpdatesLeaveState', 0, async () => {
+      await SessionStorage.get().setStudentSession('unit-student-token', mockStudentProfile);
+      const reason = `UT leave reason ${Date.now()}`;
+      const leave = await ProfileRepository.get().submitLeave({
+        type: 'personal',
+        startDate: '2026-06-01',
+        endDate: '2026-06-02',
+        reason: reason,
+        attachments: []
+      });
+
+      await SessionStorage.get().setAdminSession('unit-admin-token', mockAdminProfile);
+      const approvalId = `ap-${leave.id}`;
+      const approvals = await AdminRepository.get().getApprovals('pending');
+      expect(approvals.some((item) => item.id === approvalId && item.reason === reason)).assertTrue();
+
+      const comment = 'Unit test approval comment';
+      const approved = await AdminRepository.get().approve(approvalId, comment);
+      expect(approved).assertTrue();
+
+      await SessionStorage.get().setStudentSession('unit-student-token', mockStudentProfile);
+      const leaves = await ProfileRepository.get().getLeaveRequests();
+      const updated = leaves.find((item: LeaveRequest) => item.id === leave.id);
+      expect(updated !== undefined).assertTrue();
+      if (updated !== undefined) {
+        expect(updated.state).assertEqual('approved');
+        expect(updated.feedback).assertEqual(comment);
+      }
     });
   });
 }

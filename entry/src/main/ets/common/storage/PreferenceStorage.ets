@@ -8,6 +8,7 @@ const STORE_NAME = 'app_preferences';
 export class PreferenceStorage {
   private static instance?: PreferenceStorage;
   private store?: preferences.Preferences;
+  private memory: Record<string, string | boolean> = {};
 
   static get(): PreferenceStorage {
     if (!PreferenceStorage.instance) {
@@ -20,11 +21,23 @@ export class PreferenceStorage {
     if (this.store) {
       return;
     }
-    this.store = await preferences.getPreferences(context, STORE_NAME);
+    const store = await preferences.getPreferences(context, STORE_NAME);
+    this.store = store;
+    const keys = Object.keys(this.memory);
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const value = this.memory[key];
+      await store.put(key, value);
+    }
+    if (keys.length > 0) {
+      await store.flush();
+      this.memory = {};
+    }
   }
 
   async putString(key: string, value: string): Promise<void> {
     if (!this.store) {
+      this.memory[key] = value;
       return;
     }
     await this.store.put(key, value);
@@ -33,6 +46,10 @@ export class PreferenceStorage {
 
   async getString(key: string, fallback: string = ''): Promise<string> {
     if (!this.store) {
+      const cached = this.memory[key];
+      if (typeof cached === 'string') {
+        return cached;
+      }
       return fallback;
     }
     const v = await this.store.get(key, fallback);
@@ -41,6 +58,7 @@ export class PreferenceStorage {
 
   async putBoolean(key: string, value: boolean): Promise<void> {
     if (!this.store) {
+      this.memory[key] = value;
       return;
     }
     await this.store.put(key, value);
@@ -49,6 +67,10 @@ export class PreferenceStorage {
 
   async getBoolean(key: string, fallback: boolean = false): Promise<boolean> {
     if (!this.store) {
+      const cached = this.memory[key];
+      if (typeof cached === 'boolean') {
+        return cached;
+      }
       return fallback;
     }
     const v = await this.store.get(key, fallback);
@@ -57,6 +79,7 @@ export class PreferenceStorage {
 
   async remove(key: string): Promise<void> {
     if (!this.store) {
+      delete this.memory[key];
       return;
     }
     await this.store.delete(key);

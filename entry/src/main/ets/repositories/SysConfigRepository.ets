@@ -11,6 +11,7 @@ import {
 } from '../mock/mockSysConfig';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
+import { AuthorizationService } from '../common/security/AuthorizationService';
 
 const KEY_CALENDAR = 'local.calendar.v1';
 const KEY_APPROVAL_FLOW = 'local.approvalFlow.v1';
@@ -131,6 +132,9 @@ export class SysConfigRepository extends BaseRepository {
   }
 
   async addCalendarEvent(payload: CalendarEventPayload): Promise<CalendarEvent> {
+    if (!AuthorizationService.hasAdminPermission('system.config', 'create')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const date = (payload.date ?? '').trim();
     const title = (payload.title ?? '').trim();
     if (!DATE_PATTERN.test(date)) {
@@ -155,6 +159,9 @@ export class SysConfigRepository extends BaseRepository {
   }
 
   async deleteCalendarEvent(id: string): Promise<boolean> {
+    if (!AuthorizationService.hasAdminPermission('system.config', 'delete')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const items = await this.getCalendarItems();
     const target = items.find((item) => item.id === id);
     if (!target) {
@@ -229,6 +236,9 @@ export class SysConfigRepository extends BaseRepository {
   }
 
   async updateApprovalFlow(nodes: ApprovalNode[]): Promise<ApprovalNode[]> {
+    if (!AuthorizationService.hasAdminPermission('system.config', 'update')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const sanitized = this.sanitizeFlow(nodes);
     if (sanitized.length === 0) {
       return this.reject('审批流节点不合法');
@@ -314,6 +324,9 @@ export class SysConfigRepository extends BaseRepository {
   }
 
   async createMsgTemplate(payload: MsgTemplatePayload): Promise<MsgTemplate> {
+    if (!AuthorizationService.hasAdminPermission('system.config', 'create')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const error = this.validateTemplatePayload(payload);
     if (error.length > 0) {
       return this.reject(error);
@@ -331,6 +344,9 @@ export class SysConfigRepository extends BaseRepository {
   }
 
   async updateMsgTemplate(id: string, payload: MsgTemplatePayload): Promise<MsgTemplate> {
+    if (!AuthorizationService.hasAdminPermission('system.config', 'update')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const items = await this.getTemplateItems();
     const target = items.find((item) => item.id === id);
     if (!target) {
@@ -352,6 +368,9 @@ export class SysConfigRepository extends BaseRepository {
   }
 
   async deleteMsgTemplate(id: string): Promise<boolean> {
+    if (!AuthorizationService.hasAdminPermission('system.config', 'delete')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const items = await this.getTemplateItems();
     const target = items.find((item) => item.id === id);
     if (!target) {
@@ -385,6 +404,9 @@ export class SysConfigRepository extends BaseRepository {
   }
 
   async setSecurityToggle(key: string, value: boolean): Promise<boolean> {
+    if (!AuthorizationService.hasAdminPermission('system.config', 'update')) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const prefKey = this.securityKeyFor(key);
     if (prefKey.length === 0) {
       return this.reject('未知的安全策略项');
@@ -395,6 +417,9 @@ export class SysConfigRepository extends BaseRepository {
 
   // ---------- 管理员改密（仅 mock 校验，不调用 AuthRepository） ----------
   async changeAdminPassword(oldPwd: string, newPwd: string): Promise<boolean> {
+    if (!AuthorizationService.isAdminAuthenticated()) {
+      return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
     const oldValue = (oldPwd ?? '').trim();
     const newValue = newPwd ?? '';
     if (oldValue.length === 0) {

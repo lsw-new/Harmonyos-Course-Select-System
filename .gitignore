@@ -6,6 +6,7 @@
 /.mcp.json
 **/build
 /.hvigor
+**/.hvigor
 .cxx
 /.clangd
 /.clang-format
