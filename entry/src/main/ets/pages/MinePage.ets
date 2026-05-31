@@ -140,7 +140,7 @@ struct MinePage {
         Column() {
           // 顶部标题
           Row() {
-            Text('爱莉希雅')
+            Text('景德镇艺术职业大学')
               .fontSize(14)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700)
@@ -162,7 +162,7 @@ struct MinePage {
           Row() {
             Monogram({ iconSize: 72 })
             Column() {
-              Text(this.profile !== null ? `${this.profile.name} · 同学` : '爱莉希雅 · 同学')
+              Text(this.profile !== null ? `${this.profile.name} · 同学` : '同学')
                 .fontSize(24)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)

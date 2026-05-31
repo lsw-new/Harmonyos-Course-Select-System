@@ -22,7 +22,7 @@ export const mockLeaveRequests: LeaveRequest[] = [
   {
     id: 'lv-3', type: 'public',
     startDate: '2026-06-05', endDate: '2026-06-07',
-    reason: '参加广州市大学生戏剧节展演。',
+    reason: '参加景德镇市大学生程序设计竞赛。',
     attachments: ['mock://files/event-notice.pdf'],
     state: 'pending',
     submittedAt: '2026-05-28 10:20'
@@ -34,7 +34,7 @@ export const mockFeedback: FeedbackItem[] = [
     id: 'fb-1', category: 'bug',
     title: '课表页面在 iPad 横屏会错位',
     content: '切换到横屏模式时，周三的课程格出现重叠。',
-    contact: 'lishiwei@example.edu.cn',
+    contact: 'lishiwei@jdart.edu.cn',
     screenshots: [],
     submittedAt: '2026-05-20 16:00',
     state: 'processing'

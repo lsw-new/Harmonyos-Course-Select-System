@@ -29,7 +29,7 @@ const files: DownloadFile[] = [
 const recentLogin: RecentLogin = {
   loginTime: '2026-05-27 08:43',
   network: '校园 Wi-Fi',
-  region: '广州 · 玫瑰校区'
+  region: '景德镇 · 茶苑校区'
 };
 
 export const mockHomeSummary: HomeSummary = {

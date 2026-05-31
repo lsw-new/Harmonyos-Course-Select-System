@@ -17,7 +17,7 @@ struct AdminStudentsPage {
   @State query: string = '';
   @State students: StudentAdminItem[] = [];
   @State activeCollege: string = '全部';
-  private colleges: string[] = ['全部', '人文与艺术学院', '计算机学院', '艺术学院', '数学学院'];
+  private colleges: string[] = ['全部', '电子信息工程学院', '陶瓷艺术学院', '设计艺术学院', '美术学院', '音乐舞蹈学院'];
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminStudents)) return;

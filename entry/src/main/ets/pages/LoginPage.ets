@@ -87,7 +87,7 @@ struct LoginPage {
               .fontColor(ElysiaTheme.ROSE_700)
               .fontFamily(ElysiaTheme.FONT_DISPLAY)
               .margin({ top: 18 })
-            Text('爱莉希雅')
+            Text('景德镇艺术职业大学')
               .fontSize(32)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700)

@@ -16,7 +16,7 @@ export const mockEvaluationTasks: EvaluationTask[] = [
   {
     id: 'eval-3', term: '2025-2026-2',
     courseCode: 'ENG202', courseName: '大学英语 IV', courseCategory: '必修',
-    teacherName: 'Anya Lee', questionnaireName: '语言类课程评教问卷',
+    teacherName: '李安雅', questionnaireName: '语言类课程评教问卷',
     status: 'closed', closedReason: '不在开放期'
   }
 ];

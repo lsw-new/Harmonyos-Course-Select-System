@@ -48,7 +48,7 @@ export const mockAdminDashboard: AdminDashboardSummary = {
   pendingApprovals: [
     {
       id: 'ap-1', type: '请假', applicantName: '李仕炜', applicantId: '2023307020941',
-      title: '社会实践请假申请', reason: '参加戏剧节展演。',
+      title: '社会实践请假申请', reason: '参加程序设计竞赛。',
       status: 'pending', isUrgent: true, submittedAt: '2026-05-28 10:20'
     },
     {
@@ -60,11 +60,11 @@ export const mockAdminDashboard: AdminDashboardSummary = {
 };
 
 export const mockAdminStudents: StudentAdminItem[] = [
-  { studentId: '2023307020941', name: '李仕炜', college: '人文与艺术学院', major: '汉语言文学', className: '汉文 2202', gpa: 3.72, status: 'active', educationLevel: 'undergraduate' },
-  { studentId: '202221001235', name: '宋衍', college: '人文与艺术学院', major: '历史学', className: '历史 2201', gpa: 3.58, status: 'active', educationLevel: 'undergraduate' },
-  { studentId: '202220001100', name: '陆清和', college: '计算机学院', major: '软件工程', className: '软工 2102', gpa: 3.86, status: 'graduating', educationLevel: 'undergraduate' },
-  { studentId: '202122000812', name: '苏婉清', college: '艺术学院', major: '视觉传达', className: '视传 2002', gpa: 3.62, status: 'graduated', educationLevel: 'undergraduate' },
-  { studentId: '202321099001', name: '岳明远', college: '数学学院', major: '应用数学', className: '应数 2301', gpa: 3.40, status: 'active', educationLevel: 'postgraduate' }
+  { studentId: '2023307020941', name: '李仕炜', college: '电子信息工程学院', major: '计算机科学与技术', className: '23计科U9', gpa: 3.72, status: 'active', educationLevel: 'undergraduate' },
+  { studentId: '202221001235', name: '宋衍', college: '陶瓷艺术学院', major: '陶瓷艺术设计', className: '陶艺2201', gpa: 3.58, status: 'active', educationLevel: 'undergraduate' },
+  { studentId: '202220001100', name: '陆清和', college: '设计艺术学院', major: '视觉传达设计', className: '视传2102', gpa: 3.86, status: 'graduating', educationLevel: 'undergraduate' },
+  { studentId: '202122000812', name: '苏婉清', college: '美术学院', major: '环境艺术设计', className: '环艺2002', gpa: 3.62, status: 'graduated', educationLevel: 'undergraduate' },
+  { studentId: '202321099001', name: '岳明远', college: '音乐舞蹈学院', major: '音乐表演', className: '音乐2301', gpa: 3.40, status: 'active', educationLevel: 'postgraduate' }
 ];
 
 export const mockAdminCourses: AdminCourseItem[] = [
@@ -99,7 +99,7 @@ export const mockSelectionRounds: SelectionRound[] = [
 export const mockGradeAudits: GradeAuditItem[] = [
   { id: 'ga-1', courseName: '数据结构与算法', teachingClassName: '01 班', teacherName: '苏婉清', inputProgress: 100, status: 'pendingAudit', updatedAt: '2026-05-26 17:00' },
   { id: 'ga-2', courseName: '高等数学（下）', teachingClassName: '03 班', teacherName: '岳明远', inputProgress: 78, status: 'inputting', updatedAt: '2026-05-27 10:30' },
-  { id: 'ga-3', courseName: '大学英语 IV', teachingClassName: '04 班', teacherName: 'Anya Lee', inputProgress: 100, status: 'published', updatedAt: '2026-05-20 16:00' },
+  { id: 'ga-3', courseName: '大学英语 IV', teachingClassName: '04 班', teacherName: '李安雅', inputProgress: 100, status: 'published', updatedAt: '2026-05-20 16:00' },
   { id: 'ga-4', courseName: '中国古典文学赏析', teachingClassName: '02 班', teacherName: '陆清和', inputProgress: 100, status: 'appealed', updatedAt: '2026-05-25 09:00' }
 ];
 
@@ -115,7 +115,7 @@ export const mockEvaluationStats: EvaluationStats = {
 };
 
 export const mockApprovals: ApprovalItem[] = [
-  { id: 'ap-1', type: '请假', applicantName: '李仕炜', applicantId: '2023307020941', title: '社会实践请假申请', reason: '参加戏剧节展演。', status: 'pending', isUrgent: true, submittedAt: '2026-05-28 10:20' },
+  { id: 'ap-1', type: '请假', applicantName: '李仕炜', applicantId: '2023307020941', title: '社会实践请假申请', reason: '参加程序设计竞赛。', status: 'pending', isUrgent: true, submittedAt: '2026-05-28 10:20' },
   { id: 'ap-2', type: '资料变更', applicantName: '宋衍', applicantId: '202221002021', title: '联系方式变更', reason: '更换手机号。', status: 'pending', isUrgent: false, submittedAt: '2026-05-27 14:55' },
   { id: 'ap-3', type: '成绩复核', applicantName: '陆清和', applicantId: '202220001100', title: '期末成绩复核', reason: '总评分数与预期不符。', status: 'approved', isUrgent: false, submittedAt: '2026-05-22 11:00' },
   { id: 'ap-4', type: '退课', applicantName: '苏婉清', applicantId: '202122000812', title: '视觉传达基础退课', reason: '课程时间冲突。', status: 'rejected', isUrgent: false, submittedAt: '2026-05-15 09:00' },
@@ -124,7 +124,7 @@ export const mockApprovals: ApprovalItem[] = [
 
 export const mockApprovalDetail: ApprovalDetail = {
   id: 'ap-1', type: '请假', applicantName: '李仕炜', applicantId: '2023307020941',
-  title: '社会实践请假申请', reason: '参加广州市大学生戏剧节展演，需向辅导员与教务处申请请假 3 天。',
+  title: '社会实践请假申请', reason: '参加景德镇市大学生程序设计竞赛，需向辅导员与教务处申请请假 3 天。',
   status: 'pending', isUrgent: true, submittedAt: '2026-05-28 10:20',
   flow: [
     { id: 'fl-1', nodeName: '辅导员审核', operatorName: '陈舟', status: 'approved', handledAt: '2026-05-28 12:30', comment: '同意，已知会任课教师。' },
