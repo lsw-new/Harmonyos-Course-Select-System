@@ -23,7 +23,7 @@ function generateWeekNumbers(): number[] {
 @Entry
 @Component
 struct SchedulePage {
-  @State currentWeek: number = 9;
+  @State currentWeek: number = 14;
   @State schedule: ScheduleItem[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
@@ -255,7 +255,7 @@ struct SchedulePage {
                     Text(d)
                       .fontSize(9)
                       .fontColor(ElysiaTheme.INK_MUTE)
-                    Text(`${20 + (i ?? 0)}`)
+                    Text(`${this.dayOfMonth(i ?? 0)}`)
                       .fontSize(13)
                       .fontStyle(FontStyle.Italic)
                       .fontColor((i === 0) ? ElysiaTheme.ROSE_500 : ElysiaTheme.ROSE_700)
@@ -372,6 +372,13 @@ struct SchedulePage {
         .backgroundColor('#66FFFFFF')
         .border({ width: 1, color: '#4DFFB3CE', style: BorderStyle.Dashed })
     }
+  }
+
+  // 课表表头日期：第 14 周周一锚定 2026-06-01，按 currentWeek 推算每列的「日」。
+  private dayOfMonth(dayIndex: number): number {
+    const monday = new Date(2026, 5, 1);
+    monday.setDate(monday.getDate() + (this.currentWeek - 14) * 7 + dayIndex);
+    return monday.getDate();
   }
 
   findLesson(period: number, weekday: number): ScheduleItem | undefined {
