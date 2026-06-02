@@ -2,6 +2,7 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar } from '../common/Components';
 import { AppRoute } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 class DocSection {
@@ -91,6 +92,7 @@ struct DocPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

@@ -5,6 +5,7 @@ import { ValidatorUtils } from '../common/utils/ValidatorUtils';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
@@ -86,6 +87,7 @@ struct PasswordPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

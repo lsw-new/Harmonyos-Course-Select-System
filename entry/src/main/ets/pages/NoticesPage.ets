@@ -5,6 +5,7 @@ import { SafeTop } from '../common/widgets/SafeArea';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { Notice } from '../models/Notice';
 
@@ -50,6 +51,7 @@ struct NoticesPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,

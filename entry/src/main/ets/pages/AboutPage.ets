@@ -3,6 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Monogram, Pill, RoseDivider } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 class CreditItem {
@@ -39,6 +40,7 @@ struct AboutPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

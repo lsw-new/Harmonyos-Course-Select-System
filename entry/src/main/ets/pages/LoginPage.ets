@@ -5,6 +5,7 @@ import {
   PrimaryButton, GhostButton, RoseDivider
 } from '../common/Components';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { ValidatorUtils } from '../common/utils/ValidatorUtils';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { SessionStorage } from '../common/storage/SessionStorage';
@@ -74,6 +75,7 @@ struct LoginPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       // 背景渐变
       Column()
         .width('100%').height('100%')

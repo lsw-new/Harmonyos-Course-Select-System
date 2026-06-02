@@ -3,6 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { StudentRecord } from '../models/Academic';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
@@ -46,6 +47,7 @@ struct RosterPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,

@@ -4,6 +4,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
@@ -119,6 +120,7 @@ struct SettingsPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

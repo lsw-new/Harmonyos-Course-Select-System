@@ -6,6 +6,7 @@ import { LeaveRequest } from '../models/Misc';
 import { HttpError } from '../common/http/HttpError';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
@@ -102,6 +103,7 @@ struct LeavePage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

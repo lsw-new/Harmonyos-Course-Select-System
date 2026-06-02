@@ -1,6 +1,7 @@
 // 修改资料 · Edit Profile
 import { ElysiaTheme } from '../common/Theme';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill } from '../common/Components';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { ValidatorUtils } from '../common/utils/ValidatorUtils';
@@ -110,6 +111,7 @@ struct EditInfoPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

@@ -4,6 +4,7 @@ import { TopBar, Pill, Monogram } from '../common/Components';
 import { AdminTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { AdminProfile, ApprovalItem } from '../models/Admin';
@@ -103,6 +104,7 @@ struct AdminProfilePage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

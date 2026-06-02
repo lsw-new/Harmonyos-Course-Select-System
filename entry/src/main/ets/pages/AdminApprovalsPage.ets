@@ -6,6 +6,7 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { ApprovalItem, ApprovalDetail, ApprovalFlowNode } from '../models/Admin';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
 import promptAction from '@ohos.promptAction';
@@ -112,6 +113,7 @@ struct AdminApprovalsPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

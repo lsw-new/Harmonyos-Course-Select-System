@@ -5,6 +5,7 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { HttpError } from '../common/http/HttpError';
 import { AccessControlRepository } from '../repositories/AccessControlRepository';
 import { AdminRoleView, PermItem, PermModuleGroup, ModuleLabel } from '../models/AccessControlModels';
@@ -235,6 +236,7 @@ struct AdminRolePermPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

@@ -6,6 +6,7 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { AcademicRepository } from '../repositories/AcademicRepository';
@@ -139,6 +140,7 @@ struct MinePage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,

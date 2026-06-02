@@ -5,6 +5,7 @@ import { AdminTabBar } from '../common/widgets/TabBars';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { AdminDashboardSummary, DashboardStatCard, TrendPoint, DistributionItem, ApprovalItem } from '../models/Admin';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
@@ -85,6 +86,7 @@ struct AdminDashboardPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

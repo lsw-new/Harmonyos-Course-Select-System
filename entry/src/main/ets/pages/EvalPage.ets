@@ -6,6 +6,7 @@ import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateVie
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { EvaluationRepository } from '../repositories/EvaluationRepository';
 import {
   EvaluationTask, EvaluationQuestionnaire, EvaluationQuestion,
@@ -213,6 +214,7 @@ struct EvalPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,

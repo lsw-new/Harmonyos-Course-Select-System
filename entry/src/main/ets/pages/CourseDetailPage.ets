@@ -5,6 +5,7 @@ import { CourseRepository } from '../repositories/CourseRepository';
 import { Course } from '../models/Course';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { HttpError } from '../common/http/HttpError';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
@@ -53,6 +54,7 @@ struct CourseDetailPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

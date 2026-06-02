@@ -5,6 +5,7 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { SysConfigRepository } from '../repositories/SysConfigRepository';
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import promptAction from '@ohos.promptAction';
 
 const LETTER_PATTERN: RegExp = /[A-Za-z]/;
@@ -84,6 +85,7 @@ struct AdminPasswordPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

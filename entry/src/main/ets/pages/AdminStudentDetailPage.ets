@@ -2,6 +2,7 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, GlowCard, Pill } from '../common/Components';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { StudentAdminRepository } from '../repositories/StudentAdminRepository';
@@ -284,6 +285,7 @@ struct AdminStudentDetailPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

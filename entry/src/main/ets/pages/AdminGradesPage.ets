@@ -6,6 +6,7 @@ import { GradeAuditItem } from '../models/Admin';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import promptAction from '@ohos.promptAction';
 import { SafeTop } from '../common/widgets/SafeArea';
 
@@ -156,6 +157,7 @@ struct AdminGradesPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 

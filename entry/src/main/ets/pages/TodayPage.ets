@@ -5,6 +5,7 @@ import { SafeTop } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { ScheduleItem } from '../models/Course';
 
@@ -66,6 +67,7 @@ struct TodayPage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,

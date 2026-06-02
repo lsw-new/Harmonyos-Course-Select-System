@@ -8,6 +8,7 @@ import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
+import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { HomeSummary, QuickEntry, DownloadFile, RecentLogin, TermInfo } from '../models/Home';
@@ -137,6 +138,7 @@ struct HomePage {
 
   build() {
     Stack() {
+      RouteLoadingOverlay()
       Column().width('100%').height('100%')
         .linearGradient({
           angle: 180,
