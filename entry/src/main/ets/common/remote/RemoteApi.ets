@@ -189,6 +189,58 @@ interface CommentBody {
   comment: string;
 }
 
+export interface RemotePermItem {
+  code: string;
+  name: string;
+  module: string;
+  actions: string[];
+}
+
+export interface RemoteRole {
+  id: string;
+  name: string;
+  description: string;
+  memberCount: number;
+  permissions: RemotePermItem[];
+}
+
+export interface RemoteAuditLog {
+  id: string;
+  operatorName: string;
+  operatorId: string;
+  action: string;
+  actionType: string;
+  target: string;
+  timestamp: string;
+  result: string;
+  ip: string;
+}
+
+export interface RemoteTemplate {
+  id: string;
+  name: string;
+  description: string;
+  questionCount: number;
+  status: string;
+}
+
+interface TemplateBody {
+  name: string;
+  description: string;
+  questionCount: number;
+  status: string;
+}
+
+interface NoticeBody {
+  title: string;
+  content: string;
+  publisher: string;
+  category: string;
+  urgency: string;
+  receiverType: string;
+  receiverScope: string[];
+}
+
 export class RemoteApi {
   static async login(account: string, password: string): Promise<RemoteLoginResult> {
     const body: LoginBody = { account: account, password: password };
@@ -346,5 +398,48 @@ export class RemoteApi {
   static async adminReject(id: string, comment: string): Promise<void> {
     const body: CommentBody = { comment: comment };
     await apiClient.post<Object>('/admin/approvals/' + encodeURIComponent(id) + '/reject', body);
+  }
+
+  static async adminListRoles(): Promise<RemoteRole[]> {
+    return apiClient.get<RemoteRole[]>('/admin/roles');
+  }
+
+  static async adminListAuditLogs(type?: string): Promise<RemoteAuditLog[]> {
+    let path = '/admin/audit-logs';
+    if (type && type.length > 0 && type !== '全部') {
+      path += '?type=' + encodeURIComponent(type);
+    }
+    return apiClient.get<RemoteAuditLog[]>(path);
+  }
+
+  static async adminListTemplates(): Promise<RemoteTemplate[]> {
+    return apiClient.get<RemoteTemplate[]>('/admin/eval/templates');
+  }
+
+  static async adminCreateTemplate(name: string, description: string, questionCount: number, status: string): Promise<RemoteTemplate> {
+    const body: TemplateBody = { name: name, description: description, questionCount: questionCount, status: status };
+    return apiClient.post<RemoteTemplate>('/admin/eval/templates', body);
+  }
+
+  static async adminUpdateTemplate(id: string, name: string, description: string, questionCount: number, status: string): Promise<RemoteTemplate> {
+    const body: TemplateBody = { name: name, description: description, questionCount: questionCount, status: status };
+    return apiClient.put<RemoteTemplate>('/admin/eval/templates/' + encodeURIComponent(id), body);
+  }
+
+  static async adminDeleteTemplate(id: string): Promise<void> {
+    await apiClient.delete<Object>('/admin/eval/templates/' + encodeURIComponent(id));
+  }
+
+  static async adminPublishNotice(title: string, content: string, publisher: string, category: string, urgency: string, receiverType: string, receiverScope: string[]): Promise<void> {
+    const body: NoticeBody = {
+      title: title,
+      content: content,
+      publisher: publisher,
+      category: category,
+      urgency: urgency,
+      receiverType: receiverType,
+      receiverScope: receiverScope
+    };
+    await apiClient.post<Object>('/admin/notices', body);
   }
 }

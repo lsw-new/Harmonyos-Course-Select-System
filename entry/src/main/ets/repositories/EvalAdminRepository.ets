@@ -3,12 +3,15 @@
 
 import { BaseRepository } from './BaseRepository';
 import {
-  EvalAdminStats, RatingBucket, QuestionnaireTemplate, TemplateWritePayload
+  EvalAdminStats, RatingBucket, QuestionnaireTemplate, TemplateWritePayload, TemplateStatus
 } from '../models/EvalAdminModels';
 import { mockEvalAdminStats, mockEvalTemplates } from '../mock/mockEvalAdmin';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { AuthorizationService } from '../common/security/AuthorizationService';
+import { SessionStorage } from '../common/storage/SessionStorage';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteTemplate } from '../common/remote/RemoteApi';
 
 const KEY_EVAL_PERIOD = 'local.evalPeriod.v1';
 const KEY_EVAL_TEMPLATES = 'local.evalTemplates.v1';
@@ -200,7 +203,29 @@ export class EvalAdminRepository extends BaseRepository {
     return this.delay<boolean>(open);
   }
 
+  private remoteToTemplate(t: RemoteTemplate): QuestionnaireTemplate {
+    const item: QuestionnaireTemplate = {
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      questionCount: t.questionCount,
+      status: t.status as TemplateStatus
+    };
+    return item;
+  }
+
   async getTemplates(): Promise<QuestionnaireTemplate[]> {
+    if (AppConfig.useRemote) {
+      const admin = SessionStorage.get().getAdmin();
+      if (admin) {
+        try {
+          const remote = await RemoteApi.adminListTemplates();
+          return this.delayCopy<QuestionnaireTemplate[]>(remote.map((t) => this.remoteToTemplate(t)));
+        } catch (e) {
+          // 远程失败回退本地
+        }
+      }
+    }
     const items = await this.getTemplateItems();
     return this.delayCopy<QuestionnaireTemplate[]>(items);
   }
@@ -208,6 +233,17 @@ export class EvalAdminRepository extends BaseRepository {
   async createTemplate(payload: TemplateWritePayload): Promise<QuestionnaireTemplate> {
     if (!AuthorizationService.hasAdminPermission('evaluation.manage', 'create')) {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
+    if (AppConfig.useRemote) {
+      const admin = SessionStorage.get().getAdmin();
+      if (admin) {
+        try {
+          const remote = await RemoteApi.adminCreateTemplate(payload.name, payload.description, payload.questionCount, payload.status);
+          return this.delayCopy<QuestionnaireTemplate>(this.remoteToTemplate(remote));
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
     }
     const items = await this.getTemplateItems();
     const normalized = this.normalizeTemplatePayload(payload);
@@ -230,6 +266,17 @@ export class EvalAdminRepository extends BaseRepository {
   async updateTemplate(id: string, payload: TemplateWritePayload): Promise<QuestionnaireTemplate> {
     if (!AuthorizationService.hasAdminPermission('evaluation.manage', 'update')) {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
+    if (AppConfig.useRemote) {
+      const admin = SessionStorage.get().getAdmin();
+      if (admin) {
+        try {
+          const remote = await RemoteApi.adminUpdateTemplate(id, payload.name, payload.description, payload.questionCount, payload.status);
+          return this.delayCopy<QuestionnaireTemplate>(this.remoteToTemplate(remote));
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
     }
     const items = await this.getTemplateItems();
     const target = items.find((item) => item.id === id);
@@ -256,6 +303,17 @@ export class EvalAdminRepository extends BaseRepository {
   async deleteTemplate(id: string): Promise<boolean> {
     if (!AuthorizationService.hasAdminPermission('evaluation.manage', 'delete')) {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
+    if (AppConfig.useRemote) {
+      const admin = SessionStorage.get().getAdmin();
+      if (admin) {
+        try {
+          await RemoteApi.adminDeleteTemplate(id);
+          return this.delay<boolean>(true);
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
     }
     const items = await this.getTemplateItems();
     const target = items.find((item) => item.id === id);

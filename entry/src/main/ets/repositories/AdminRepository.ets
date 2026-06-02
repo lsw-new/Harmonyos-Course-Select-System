@@ -1031,6 +1031,14 @@ export class AdminRepository extends BaseRepository {
     if (draft.receiverScope.length === 0 && draft.receiverType === 'custom') {
       return this.reject('请选择接收范围');
     }
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.adminPublishNotice(draft.title, draft.content, draft.publisher, draft.category, draft.urgency, draft.receiverType, draft.receiverScope);
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
     await NoticeStore.publish(draft);
     return this.delay<boolean>(true);
   }

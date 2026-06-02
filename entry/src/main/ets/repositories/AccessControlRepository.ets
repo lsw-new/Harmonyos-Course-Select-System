@@ -1,11 +1,13 @@
 // 访问控制仓储 · 角色 / 权限矩阵 / 操作日志（只读视图）
 
 import { BaseRepository } from './BaseRepository';
-import { AdminRoleView, AuditLogEntry, PermItem } from '../models/AccessControlModels';
+import { AdminRoleView, AuditLogEntry, PermItem, AuditResult } from '../models/AccessControlModels';
 import { mockRoles, mockAuditLogs } from '../mock/mockAccessControl';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AdminProfile, AdminPermission } from '../models/Admin';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteRole, RemoteAuditLog, RemotePermItem } from '../common/remote/RemoteApi';
 
 const KEY_AUDIT_LOGS = 'local.auditLogs.v1';
 
@@ -30,13 +32,66 @@ export class AccessControlRepository extends BaseRepository {
     return this.logs;
   }
 
+  private remoteToPerm(p: RemotePermItem): PermItem {
+    const item: PermItem = { code: p.code, name: p.name, module: p.module, actions: p.actions.slice() };
+    return item;
+  }
+
+  private remoteToRole(r: RemoteRole): AdminRoleView {
+    const item: AdminRoleView = {
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      memberCount: r.memberCount,
+      permissions: r.permissions.map((p) => this.remoteToPerm(p))
+    };
+    return item;
+  }
+
+  private remoteToAuditLog(l: RemoteAuditLog): AuditLogEntry {
+    const item: AuditLogEntry = {
+      id: l.id,
+      operatorName: l.operatorName,
+      operatorId: l.operatorId,
+      action: l.action,
+      actionType: l.actionType,
+      target: l.target,
+      timestamp: l.timestamp,
+      result: l.result as AuditResult,
+      ip: l.ip
+    };
+    return item;
+  }
+
   // 角色及其权限清单（深拷贝视图）
   async getRoles(): Promise<AdminRoleView[]> {
+    if (AppConfig.useRemote) {
+      const admin = SessionStorage.get().getAdmin();
+      if (admin) {
+        try {
+          const remote = await RemoteApi.adminListRoles();
+          return this.delayCopy<AdminRoleView[]>(remote.map((r) => this.remoteToRole(r)));
+        } catch (e) {
+          // 远程失败回退本地
+        }
+      }
+    }
     return this.delayCopy<AdminRoleView[]>(this.roles);
   }
 
   // 操作日志（最新在前，可按操作类型筛选）。深拷贝返回。
   async getAuditLogs(typeFilter?: string): Promise<AuditLogEntry[]> {
+    if (AppConfig.useRemote) {
+      const admin = SessionStorage.get().getAdmin();
+      if (admin) {
+        try {
+          const remote = await RemoteApi.adminListAuditLogs(typeFilter);
+          return this.delayCopy<AuditLogEntry[]>(remote.map((l) => this.remoteToAuditLog(l)));
+        } catch (e) {
+          // 远程失败回退本地
+        }
+      }
+    }
     const items = await this.getLogItems();
     const sorted = items.slice().sort((a: AuditLogEntry, b: AuditLogEntry): number => {
       if (a.timestamp < b.timestamp) return 1;
