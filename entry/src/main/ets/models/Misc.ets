@@ -16,6 +16,7 @@ export interface LeaveRequest {
 }
 
 export type FeedbackCategory = 'bug' | 'suggestion' | 'service' | 'other';
+export type FeedbackState = 'submitted' | 'processing' | 'closed';
 
 export interface FeedbackItem {
   id: string;

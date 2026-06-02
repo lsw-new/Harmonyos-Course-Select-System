@@ -1,9 +1,12 @@
 // 评教仓储
 
 import { BaseRepository } from './BaseRepository';
-import { EvaluationTask, EvaluationQuestionnaire, EvaluationAnswer } from '../models/Evaluation';
+import { EvaluationTask, EvaluationQuestionnaire, EvaluationAnswer, EvaluationStatus } from '../models/Evaluation';
 import { mockEvaluationTasks, mockQuestionnaire } from '../mock/mockEvaluations';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
+import { SessionStorage } from '../common/storage/SessionStorage';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteEvalTask } from '../common/remote/RemoteApi';
 
 const KEY_EVALUATION_TASKS = 'local.evaluationTasks.v1';
 const EVALUATION_STATUSES: string[] = ['open', 'submitted', 'closed'];
@@ -108,7 +111,54 @@ export class EvaluationRepository extends BaseRepository {
     await LocalDataStore.saveArray<EvaluationTask>(KEY_EVALUATION_TASKS, sanitized);
   }
 
+  private mapEvalCategory(c: string): string {
+    if (c === 'required') {
+      return '必修';
+    }
+    if (c === 'elective') {
+      return '选修';
+    }
+    if (c === 'public') {
+      return '公选';
+    }
+    if (c === 'practice') {
+      return '实践';
+    }
+    return c;
+  }
+
+  private remoteToEvalTask(t: RemoteEvalTask): EvaluationTask {
+    const item: EvaluationTask = {
+      id: t.id,
+      term: t.term,
+      courseCode: t.courseCode,
+      courseName: t.courseName,
+      courseCategory: this.mapEvalCategory(t.courseCategory),
+      teacherName: t.teacherName,
+      questionnaireName: t.questionnaireName,
+      status: t.status as EvaluationStatus
+    };
+    if (t.openTime.length > 0) {
+      item.openTime = t.openTime;
+    }
+    if (t.closeTime.length > 0) {
+      item.closeTime = t.closeTime;
+    }
+    return item;
+  }
+
   async getTasks(term?: string): Promise<EvaluationTask[]> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.listEvaluations(student.studentId, term);
+          return this.delayCopy<EvaluationTask[]>(remote.map((t) => this.remoteToEvalTask(t)));
+        } catch (e) {
+          // 远程失败回退本地
+        }
+      }
+    }
     let items = await this.getTaskItems();
     if (term && term !== '全部') {
       items = items.filter((t) => t.term === term);
@@ -129,6 +179,17 @@ export class EvaluationRepository extends BaseRepository {
   }
 
   async submit(taskId: string, answers: EvaluationAnswer[]): Promise<boolean> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          await RemoteApi.submitEvaluation(student.studentId, taskId, answers);
+          return this.delay<boolean>(true);
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
+    }
     const tasks = await this.getTaskItems();
     const task = tasks.find((t) => t.id === taskId);
     if (!task) {

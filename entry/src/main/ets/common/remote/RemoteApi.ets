@@ -91,6 +91,59 @@ interface StudentIdBody {
   studentId: string;
 }
 
+export interface RemoteFeedback {
+  id: string;
+  category: string;
+  title: string;
+  content: string;
+  contact: string;
+  screenshots: string[];
+  submittedAt: string;
+  state: string;
+}
+
+export interface RemoteEvalTask {
+  id: string;
+  term: string;
+  courseCode: string;
+  courseName: string;
+  courseCategory: string;
+  teacherName: string;
+  questionnaireName: string;
+  status: string;
+  openTime: string;
+  closeTime: string;
+}
+
+export interface RemotePractice {
+  id: string;
+  title: string;
+  org: string;
+  category: string;
+  credits: number;
+  period: string;
+  location: string;
+  mentor: string;
+  slotsTotal: number;
+  slotsTaken: number;
+  signedUp: boolean;
+  description: string;
+  requirements: string[];
+}
+
+interface FeedbackBody {
+  studentId: string;
+  category: string;
+  title: string;
+  content: string;
+  contact: string;
+}
+
+interface EvalSubmitBody {
+  studentId: string;
+  answers: Object;
+}
+
 export class RemoteApi {
   static async login(account: string, password: string): Promise<RemoteLoginResult> {
     const body: LoginBody = { account: account, password: password };
@@ -151,5 +204,49 @@ export class RemoteApi {
   static async submitLeave(studentId: string, type: string, startDate: string, endDate: string, reason: string): Promise<RemoteLeave> {
     const body: LeaveCreateBody = { studentId: studentId, type: type, startDate: startDate, endDate: endDate, reason: reason };
     return apiClient.post<RemoteLeave>('/leave', body);
+  }
+
+  static async listFeedback(studentId: string): Promise<RemoteFeedback[]> {
+    return apiClient.get<RemoteFeedback[]>('/feedback?studentId=' + encodeURIComponent(studentId));
+  }
+
+  static async submitFeedback(studentId: string, category: string, title: string, content: string, contact: string): Promise<RemoteFeedback> {
+    const body: FeedbackBody = { studentId: studentId, category: category, title: title, content: content, contact: contact };
+    return apiClient.post<RemoteFeedback>('/feedback', body);
+  }
+
+  static async listEvaluations(studentId: string, term?: string): Promise<RemoteEvalTask[]> {
+    let path = '/evaluations?studentId=' + encodeURIComponent(studentId);
+    if (term && term.length > 0 && term !== '全部') {
+      path += '&term=' + encodeURIComponent(term);
+    }
+    return apiClient.get<RemoteEvalTask[]>(path);
+  }
+
+  static async submitEvaluation(studentId: string, taskId: string, answers: Object): Promise<void> {
+    const body: EvalSubmitBody = { studentId: studentId, answers: answers };
+    await apiClient.post<Object>('/evaluations/' + encodeURIComponent(taskId) + '/submit', body);
+  }
+
+  static async listPractice(studentId: string, category?: string): Promise<RemotePractice[]> {
+    let path = '/practice?studentId=' + encodeURIComponent(studentId);
+    if (category && category.length > 0) {
+      path += '&category=' + encodeURIComponent(category);
+    }
+    return apiClient.get<RemotePractice[]>(path);
+  }
+
+  static async practiceDetail(studentId: string, id: string): Promise<RemotePractice> {
+    return apiClient.get<RemotePractice>('/practice/' + encodeURIComponent(id) + '?studentId=' + encodeURIComponent(studentId));
+  }
+
+  static async practiceSignup(studentId: string, id: string): Promise<RemotePractice> {
+    const body: StudentIdBody = { studentId: studentId };
+    return apiClient.post<RemotePractice>('/practice/' + encodeURIComponent(id) + '/signup', body);
+  }
+
+  static async practiceCancel(studentId: string, id: string): Promise<RemotePractice> {
+    const body: StudentIdBody = { studentId: studentId };
+    return apiClient.delete<RemotePractice>('/practice/' + encodeURIComponent(id) + '/signup', body);
   }
 }

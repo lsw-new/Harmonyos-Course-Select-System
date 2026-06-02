@@ -11,6 +11,9 @@ import {
 } from '../models/PracticeModels';
 import { mockPracticeDetails } from '../mock/mockPractice';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
+import { SessionStorage } from '../common/storage/SessionStorage';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemotePractice } from '../common/remote/RemoteApi';
 
 const KEY_SIGNUPS = 'local.practiceSignups.v1';
 const CATEGORIES: string[] = ['internship', 'research', 'social', 'volunteer'];
@@ -107,7 +110,52 @@ export class PracticeRepository extends BaseRepository {
     return project;
   }
 
+  private remoteToProject(p: RemotePractice): PracticeProject {
+    const item: PracticeProject = {
+      id: p.id,
+      title: p.title,
+      org: p.org,
+      category: p.category as PracticeCategory,
+      credits: p.credits,
+      period: p.period,
+      slotsTotal: p.slotsTotal,
+      slotsTaken: p.slotsTaken,
+      signedUp: p.signedUp
+    };
+    return item;
+  }
+
+  private remoteToDetail(p: RemotePractice): PracticeProjectDetail {
+    const item: PracticeProjectDetail = {
+      id: p.id,
+      title: p.title,
+      org: p.org,
+      category: p.category as PracticeCategory,
+      credits: p.credits,
+      period: p.period,
+      location: p.location,
+      mentor: p.mentor,
+      slotsTotal: p.slotsTotal,
+      slotsTaken: p.slotsTaken,
+      signedUp: p.signedUp,
+      description: p.description,
+      requirements: p.requirements
+    };
+    return item;
+  }
+
   async getProjects(category?: PracticeCategory): Promise<PracticeProject[]> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.listPractice(student.studentId, category);
+          return this.delayCopy<PracticeProject[]>(remote.map((p) => this.remoteToProject(p)));
+        } catch (e) {
+          // 远程失败回退本地
+        }
+      }
+    }
     const signups = await this.getSignups();
     let seeds = mockPracticeDetails;
     if (category !== undefined && this.isAllowedCategory(category)) {
@@ -121,6 +169,17 @@ export class PracticeRepository extends BaseRepository {
   }
 
   async getDetail(id: string): Promise<PracticeProjectDetail> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.practiceDetail(student.studentId, id);
+          return this.delayCopy<PracticeProjectDetail>(this.remoteToDetail(remote));
+        } catch (e) {
+          // 远程失败回退本地
+        }
+      }
+    }
     const seed = mockPracticeDetails.find((d) => d.id === id);
     if (!seed) {
       return this.reject('实践项目不存在', 'notFound');
@@ -131,6 +190,17 @@ export class PracticeRepository extends BaseRepository {
   }
 
   async signUp(id: string): Promise<PracticeProject> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.practiceSignup(student.studentId, id);
+          return this.delay<PracticeProject>(this.remoteToProject(remote));
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
+    }
     const seed = mockPracticeDetails.find((d) => d.id === id);
     if (!seed) {
       return this.reject('实践项目不存在', 'notFound');
@@ -149,6 +219,17 @@ export class PracticeRepository extends BaseRepository {
   }
 
   async cancelSignUp(id: string): Promise<PracticeProject> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.practiceCancel(student.studentId, id);
+          return this.delay<PracticeProject>(this.remoteToProject(remote));
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
+    }
     const seed = mockPracticeDetails.find((d) => d.id === id);
     if (!seed) {
       return this.reject('实践项目不存在', 'notFound');

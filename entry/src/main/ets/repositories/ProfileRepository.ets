@@ -4,7 +4,7 @@ import { BaseRepository } from './BaseRepository';
 import { UserProfile } from '../models/User';
 import { ApprovalItem } from '../models/Admin';
 import { HomeSummary } from '../models/Home';
-import { LeaveRequest, FeedbackItem, PracticeEntry, LeaveType, FeedbackCategory, ApprovalState } from '../models/Misc';
+import { LeaveRequest, FeedbackItem, PracticeEntry, LeaveType, FeedbackCategory, FeedbackState, ApprovalState } from '../models/Misc';
 import { mockStudentProfile } from '../mock/mockUser';
 import { mockHomeSummary } from '../mock/mockHome';
 import { mockLeaveRequests, mockFeedback, mockPracticeEntries } from '../mock/mockMisc';
@@ -12,7 +12,7 @@ import { AppDatabase } from '../common/storage/AppDatabase';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteLeave } from '../common/remote/RemoteApi';
+import { RemoteApi, RemoteLeave, RemoteFeedback } from '../common/remote/RemoteApi';
 
 const KEY_LOCAL_LEAVES = 'local.leaveRequests.v1';
 const KEY_LOCAL_FEEDBACK = 'local.feedback.v1';
@@ -341,13 +341,49 @@ export class ProfileRepository extends BaseRepository {
     return this.delay<LeaveRequest>(item);
   }
 
+  private remoteToFeedback(f: RemoteFeedback): FeedbackItem {
+    const item: FeedbackItem = {
+      id: f.id,
+      category: f.category as FeedbackCategory,
+      title: f.title,
+      content: f.content,
+      contact: f.contact,
+      screenshots: [],
+      submittedAt: f.submittedAt,
+      state: f.state as FeedbackState
+    };
+    return item;
+  }
+
   async getFeedback(): Promise<FeedbackItem[]> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.listFeedback(student.studentId);
+          return this.delayCopy<FeedbackItem[]>(remote.map((f) => this.remoteToFeedback(f)));
+        } catch (e) {
+          // 远程失败回退本地
+        }
+      }
+    }
     const localItems = await this.getLocalFeedback();
     const items = localItems.concat(mockFeedback);
     return this.delayCopy<FeedbackItem[]>(items);
   }
 
   async submitFeedback(req: FeedbackSubmitForm): Promise<FeedbackItem> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.submitFeedback(student.studentId, req.category, req.title, req.content, req.contact);
+          return this.delay<FeedbackItem>(this.remoteToFeedback(remote));
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
+    }
     const item: FeedbackItem = {
       id: `fb-${Date.now()}`,
       category: req.category,
