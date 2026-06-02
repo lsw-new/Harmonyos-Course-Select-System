@@ -11,6 +11,8 @@ import { mockLeaveRequests, mockFeedback, mockPracticeEntries } from '../mock/mo
 import { AppDatabase } from '../common/storage/AppDatabase';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteLeave } from '../common/remote/RemoteApi';
 
 const KEY_LOCAL_LEAVES = 'local.leaveRequests.v1';
 const KEY_LOCAL_FEEDBACK = 'local.feedback.v1';
@@ -263,7 +265,36 @@ export class ProfileRepository extends BaseRepository {
     return this.delayCopy<HomeSummary>(mockHomeSummary);
   }
 
+  private remoteToLeave(l: RemoteLeave): LeaveRequest {
+    const item: LeaveRequest = {
+      id: l.id,
+      type: l.type as LeaveType,
+      startDate: l.startDate,
+      endDate: l.endDate,
+      reason: l.reason,
+      attachments: l.attachments,
+      state: l.state as ApprovalState,
+      submittedAt: l.submittedAt
+    };
+    if (l.feedback.length > 0) {
+      item.feedback = l.feedback;
+    }
+    return item;
+  }
+
   async getLeaveRequests(): Promise<LeaveRequest[]> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.listLeave(student.studentId);
+          const remoteItems: LeaveRequest[] = remote.map((l) => this.remoteToLeave(l));
+          return this.delayCopy<LeaveRequest[]>(remoteItems);
+        } catch (e) {
+          // 远程失败回退本地
+        }
+      }
+    }
     if (AppDatabase.isReady()) {
       const rdbItems = await this.getLeaveRequestsFromRdb();
       const ids = rdbItems.map((item) => item.id);
@@ -276,6 +307,17 @@ export class ProfileRepository extends BaseRepository {
   }
 
   async submitLeave(req: LeaveSubmitForm): Promise<LeaveRequest> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.submitLeave(student.studentId, req.type, req.startDate, req.endDate, req.reason);
+          return this.delay<LeaveRequest>(this.remoteToLeave(remote));
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
+    }
     const item: LeaveRequest = {
       id: `lv-${Date.now()}`,
       type: req.type,

@@ -5,6 +5,8 @@ import { GradeRecord, GradeSummary, ExamArrangement, StudentRecord, GradePublish
 import { mockGrades, mockGradeSummary, mockExams, mockStudentRecord } from '../mock/mockAcademic';
 import { AppDatabase } from '../common/storage/AppDatabase';
 import { SessionStorage } from '../common/storage/SessionStorage';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteGrade } from '../common/remote/RemoteApi';
 
 export class AcademicRepository extends BaseRepository {
   private static _instance?: AcademicRepository;
@@ -70,7 +72,56 @@ export class AcademicRepository extends BaseRepository {
     return items;
   }
 
+  private mapGradeCategory(c: string): string {
+    if (c === 'required') {
+      return '必修';
+    }
+    if (c === 'elective') {
+      return '选修';
+    }
+    if (c === 'public') {
+      return '公选';
+    }
+    if (c === 'practice') {
+      return '实践';
+    }
+    return c;
+  }
+
+  private remoteToGrade(g: RemoteGrade): GradeRecord {
+    const item: GradeRecord = {
+      id: g.id,
+      term: g.term,
+      courseCode: g.courseCode,
+      teachingClassNo: g.teachingClassNo,
+      courseName: g.courseName,
+      courseCategory: this.mapGradeCategory(g.courseCategory),
+      credit: g.credit,
+      totalScore: g.score,
+      finalScore: g.score,
+      gradePoint: g.gradePoint,
+      rank: g.rank,
+      status: 'published'
+    };
+    if (g.publishedAt.length > 0) {
+      item.publishedAt = g.publishedAt;
+    }
+    return item;
+  }
+
   async getGrades(term?: string): Promise<GradeRecord[]> {
+    if (AppConfig.useRemote) {
+      const remoteStudent = SessionStorage.get().getStudent();
+      if (remoteStudent) {
+        try {
+          const remote = await RemoteApi.listGrades(remoteStudent.studentId, term);
+          const remoteItems: GradeRecord[] = remote.map((g) => this.remoteToGrade(g));
+          return this.delayCopy<GradeRecord[]>(remoteItems);
+        } catch (e) {
+          // 远程失败回退本地
+        }
+      }
+    }
     if (AppDatabase.isReady()) {
       const student = SessionStorage.get().getStudent();
       if (student) {

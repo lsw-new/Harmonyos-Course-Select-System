@@ -13,7 +13,7 @@ import { NoticeStore } from '../common/services/NoticeStore';
 import { SelectionAdminRepository } from './SelectionAdminRepository';
 import { AdminRepository } from './AdminRepository';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteCourse } from '../common/remote/RemoteApi';
+import { RemoteApi, RemoteCourse, RemoteNotice } from '../common/remote/RemoteApi';
 
 const CREDIT_LIMIT: number = 28; // 学分上限：选课事务据此校验，超出则拒绝
 const KEY_SELECTED_IDS = 'local.selectedCourseIds.v1';
@@ -674,7 +674,31 @@ export class CourseRepository extends BaseRepository {
   }
 
   // 通知
+  private remoteToNotice(n: RemoteNotice): Notice {
+    const item: Notice = {
+      id: n.id,
+      title: n.title,
+      publisher: n.publisher,
+      publishedAt: n.publishedAt,
+      summary: n.summary,
+      content: n.content,
+      isRead: n.isRead,
+      category: n.category,
+      attachments: []
+    };
+    return item;
+  }
+
   async getNotices(category?: string): Promise<Notice[]> {
+    if (this.useRemote()) {
+      try {
+        const remote = await RemoteApi.listNotices(this.currentStudentId(), category);
+        const remoteItems: Notice[] = remote.map((n) => this.remoteToNotice(n));
+        return this.delayCopy<Notice[]>(remoteItems);
+      } catch (e) {
+        // 远程失败回退本地
+      }
+    }
     let items = await NoticeStore.list(mockNotices, category);
     if (category && category !== '全部') {
       items = items.filter((n) => n.category === category);
@@ -683,6 +707,14 @@ export class CourseRepository extends BaseRepository {
   }
 
   async getNoticeDetail(id: string): Promise<Notice> {
+    if (this.useRemote()) {
+      try {
+        const remote = await RemoteApi.noticeDetail(this.currentStudentId(), id);
+        return this.delayCopy<Notice>(this.remoteToNotice(remote));
+      } catch (e) {
+        // 远程失败回退本地
+      }
+    }
     const item = await NoticeStore.detail(mockNotices, id);
     if (!item) {
       return this.reject('通知不存在', 'notFound');
@@ -691,6 +723,14 @@ export class CourseRepository extends BaseRepository {
   }
 
   async markNoticeRead(id: string): Promise<boolean> {
+    if (this.useRemote()) {
+      try {
+        await RemoteApi.markNoticeRead(this.currentStudentId(), id);
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
     await NoticeStore.markRead(id);
     return this.delay<boolean>(true);
   }
