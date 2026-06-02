@@ -5,6 +5,7 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { StudentTabBar } from '../common/widgets/TabBars';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { GradeRecord, GradeSummary } from '../models/Academic';
 
@@ -168,7 +169,15 @@ struct GradesPage {
           .scrollBar(BarState.Off)
           .layoutWeight(1)
         }
+
+        StudentTabBar({
+          active: 'grades',
+          onTap: (id: string, route: string) => {
+            if (id !== 'grades') AppRoute.go(route, { replace: true });
+          }
+        })
       }
+      .width('100%').height('100%')
     }
     .width('100%').height('100%')
   }

@@ -13,10 +13,10 @@ export interface TabItem {
 
 export const STUDENT_TABS: TabItem[] = [
   { id: 'home', label: '首页', icon: 'home', route: 'pages/HomePage' },
-  { id: 'mine', label: '我的', icon: 'mine', route: 'pages/MinePage' },
-  { id: 'eval', label: '评教', icon: 'evaluation', route: 'pages/EvalPage' },
+  { id: 'schedule', label: '课表', icon: 'schedule', route: 'pages/SchedulePage' },
   { id: 'prac', label: '实践', icon: 'practice', route: 'pages/PracticePage' },
-  { id: 'pub', label: '公告', icon: 'public', route: 'pages/NoticesPage' }
+  { id: 'grades', label: '成绩', icon: 'grades', route: 'pages/GradesPage' },
+  { id: 'mine', label: '我的', icon: 'mine', route: 'pages/MinePage' }
 ];
 
 export const ADMIN_TABS: TabItem[] = [

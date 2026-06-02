@@ -6,6 +6,7 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { StudentTabBar } from '../common/widgets/TabBars';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { ScheduleItem } from '../models/Course';
 import { ScheduleImportService, DEFAULT_TERM } from '../common/services/ScheduleImportService';
@@ -311,8 +312,14 @@ struct SchedulePage {
           .padding({ left: 12, right: 12, top: 8 })
         }
 
-        SafeBottom()
+        StudentTabBar({
+          active: 'schedule',
+          onTap: (id: string, route: string) => {
+            if (id !== 'schedule') AppRoute.go(route, { replace: true });
+          }
+        })
       }
+      .width('100%').height('100%')
 
       if (this.showImportSheet) {
         this.ImportSheet()
