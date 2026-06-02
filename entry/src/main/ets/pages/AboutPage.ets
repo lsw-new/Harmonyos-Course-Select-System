@@ -28,6 +28,15 @@ struct AboutPage {
     new CreditItem('location', '地址', '茶苑校区 · 行政楼 3F')
   ];
 
+  pageTransition() {
+    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
+      .slide(SlideEffect.Right)
+      .opacity(0.4)
+    PageTransitionExit({ duration: 240, curve: Curve.Friction })
+      .slide(SlideEffect.Left)
+      .opacity(0.4)
+  }
+
   build() {
     Stack() {
       Column().width('100%').height('100%')

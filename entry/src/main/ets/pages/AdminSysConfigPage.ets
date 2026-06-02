@@ -386,6 +386,15 @@ struct AdminSysConfigPage {
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18).border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
+  pageTransition() {
+    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
+      .slide(SlideEffect.Right)
+      .opacity(0.4)
+    PageTransitionExit({ duration: 240, curve: Curve.Friction })
+      .slide(SlideEffect.Left)
+      .opacity(0.4)
+  }
+
   build() {
     Stack() {
       Column().width('100%').height('100%')
