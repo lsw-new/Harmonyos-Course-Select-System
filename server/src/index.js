@@ -232,5 +232,182 @@ app.delete('/api/selections', authRequired, async (req, res) => {
   }
 });
 
+// ================= 成绩 / 通知 / 请假 扩展域 =================
+
+function mapNotice(row) {
+  return {
+    id: row.notice_id,
+    title: row.title,
+    publisher: row.publisher,
+    publishedAt: row.published_at,
+    summary: row.summary || '',
+    content: row.content,
+    isRead: row.is_read === true,
+    category: row.category,
+    attachments: []
+  };
+}
+
+function mapLeave(row) {
+  return {
+    id: row.leave_id,
+    type: row.type,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    reason: row.reason,
+    attachments: [],
+    state: row.status,
+    submittedAt: row.submitted_at,
+    feedback: row.feedback || ''
+  };
+}
+
+// ---- 成绩（当前学生已发布成绩）----
+app.get('/api/grades', authRequired, async (req, res) => {
+  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  if (!studentId) {
+    return res.status(400).json(fail('缺少 studentId'));
+  }
+  const term = req.query.term ? String(req.query.term) : null;
+  try {
+    const r = await pool.query(
+      `SELECT g.grade_id, g.term, g.score, COALESCE(g.grade_point, 0) AS grade_point, COALESCE(g.rank, 0) AS rank, g.published_at,
+              COALESCE(c.code, '') AS code, COALESCE(c.teaching_class_no, '') AS teaching_class_no,
+              COALESCE(c.name, '') AS name, COALESCE(c.category, '') AS category, COALESCE(c.credit, 0) AS credit
+       FROM dtest2.grades g
+       LEFT JOIN dtest2.courses c ON c.course_id = g.course_id
+       WHERE g.student_id = $1 AND ($2::text IS NULL OR g.term = $2)
+       ORDER BY g.published_at DESC`,
+      [studentId, term]
+    );
+    const data = r.rows.map((row) => {
+      return {
+        id: row.grade_id,
+        term: row.term,
+        courseCode: row.code,
+        teachingClassNo: row.teaching_class_no,
+        courseName: row.name,
+        courseCategory: row.category,
+        credit: Number(row.credit),
+        score: Number(row.score),
+        gradePoint: Number(row.grade_point),
+        rank: Number(row.rank),
+        publishedAt: row.published_at
+      };
+    });
+    res.json(ok(data));
+  } catch (e) {
+    res.status(500).json(fail('查询成绩失败：' + e.message));
+  }
+});
+
+// ---- 通知列表 ----
+app.get('/api/notices', authRequired, async (req, res) => {
+  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const category = req.query.category ? String(req.query.category) : null;
+  try {
+    const r = await pool.query(
+      `SELECT n.notice_id, n.title, n.publisher, n.summary, n.content, n.category, n.published_at,
+              CASE WHEN nr.notice_id IS NULL THEN false ELSE true END AS is_read
+       FROM dtest2.notices n
+       LEFT JOIN dtest2.notice_reads nr ON nr.notice_id = n.notice_id AND nr.student_id = $1
+       WHERE ($2::text IS NULL OR n.category = $2)
+       ORDER BY n.published_at DESC`,
+      [studentId, category]
+    );
+    res.json(ok(r.rows.map(mapNotice)));
+  } catch (e) {
+    res.status(500).json(fail('查询通知失败：' + e.message));
+  }
+});
+
+// ---- 通知详情 ----
+app.get('/api/notices/:id', authRequired, async (req, res) => {
+  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  try {
+    const r = await pool.query(
+      `SELECT n.notice_id, n.title, n.publisher, n.summary, n.content, n.category, n.published_at,
+              CASE WHEN nr.notice_id IS NULL THEN false ELSE true END AS is_read
+       FROM dtest2.notices n
+       LEFT JOIN dtest2.notice_reads nr ON nr.notice_id = n.notice_id AND nr.student_id = $1
+       WHERE n.notice_id = $2 LIMIT 1`,
+      [studentId, req.params.id]
+    );
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('通知不存在'));
+    }
+    res.json(ok(mapNotice(r.rows[0])));
+  } catch (e) {
+    res.status(500).json(fail('查询通知失败：' + e.message));
+  }
+});
+
+// ---- 通知标记已读 ----
+app.post('/api/notices/:id/read', authRequired, async (req, res) => {
+  const studentId = ((req.body && req.body.studentId) || '').trim();
+  if (!studentId) {
+    return res.status(400).json(fail('缺少 studentId'));
+  }
+  try {
+    await pool.query(
+      `INSERT INTO dtest2.notice_reads (notice_id, student_id, read_at) VALUES ($1, $2, now())
+       ON CONFLICT (notice_id, student_id) DO NOTHING`,
+      [req.params.id, studentId]
+    );
+    res.json(ok({ read: true }));
+  } catch (e) {
+    res.status(500).json(fail('标记已读失败：' + e.message));
+  }
+});
+
+// ---- 我的请假 ----
+app.get('/api/leave', authRequired, async (req, res) => {
+  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  if (!studentId) {
+    return res.status(400).json(fail('缺少 studentId'));
+  }
+  try {
+    const r = await pool.query(
+      `SELECT leave_id, type, to_char(start_date, 'YYYY-MM-DD') AS start_date, to_char(end_date, 'YYYY-MM-DD') AS end_date,
+              reason, status, COALESCE(feedback, '') AS feedback, submitted_at
+       FROM dtest2.leave_requests WHERE student_id = $1 ORDER BY submitted_at DESC`,
+      [studentId]
+    );
+    res.json(ok(r.rows.map(mapLeave)));
+  } catch (e) {
+    res.status(500).json(fail('查询请假失败：' + e.message));
+  }
+});
+
+// ---- 提交请假 ----
+const LEAVE_TYPES = ['sick', 'personal', 'public', 'other'];
+app.post('/api/leave', authRequired, async (req, res) => {
+  const b = req.body || {};
+  const studentId = ((b.studentId) || '').trim();
+  const type = ((b.type) || '').trim();
+  const startDate = ((b.startDate) || '').trim();
+  const endDate = ((b.endDate) || '').trim();
+  const reason = ((b.reason) || '').trim();
+  if (!studentId || !type || !startDate || !endDate || !reason) {
+    return res.status(400).json(fail('请假信息不完整'));
+  }
+  if (LEAVE_TYPES.indexOf(type) < 0) {
+    return res.status(400).json(fail('请假类型不合法'));
+  }
+  try {
+    const leaveId = `lv-${Date.now()}`;
+    const r = await pool.query(
+      `INSERT INTO dtest2.leave_requests (leave_id, student_id, type, start_date, end_date, reason, status, submitted_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending', now(), now())
+       RETURNING leave_id, type, to_char(start_date, 'YYYY-MM-DD') AS start_date, to_char(end_date, 'YYYY-MM-DD') AS end_date,
+                 reason, status, COALESCE(feedback, '') AS feedback, submitted_at`,
+      [leaveId, studentId, type, startDate, endDate, reason]
+    );
+    res.json(ok(mapLeave(r.rows[0])));
+  } catch (e) {
+    res.status(500).json(fail('提交请假失败：' + e.message));
+  }
+});
+
 const PORT = parseInt(process.env.PORT || '8090', 10);
 app.listen(PORT, () => console.log(`[dtest2-api] listening on :${PORT}`));

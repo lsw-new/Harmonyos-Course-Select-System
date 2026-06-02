@@ -25,6 +25,14 @@ async function main() {
      WHERE round_id='round-2026-main'`
   );
   console.log(`round round-2026-main -> running: ${r.rowCount} row(s)`);
+  // 演示成绩（先清后插，幂等）：测试学生在 cs101/se201 的已发布成绩
+  await pool.query(`DELETE FROM dtest2.grades WHERE student_id='2023307020941'`);
+  await pool.query(
+    `INSERT INTO dtest2.grades (grade_id, student_id, course_id, term, score, grade_point, published_at) VALUES
+       ('grade-cs101-2025','2023307020941','course-cs101','2025-2026-1',92,4.0,now()),
+       ('grade-se201-2025','2023307020941','course-se201','2025-2026-1',85,3.5,now())`
+  );
+  console.log('demo grades seeded: 2');
   await pool.end();
   console.log('seed done');
 }
