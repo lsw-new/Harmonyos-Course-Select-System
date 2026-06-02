@@ -20,6 +20,9 @@ struct AccountPage {
   @State showLogoutConfirm: boolean = false;
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Account)) {
+      return;
+    }
     this.loadData();
   }
 

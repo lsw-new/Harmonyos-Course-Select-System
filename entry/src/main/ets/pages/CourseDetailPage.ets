@@ -16,6 +16,9 @@ struct CourseDetailPage {
   @State course: Course | null = null;
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.CourseDetail)) {
+      return;
+    }
     const id: string = AppRoute.getParam<string>('id', '');
     if (id.length === 0) {
       this.errorMsg = '缺少课程 ID';

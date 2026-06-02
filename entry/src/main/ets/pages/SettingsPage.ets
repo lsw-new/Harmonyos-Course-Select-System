@@ -39,6 +39,9 @@ struct SettingsPage {
   ];
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Settings)) {
+      return;
+    }
     PreferenceStorage.get().getBoolean('push', true).then((v: boolean) => { this.pushEnabled = v; });
     PreferenceStorage.get().getBoolean('evalReminder', true).then((v: boolean) => { this.evalReminder = v; });
     PreferenceStorage.get().getBoolean('dndMode', false).then((v: boolean) => { this.dndMode = v; });

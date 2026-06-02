@@ -38,6 +38,9 @@ struct HomePage {
   private corpusLoaded: boolean = false;
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Home)) {
+      return;
+    }
     this.loadData();
   }
 

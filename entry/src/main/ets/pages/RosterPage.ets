@@ -2,7 +2,7 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { StudentRecord } from '../models/Academic';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
@@ -15,6 +15,9 @@ struct RosterPage {
   @State errorMsg: string = '';
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Roster)) {
+      return;
+    }
     this.loadData();
   }
 

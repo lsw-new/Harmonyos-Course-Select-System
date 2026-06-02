@@ -3,7 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { SelectionCourse, SelectionRoundInfo } from '../models/Course';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
@@ -28,6 +28,9 @@ struct SelectionPage {
   @State actionError: string = '';
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Selection)) {
+      return;
+    }
     this.loadData();
   }
 

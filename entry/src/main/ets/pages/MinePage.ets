@@ -79,6 +79,9 @@ struct MinePage {
   ];
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Mine)) {
+      return;
+    }
     this.loadData();
   }
 

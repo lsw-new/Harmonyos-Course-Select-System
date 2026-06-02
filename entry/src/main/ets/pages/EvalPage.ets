@@ -5,7 +5,7 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { EvaluationRepository } from '../repositories/EvaluationRepository';
 import {
   EvaluationTask, EvaluationQuestionnaire, EvaluationQuestion,
@@ -40,6 +40,9 @@ struct EvalPage {
   @State answers: QAnswer[] = [];
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Eval)) {
+      return;
+    }
     this.loadData();
   }
 

@@ -27,6 +27,9 @@ struct TodayPage {
   private tomorrowWeekday: number = toWeekday((new Date().getDay() + 1) % 7);
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Today)) {
+      return;
+    }
     this.loadData();
   }
 

@@ -5,7 +5,7 @@ import { ProfileRepository } from '../repositories/ProfileRepository';
 import { LeaveRequest } from '../models/Misc';
 import { HttpError } from '../common/http/HttpError';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
@@ -27,6 +27,9 @@ struct LeavePage {
   private typeKeys: string[] = ['sick', 'personal', 'public', 'other'];
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Leave)) {
+      return;
+    }
     this.loadHistory();
   }
 

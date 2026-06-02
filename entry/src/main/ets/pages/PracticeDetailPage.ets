@@ -3,7 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, PrimaryButton, GhostButton } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { PracticeRepository } from '../repositories/PracticeRepository';
 import { PracticeProjectDetail, PracticeCategory } from '../models/PracticeModels';
 import { HttpError } from '../common/http/HttpError';
@@ -40,6 +40,9 @@ struct PracticeDetailPage {
   private projectId: string = '';
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.PracticeDetail)) {
+      return;
+    }
     this.projectId = AppRoute.getParam<string>('id', '');
     this.loadData();
   }

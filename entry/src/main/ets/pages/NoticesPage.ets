@@ -20,6 +20,9 @@ struct NoticesPage {
   @State errorMsg: string = '';
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Notices)) {
+      return;
+    }
     this.loadData();
   }
 

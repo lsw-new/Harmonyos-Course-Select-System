@@ -1,6 +1,6 @@
 // 修改资料 · Edit Profile
 import { ElysiaTheme } from '../common/Theme';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill } from '../common/Components';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { ValidatorUtils } from '../common/utils/ValidatorUtils';
@@ -31,6 +31,9 @@ struct EditInfoPage {
   @State pickingAvatar: boolean = false;
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.EditInfo)) {
+      return;
+    }
     ProfileRepository.get().getProfile().then((p: UserProfile) => {
       this.studentId = p.studentId;
       this.name = p.name;

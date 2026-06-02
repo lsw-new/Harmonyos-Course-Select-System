@@ -32,6 +32,9 @@ struct SchedulePage {
   private days: string[] = ['一', '二', '三', '四', '五', '六', '日'];
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Schedule)) {
+      return;
+    }
     this.loadSchedule();
   }
 
