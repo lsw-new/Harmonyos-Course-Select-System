@@ -56,6 +56,22 @@ async function main() {
        ('gt-se201','course-se201','2025-2026-1','SE201-01','黄卫东',60,'inputting')`
   );
   console.log('demo grade tasks seeded: 2');
+  // 演示评教问卷模板（幂等）
+  await pool.query(`DELETE FROM dtest2.evaluation_templates WHERE template_id IN ('qt-default','qt-lab')`);
+  await pool.query(
+    `INSERT INTO dtest2.evaluation_templates (template_id, name, description, question_count, status) VALUES
+       ('qt-default','教学质量评价问卷','面向理论课的标准评教问卷',10,'enabled'),
+       ('qt-lab','实验课评价问卷','面向实验与实践课的评教问卷',8,'disabled')`
+  );
+  console.log('demo eval templates seeded: 2');
+  // 演示操作日志（幂等）
+  await pool.query(`DELETE FROM dtest2.audit_logs WHERE log_id IN ('log-seed-1','log-seed-2')`);
+  await pool.query(
+    `INSERT INTO dtest2.audit_logs (log_id, operator_id, operator_name, action, action_type, target, result, ip, created_at) VALUES
+       ('log-seed-1','A20251001','爱莉希雅','管理员登录','login','系统','success','127.0.0.1', now() - interval '2 hour'),
+       ('log-seed-2','A20251001','爱莉希雅','发布通知','notice','通知中心','success','127.0.0.1', now() - interval '1 hour')`
+  );
+  console.log('demo audit logs seeded: 2');
   await pool.end();
   console.log('seed done');
 }

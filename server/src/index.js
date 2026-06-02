@@ -931,5 +931,220 @@ app.post('/api/admin/approvals/:id/reject', adminRequired, async (req, res) => {
   await handleApproval(req, res, 'rejected', comment);
 });
 
+// ================= 管理配置域（通知发布 / 角色权限 / 评教模板，需 role=admin）=================
+
+function mapAuditLog(row) {
+  return {
+    id: row.log_id,
+    operatorName: row.operator_name || '',
+    operatorId: row.operator_id || '',
+    action: row.action,
+    actionType: row.action_type,
+    target: row.target,
+    timestamp: row.created_at,
+    result: row.result,
+    ip: row.ip || ''
+  };
+}
+
+function mapTemplate(row) {
+  return {
+    id: row.template_id,
+    name: row.name,
+    description: row.description || '',
+    questionCount: row.question_count,
+    status: row.status
+  };
+}
+
+// ---- 通知发布 ----
+const NOTICE_URGENCIES = ['normal', 'important', 'urgent'];
+const NOTICE_RECEIVER_TYPES = ['all', 'students', 'teachers', 'custom'];
+app.post('/api/admin/notices', adminRequired, async (req, res) => {
+  const b = req.body || {};
+  const title = ((b.title) || '').trim();
+  const content = ((b.content) || '').trim();
+  const category = ((b.category) || '').trim() || '通知';
+  const publisher = ((b.publisher) || '').trim() || '教务处';
+  const urgency = ((b.urgency) || 'normal').trim();
+  const receiverType = ((b.receiverType) || 'all').trim();
+  const receiverScope = Array.isArray(b.receiverScope) ? b.receiverScope : [];
+  if (!title || !content) {
+    return res.status(400).json(fail('标题和正文不能为空'));
+  }
+  if (NOTICE_URGENCIES.indexOf(urgency) < 0) {
+    return res.status(400).json(fail('紧急程度不合法'));
+  }
+  if (NOTICE_RECEIVER_TYPES.indexOf(receiverType) < 0) {
+    return res.status(400).json(fail('接收类型不合法'));
+  }
+  try {
+    const id = `notice-${Date.now()}`;
+    const summary = content.length > 60 ? content.substring(0, 60) + '...' : content;
+    const r = await pool.query(
+      `INSERT INTO dtest2.notices
+        (notice_id, title, publisher, category, urgency, summary, content, receiver_type, receiver_scope_json, publish_time, published_at, created_by, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, now(), now(), NULL, now())
+       RETURNING notice_id, title, publisher, summary, content, category, published_at`,
+      [id, title, publisher, category, urgency, summary, content, receiverType, JSON.stringify(receiverScope)]
+    );
+    const row = r.rows[0];
+    res.json(ok({
+      id: row.notice_id,
+      title: row.title,
+      publisher: row.publisher,
+      publishedAt: row.published_at,
+      summary: row.summary || '',
+      content: row.content,
+      isRead: false,
+      category: row.category,
+      attachments: []
+    }));
+  } catch (e) {
+    res.status(500).json(fail('发布通知失败：' + e.message));
+  }
+});
+
+// ---- 角色权限矩阵 ----
+app.get('/api/admin/roles', adminRequired, async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT r.role_id, r.name AS role_name, COALESCE(r.description, '') AS description, r.member_count,
+              p.code, MIN(p.name) AS perm_name, MIN(p.module) AS module, array_agg(p.action ORDER BY p.action) AS actions
+       FROM dtest2.roles r
+       LEFT JOIN dtest2.role_permissions rp ON rp.role_id = r.role_id
+       LEFT JOIN dtest2.permissions p ON p.code = rp.code AND p.action = rp.action
+       GROUP BY r.role_id, r.name, r.description, r.member_count, p.code
+       ORDER BY r.role_id, p.code`
+    );
+    const order = [];
+    const map = {};
+    for (const row of r.rows) {
+      if (!map[row.role_id]) {
+        map[row.role_id] = {
+          id: row.role_id,
+          name: row.role_name,
+          description: row.description,
+          memberCount: row.member_count,
+          permissions: []
+        };
+        order.push(row.role_id);
+      }
+      if (row.code) {
+        map[row.role_id].permissions.push({
+          code: row.code,
+          name: row.perm_name,
+          module: row.module,
+          actions: Array.isArray(row.actions) ? row.actions : []
+        });
+      }
+    }
+    res.json(ok(order.map((id) => map[id])));
+  } catch (e) {
+    res.status(500).json(fail('查询角色失败：' + e.message));
+  }
+});
+
+// ---- 操作日志 ----
+app.get('/api/admin/audit-logs', adminRequired, async (req, res) => {
+  const type = req.query.type ? String(req.query.type) : null;
+  try {
+    const r = await pool.query(
+      `SELECT log_id, COALESCE(operator_name, '') AS operator_name, COALESCE(operator_id, '') AS operator_id,
+              action, action_type, target, result, COALESCE(ip, '') AS ip, created_at
+       FROM dtest2.audit_logs WHERE ($1::text IS NULL OR action_type = $1) ORDER BY created_at DESC LIMIT 200`,
+      [type]
+    );
+    res.json(ok(r.rows.map(mapAuditLog)));
+  } catch (e) {
+    res.status(500).json(fail('查询操作日志失败：' + e.message));
+  }
+});
+
+// ---- 评教问卷模板（CRUD）----
+const TEMPLATE_STATUSES = ['enabled', 'disabled'];
+app.get('/api/admin/eval/templates', adminRequired, async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT template_id, name, description, question_count, status FROM dtest2.evaluation_templates ORDER BY created_at DESC`
+    );
+    res.json(ok(r.rows.map(mapTemplate)));
+  } catch (e) {
+    res.status(500).json(fail('查询问卷模板失败：' + e.message));
+  }
+});
+
+app.post('/api/admin/eval/templates', adminRequired, async (req, res) => {
+  const b = req.body || {};
+  const name = ((b.name) || '').trim();
+  const description = ((b.description) || '').trim();
+  const questionCount = Number(b.questionCount);
+  const status = ((b.status) || '').trim();
+  if (!name) {
+    return res.status(400).json(fail('问卷名称不能为空'));
+  }
+  if (!Number.isInteger(questionCount) || questionCount < 1 || questionCount > 50) {
+    return res.status(400).json(fail('题目数量需为 1-50 的整数'));
+  }
+  if (TEMPLATE_STATUSES.indexOf(status) < 0) {
+    return res.status(400).json(fail('问卷状态不合法'));
+  }
+  try {
+    const id = `qt-${Date.now()}`;
+    const r = await pool.query(
+      `INSERT INTO dtest2.evaluation_templates (template_id, name, description, question_count, status)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING template_id, name, description, question_count, status`,
+      [id, name, description, questionCount, status]
+    );
+    res.json(ok(mapTemplate(r.rows[0])));
+  } catch (e) {
+    res.status(500).json(fail('新建问卷模板失败：' + e.message));
+  }
+});
+
+app.put('/api/admin/eval/templates/:id', adminRequired, async (req, res) => {
+  const b = req.body || {};
+  const name = ((b.name) || '').trim();
+  const description = ((b.description) || '').trim();
+  const questionCount = Number(b.questionCount);
+  const status = ((b.status) || '').trim();
+  if (!name) {
+    return res.status(400).json(fail('问卷名称不能为空'));
+  }
+  if (!Number.isInteger(questionCount) || questionCount < 1 || questionCount > 50) {
+    return res.status(400).json(fail('题目数量需为 1-50 的整数'));
+  }
+  if (TEMPLATE_STATUSES.indexOf(status) < 0) {
+    return res.status(400).json(fail('问卷状态不合法'));
+  }
+  try {
+    const r = await pool.query(
+      `UPDATE dtest2.evaluation_templates SET name=$2, description=$3, question_count=$4, status=$5, updated_at=now()
+       WHERE template_id=$1
+       RETURNING template_id, name, description, question_count, status`,
+      [req.params.id, name, description, questionCount, status]
+    );
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('问卷模板不存在'));
+    }
+    res.json(ok(mapTemplate(r.rows[0])));
+  } catch (e) {
+    res.status(500).json(fail('更新问卷模板失败：' + e.message));
+  }
+});
+
+app.delete('/api/admin/eval/templates/:id', adminRequired, async (req, res) => {
+  try {
+    const r = await pool.query(`DELETE FROM dtest2.evaluation_templates WHERE template_id=$1`, [req.params.id]);
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('问卷模板不存在'));
+    }
+    res.json(ok({ deleted: true }));
+  } catch (e) {
+    res.status(500).json(fail('删除问卷模板失败：' + e.message));
+  }
+});
+
 const PORT = parseInt(process.env.PORT || '8090', 10);
 app.listen(PORT, () => console.log(`[dtest2-api] listening on :${PORT}`));
