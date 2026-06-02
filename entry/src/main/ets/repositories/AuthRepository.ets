@@ -11,6 +11,8 @@ import { mockAdminProfile, TEST_ADMIN_ID, TEST_ADMIN_PASSWORD } from '../mock/mo
 import { AccountStore } from '../common/storage/AccountStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AssetTokenStore } from '../common/security/AssetTokenStore';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi } from '../common/remote/RemoteApi';
 
 export class AuthRepository extends BaseRepository {
   private static _instance?: AuthRepository;
@@ -24,6 +26,19 @@ export class AuthRepository extends BaseRepository {
   async login(req: LoginRequest): Promise<LoginResult> {
     if (req.studentId.trim().length === 0 || req.password.length === 0) {
       return this.reject('学号或密码不能为空');
+    }
+
+    // Track B：开启远程时优先走后端登录，失败回退本地校验
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.login(req.studentId.trim(), req.password);
+        const remoteResult: LoginResult = { token: remote.token, user: mockStudentProfile };
+        await AssetTokenStore.setStudentToken(remote.token);
+        await SessionStorage.get().setStudentSession(remote.token, mockStudentProfile);
+        return this.delay<LoginResult>(remoteResult);
+      } catch (e) {
+        // 远程登录失败回退本地校验
+      }
     }
 
     // 先尝试持久化存储校验（AccountStore）

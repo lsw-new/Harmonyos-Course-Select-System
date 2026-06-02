@@ -2,7 +2,7 @@
 
 import { BaseRepository } from './BaseRepository';
 import { Course, ScheduleItem, SelectionCourse, SelectionRoundInfo } from '../models/Course';
-import { AdminCourseItem } from '../models/Admin';
+import { AdminCourseItem, AdminCourseCategory, AdminCourseStatus } from '../models/Admin';
 import { Notice } from '../models/Notice';
 import { mockCourses, mockSchedule } from '../mock/mockCourses';
 import { mockNotices } from '../mock/mockNotices';
@@ -12,6 +12,8 @@ import { SessionStorage } from '../common/storage/SessionStorage';
 import { NoticeStore } from '../common/services/NoticeStore';
 import { SelectionAdminRepository } from './SelectionAdminRepository';
 import { AdminRepository } from './AdminRepository';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteCourse } from '../common/remote/RemoteApi';
 
 const CREDIT_LIMIT: number = 28; // 学分上限：选课事务据此校验，超出则拒绝
 const KEY_SELECTED_IDS = 'local.selectedCourseIds.v1';
@@ -56,6 +58,81 @@ export class CourseRepository extends BaseRepository {
   private currentStudentId(): string {
     const student = SessionStorage.get().getStudent();
     return student ? student.studentId : '';
+  }
+
+  // ============ Track B 远程数据源（AppConfig.useRemote=true 且已登录时启用，读失败回退本地） ============
+
+  private useRemote(): boolean {
+    return AppConfig.useRemote && this.currentStudentId().length > 0;
+  }
+
+  private remoteToAdminCourse(r: RemoteCourse): AdminCourseItem {
+    const item: AdminCourseItem = {
+      id: r.id,
+      code: r.code,
+      name: r.name,
+      teacher: r.teacher,
+      category: r.category as AdminCourseCategory,
+      credit: r.credit,
+      timeText: r.timeText,
+      capacity: r.capacity,
+      selectedCount: r.selectedCount,
+      status: r.status as AdminCourseStatus
+    };
+    return item;
+  }
+
+  private async remoteSelectionCourses(query?: string, category?: string): Promise<SelectionCourse[]> {
+    const openRemote = await RemoteApi.listOpenCourses();
+    const mineRemote = await RemoteApi.mySelections(this.currentStudentId());
+    const mineIds: string[] = mineRemote.map((c) => c.id);
+    const base: SelectionCourse[] = openRemote.map((r) => {
+      const course = this.toStudentCourse(this.remoteToAdminCourse(r));
+      const isSelected = mineIds.indexOf(course.id) >= 0;
+      const sc: SelectionCourse = { course: course, status: isSelected ? 'selected' : 'available', conflictWith: undefined };
+      return sc;
+    });
+    let items = this.decorateStatuses(base);
+    if (query && query.length > 0) {
+      const q = query.toLowerCase();
+      items = items.filter((s) =>
+        s.course.name.toLowerCase().includes(q) ||
+        s.course.teacher.toLowerCase().includes(q) ||
+        s.course.code.toLowerCase().includes(q));
+    }
+    if (category && category !== '全部') {
+      items = items.filter((s) => s.course.category === category);
+    }
+    return this.delayCopy<SelectionCourse[]>(items);
+  }
+
+  private async remoteSelectionRound(): Promise<SelectionRoundInfo> {
+    const round = await RemoteApi.activeRound();
+    const mineRemote = await RemoteApi.mySelections(this.currentStudentId());
+    let selectedCredits = 0;
+    mineRemote.forEach((c) => { selectedCredits += c.credit; });
+    if (!round) {
+      const closed: SelectionRoundInfo = {
+        roundName: '当前无进行中的选课轮次',
+        startTime: '—',
+        endTime: '—',
+        remainingSeconds: 0,
+        selectedCredits: selectedCredits,
+        creditLimit: CREDIT_LIMIT,
+        inProgress: false
+      };
+      return this.delayCopy<SelectionRoundInfo>(closed);
+    }
+    const info: SelectionRoundInfo = {
+      roundName: round.name,
+      startTime: round.startTime,
+      endTime: round.endTime,
+      remainingSeconds: this.computeRemainingSeconds(round.endTime),
+      selectedCredits: selectedCredits,
+      creditLimit: round.creditLimit,
+      inProgress: true
+    };
+    return this.delayCopy<SelectionRoundInfo>(info);
   }
 
   private async getMemberIds(): Promise<string[]> {
@@ -427,6 +504,13 @@ export class CourseRepository extends BaseRepository {
 
   // 选课轮次：与管理端「进行中」轮次共享同一事实来源
   async getSelectionRound(): Promise<SelectionRoundInfo> {
+    if (this.useRemote()) {
+      try {
+        return await this.remoteSelectionRound();
+      } catch (e) {
+        // 远程失败回退本地
+      }
+    }
     const active = await SelectionAdminRepository.get().getActiveRound();
     const catalog = await this.getFullCatalog();
     const memberIds = await this.getMemberIds();
@@ -461,6 +545,13 @@ export class CourseRepository extends BaseRepository {
   }
 
   async getSelectionCourses(query?: string, category?: string): Promise<SelectionCourse[]> {
+    if (this.useRemote()) {
+      try {
+        return await this.remoteSelectionCourses(query, category);
+      } catch (e) {
+        // 远程失败回退本地
+      }
+    }
     const catalog = await this.getOpenCatalog();
     const memberIds = await this.getMemberIds();
     const base: SelectionCourse[] = catalog.map((c) => {
@@ -484,6 +575,14 @@ export class CourseRepository extends BaseRepository {
   }
 
   async selectCourse(courseId: string): Promise<boolean> {
+    if (this.useRemote()) {
+      try {
+        await RemoteApi.select(this.currentStudentId(), courseId);
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
     // 轮次门禁：管理端无进行中轮次时不能选课
     const active = await SelectionAdminRepository.get().getActiveRound();
     if (!active) {
@@ -527,6 +626,14 @@ export class CourseRepository extends BaseRepository {
   }
 
   async dropCourse(courseId: string): Promise<boolean> {
+    if (this.useRemote()) {
+      try {
+        await RemoteApi.drop(this.currentStudentId(), courseId);
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
     const memberIds = await this.getMemberIds();
     if (memberIds.indexOf(courseId) < 0) {
       return this.reject('该课程未被选中');
@@ -542,6 +649,18 @@ export class CourseRepository extends BaseRepository {
   }
 
   async getMySelectedCourses(): Promise<SelectionCourse[]> {
+    if (this.useRemote()) {
+      try {
+        const mineRemote = await RemoteApi.mySelections(this.currentStudentId());
+        const remoteItems: SelectionCourse[] = mineRemote.map((r) => {
+          const sc: SelectionCourse = { course: this.toStudentCourse(this.remoteToAdminCourse(r)), status: 'selected', conflictWith: undefined };
+          return sc;
+        });
+        return this.delayCopy<SelectionCourse[]>(remoteItems);
+      } catch (e) {
+        // 远程失败回退本地
+      }
+    }
     const catalog = await this.getFullCatalog();
     const memberIds = await this.getMemberIds();
     const items: SelectionCourse[] = [];
