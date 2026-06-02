@@ -203,10 +203,10 @@ struct EvalPage {
   }
 
   pageTransition() {
-    PageTransitionEnter({ duration: 2000, curve: Curve.Friction })
+    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
       .slide(SlideEffect.Right)
       .opacity(0.4)
-    PageTransitionExit({ duration: 2000, curve: Curve.Friction })
+    PageTransitionExit({ duration: 240, curve: Curve.Friction })
       .slide(SlideEffect.Left)
       .opacity(0.4)
   }
