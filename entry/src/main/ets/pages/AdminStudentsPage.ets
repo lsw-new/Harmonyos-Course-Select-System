@@ -27,6 +27,7 @@ struct AdminStudentsPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     StudentAdminRepository.get().getStudents(this.query, this.activeCollege).then((list: StudentAdminItem[]) => {
       this.students = list;

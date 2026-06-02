@@ -30,6 +30,7 @@ struct AdminAuditLogPage {
 
   private loadLogs(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const filter = this.activeType;
     AccessControlRepository.get().getAuditLogs(filter).then((list: AuditLogEntry[]) => {

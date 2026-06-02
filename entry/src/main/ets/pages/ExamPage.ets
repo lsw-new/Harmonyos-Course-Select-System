@@ -26,6 +26,7 @@ struct ExamPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     AcademicRepository.get().getExams()
       .then((res: ExamArrangement[]) => {

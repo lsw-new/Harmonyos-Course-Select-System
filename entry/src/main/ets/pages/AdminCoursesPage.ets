@@ -49,6 +49,7 @@ struct AdminCoursesPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const cat = this.activeCategory === '全部' ? undefined : this.activeCategory;
     AdminRepository.get().getCourses(this.query, cat).then((list: AdminCourseItem[]) => {

@@ -36,6 +36,7 @@ struct FeedbackPage {
 
   private loadHistory(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.historyErrorMsg = '';
     ProfileRepository.get().getFeedback().then((list: FeedbackItem[]) => {
       this.history = list;

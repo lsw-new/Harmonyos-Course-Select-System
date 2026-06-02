@@ -44,6 +44,7 @@ struct AdminSelectionPage {
 
   private load(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.error = '';
     SelectionAdminRepository.get().getRounds().then((d: AdminRound[]) => {
       this.rounds = d;

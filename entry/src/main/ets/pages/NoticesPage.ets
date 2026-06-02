@@ -29,6 +29,7 @@ struct NoticesPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const cat = this.activeFilter === 0 ? undefined : CATEGORIES[this.activeFilter];
     CourseRepository.get().getNotices(cat).then((res: Notice[]) => {

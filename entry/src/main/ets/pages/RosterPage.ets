@@ -24,6 +24,7 @@ struct RosterPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     AcademicRepository.get().getStudentRecord()
       .then((res: StudentRecord) => {

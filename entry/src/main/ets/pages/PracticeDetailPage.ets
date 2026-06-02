@@ -55,6 +55,7 @@ struct PracticeDetailPage {
       return;
     }
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     PracticeRepository.get().getDetail(this.projectId).then((d: PracticeProjectDetail) => {
       this.detail = d;

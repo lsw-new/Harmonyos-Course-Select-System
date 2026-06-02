@@ -42,6 +42,7 @@ struct AdminDashboardPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     AdminRepository.get().getDashboard().then((d: AdminDashboardSummary) => {
       this.dashboard = d;

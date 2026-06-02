@@ -47,6 +47,7 @@ struct HomePage {
 
   loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const repo = ProfileRepository.get();
     Promise.all([repo.getHomeSummary(), repo.getProfile()])

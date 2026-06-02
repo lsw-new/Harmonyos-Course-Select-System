@@ -36,6 +36,7 @@ struct TodayPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     let promise: Promise<ScheduleItem[]>;
     if (this.activeTab === 0) {

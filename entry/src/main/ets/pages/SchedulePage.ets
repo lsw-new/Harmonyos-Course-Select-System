@@ -41,6 +41,7 @@ struct SchedulePage {
 
   private loadSchedule(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     CourseRepository.get().getSchedule(undefined, this.currentWeek)
       .then((res: ScheduleItem[]) => {

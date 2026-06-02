@@ -33,6 +33,7 @@ struct AdminStudentDetailPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     this.pendingStatus = '';
     if (this.studentId.length === 0) {

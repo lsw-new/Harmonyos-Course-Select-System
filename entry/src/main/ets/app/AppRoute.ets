@@ -86,8 +86,9 @@ function expectedRoleFor(url: string): UserRole | undefined {
 export class AppRoute {
   private static loadingTimer: number = -1;
 
-  // 全局路由加载遮罩：导航时显示全屏「正在加载」，1.5s 后自动隐藏（带防抖，连续导航重置计时）。
-  private static triggerLoading(): void {
+  // 全局加载遮罩：导航或页内重载时显示全屏「正在加载」，1.5s 后自动隐藏（带防抖，连续触发重置计时）。
+  // 页面在 this.loading=true 处调用本方法，使 loading→content 切换发生在遮罩之后，避免布局跳动。
+  static showLoading(): void {
     AppStorage.setOrCreate('routeLoading', true);
     if (AppRoute.loadingTimer >= 0) {
       clearTimeout(AppRoute.loadingTimer);
@@ -102,7 +103,7 @@ export class AppRoute {
     if (!AppRoute.guard(url)) {
       return;
     }
-    AppRoute.triggerLoading();
+    AppRoute.showLoading();
     if (options.replace) {
       router.replaceUrl({ url, params: options.params });
     } else {
@@ -111,12 +112,12 @@ export class AppRoute {
   }
 
   static back(): void {
-    AppRoute.triggerLoading();
+    AppRoute.showLoading();
     router.back();
   }
 
   static clearTo(url: string, params?: Record<string, Object>): void {
-    AppRoute.triggerLoading();
+    AppRoute.showLoading();
     router.clear();
     router.replaceUrl({ url, params });
   }

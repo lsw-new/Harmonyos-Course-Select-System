@@ -36,6 +36,7 @@ struct LeavePage {
 
   private loadHistory(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.historyErrorMsg = '';
     ProfileRepository.get().getLeaveRequests().then((list: LeaveRequest[]) => {
       this.history = list;

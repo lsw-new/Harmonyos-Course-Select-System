@@ -37,6 +37,7 @@ struct AdminApprovalsPage {
 
   private loadList(): void {
     this.loading = true;
+    AppRoute.showLoading();
     const s = this.activeStatus === '全部' ? '全部' : this.activeStatus;
     AdminRepository.get().getApprovals(s as 'pending' | 'approved' | 'rejected' | 'withdrawn' | '全部').then((list: ApprovalItem[]) => {
       this.approvals = list;

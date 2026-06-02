@@ -49,6 +49,7 @@ struct EvalPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     EvaluationRepository.get().getTasks()
       .then((list: EvaluationTask[]) => {

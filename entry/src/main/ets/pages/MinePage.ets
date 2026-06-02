@@ -88,6 +88,7 @@ struct MinePage {
 
   loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const repo = ProfileRepository.get();
     const academic = AcademicRepository.get();

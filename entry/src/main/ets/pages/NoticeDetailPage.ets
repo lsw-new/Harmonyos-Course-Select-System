@@ -28,6 +28,7 @@ struct NoticeDetailPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const id: string = AppRoute.getParam<string>('id', '');
     if (id.length === 0) {

@@ -37,6 +37,7 @@ struct SelectionPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     this.actionError = '';
     const repo = CourseRepository.get();

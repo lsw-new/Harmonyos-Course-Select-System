@@ -29,6 +29,7 @@ struct AccountPage {
 
   loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const repo = AuthRepository.get();
     Promise.all([repo.getAccount(), repo.getLoginHistory()])

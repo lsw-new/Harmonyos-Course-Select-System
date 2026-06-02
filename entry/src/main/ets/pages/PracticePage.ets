@@ -60,6 +60,7 @@ struct PracticePage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     this.actionError = '';
     PracticeRepository.get().getProjects(this.currentCategory()).then((list: PracticeProject[]) => {

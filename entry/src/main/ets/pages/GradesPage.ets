@@ -29,6 +29,7 @@ struct GradesPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const term: string | undefined = this.activeTerm === 0 ? undefined : this.terms[this.activeTerm];
     const repo = AcademicRepository.get();

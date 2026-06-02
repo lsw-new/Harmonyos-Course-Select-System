@@ -36,6 +36,7 @@ struct AdminRolePermPage {
 
   private loadAll(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const repo = AccessControlRepository.get();
     Promise.all([repo.getRoles(), repo.getMyPermissions()])

@@ -38,6 +38,7 @@ struct AdminGradesPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const s = this.activeStatus === '全部' ? undefined : this.activeStatus;
     AdminRepository.get().getGradeAudits(s).then((list: GradeAuditItem[]) => {

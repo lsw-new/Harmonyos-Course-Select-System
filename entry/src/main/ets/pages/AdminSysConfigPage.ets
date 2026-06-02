@@ -61,6 +61,7 @@ struct AdminSysConfigPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const repo = SysConfigRepository.get();
     Promise.all([repo.getApprovalFlow(), repo.getMsgTemplates(), repo.getSecurityPolicy()])

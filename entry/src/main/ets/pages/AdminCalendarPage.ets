@@ -37,6 +37,7 @@ struct AdminCalendarPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     SysConfigRepository.get().getCalendarEvents().then((list: CalendarEvent[]) => {
       list.sort((a, b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0));

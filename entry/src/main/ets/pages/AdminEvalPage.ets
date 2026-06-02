@@ -43,6 +43,7 @@ struct AdminEvalPage {
 
   private loadData(): void {
     this.loading = true;
+    AppRoute.showLoading();
     this.errorMsg = '';
     const repo = EvalAdminRepository.get();
     Promise.all([repo.getStats(), repo.getTemplates()]).then((res: [EvalAdminStats, QuestionnaireTemplate[]]) => {
