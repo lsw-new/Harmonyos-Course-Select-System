@@ -4,7 +4,7 @@ import { BaseRepository } from './BaseRepository';
 import {
   AdminDashboardSummary, StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound,
   GradeAuditItem, GradeInputPayload, GradeRejectPayload, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
-  AdminPermissionAction
+  AdminPermissionAction, AdminCourseCategory, AdminCourseStatus
 } from '../models/Admin';
 import { LeaveRequest, ApprovalState } from '../models/Misc';
 import {
@@ -19,6 +19,7 @@ import { NoticeStore } from '../common/services/NoticeStore';
 const KEY_ADMIN_APPROVALS = 'local.adminApprovals.v1';
 const KEY_ADMIN_GRADES = 'local.adminGrades.v1';
 const KEY_ADMIN_COURSES = 'local.adminCourses.v1';
+const SEED_COURSES_FLAG = 'seed.courses.v1';
 const KEY_LOCAL_LEAVES = 'local.leaveRequests.v1';
 const COURSE_CATEGORIES: string[] = ['required', 'elective', 'public', 'practice'];
 const COURSE_STATUSES: string[] = ['draft', 'open', 'closed', 'archived'];
@@ -67,6 +68,13 @@ export class AdminRepository extends BaseRepository {
   }
 
   private async getCourseItems(): Promise<AdminCourseItem[]> {
+    if (AppDatabase.isReady()) {
+      await this.seedCoursesIfNeeded();
+      const rdbItems = await this.loadCoursesFromRdb();
+      this.courses = this.sanitizeCourseItems(rdbItems);
+      this.isCoursesLoaded = true;
+      return this.courses;
+    }
     if (!this.isCoursesLoaded) {
       const stored = await LocalDataStore.loadArray<AdminCourseItem>(KEY_ADMIN_COURSES, mockAdminCourses);
       const sanitized = this.sanitizeCourseItems(stored);
@@ -79,7 +87,88 @@ export class AdminRepository extends BaseRepository {
   private async saveCourses(next: AdminCourseItem[]): Promise<void> {
     this.courses = next;
     this.isCoursesLoaded = true;
+    if (AppDatabase.isReady()) {
+      await this.saveCoursesToRdb(next);
+      return;
+    }
     await LocalDataStore.saveArray<AdminCourseItem>(KEY_ADMIN_COURSES, next);
+  }
+
+  // ============ 课程 RDB 持久化（AppDatabase 就绪时启用，否则回退 Preferences） ============
+
+  // 首次进入 RDB 模式时把内置课程灌入 courses 表，并用 app_meta 标记，避免删空后又被重新种子。
+  private async seedCoursesIfNeeded(): Promise<void> {
+    const resultSet = await AppDatabase.query(
+      `SELECT value FROM app_meta WHERE key = ${AppDatabase.sqlText(SEED_COURSES_FLAG)} LIMIT 1`
+    );
+    let seeded = false;
+    try {
+      seeded = resultSet.goToNextRow();
+    } finally {
+      resultSet.close();
+    }
+    if (seeded) {
+      return;
+    }
+    const seed = JSON.parse(JSON.stringify(mockAdminCourses)) as AdminCourseItem[];
+    for (let i = 0; i < seed.length; i++) {
+      await this.upsertCourseToRdb(seed[i]);
+    }
+    await AppDatabase.execute(
+      `INSERT OR REPLACE INTO app_meta (key, value, updated_at) VALUES (${AppDatabase.sqlText(SEED_COURSES_FLAG)}, '1', CURRENT_TIMESTAMP)`
+    );
+  }
+
+  private async loadCoursesFromRdb(): Promise<AdminCourseItem[]> {
+    const resultSet = await AppDatabase.query(
+      `SELECT course_id, code, name, teacher, category, credit, COALESCE(time_text, '') AS time_text, capacity, selected_count, status
+       FROM courses ORDER BY created_at DESC`
+    );
+    const items: AdminCourseItem[] = [];
+    try {
+      while (resultSet.goToNextRow()) {
+        const item: AdminCourseItem = {
+          id: resultSet.getString(resultSet.getColumnIndex('course_id')),
+          code: resultSet.getString(resultSet.getColumnIndex('code')),
+          name: resultSet.getString(resultSet.getColumnIndex('name')),
+          teacher: resultSet.getString(resultSet.getColumnIndex('teacher')),
+          category: resultSet.getString(resultSet.getColumnIndex('category')) as AdminCourseCategory,
+          credit: resultSet.getDouble(resultSet.getColumnIndex('credit')),
+          timeText: resultSet.getString(resultSet.getColumnIndex('time_text')),
+          capacity: resultSet.getLong(resultSet.getColumnIndex('capacity')),
+          selectedCount: resultSet.getLong(resultSet.getColumnIndex('selected_count')),
+          status: resultSet.getString(resultSet.getColumnIndex('status')) as AdminCourseStatus
+        };
+        items.push(item);
+      }
+    } finally {
+      resultSet.close();
+    }
+    return items;
+  }
+
+  private async upsertCourseToRdb(item: AdminCourseItem): Promise<void> {
+    await AppDatabase.execute(
+      `INSERT INTO courses (course_id, code, name, category, credit, teacher, capacity, selected_count, time_text, status, updated_at)
+       VALUES (${AppDatabase.sqlText(item.id)}, ${AppDatabase.sqlText(item.code)}, ${AppDatabase.sqlText(item.name)}, ${AppDatabase.sqlText(item.category)}, ${item.credit}, ${AppDatabase.sqlText(item.teacher)}, ${item.capacity}, ${item.selectedCount}, ${AppDatabase.sqlText(item.timeText)}, ${AppDatabase.sqlText(item.status)}, CURRENT_TIMESTAMP)
+       ON CONFLICT(course_id) DO UPDATE SET
+         code = excluded.code, name = excluded.name, category = excluded.category, credit = excluded.credit,
+         teacher = excluded.teacher, capacity = excluded.capacity, selected_count = excluded.selected_count,
+         time_text = excluded.time_text, status = excluded.status, updated_at = CURRENT_TIMESTAMP`
+    );
+  }
+
+  // 全量写回：逐条 UPSERT（按 course_id 原地更新，不触发 selections 外键删除），再删除 next 中不存在的课程（被删课程已校验无人选）。
+  private async saveCoursesToRdb(next: AdminCourseItem[]): Promise<void> {
+    for (let i = 0; i < next.length; i++) {
+      await this.upsertCourseToRdb(next[i]);
+    }
+    if (next.length > 0) {
+      const keepIds = next.map((c) => AppDatabase.sqlText(c.id)).join(', ');
+      await AppDatabase.execute(`DELETE FROM courses WHERE course_id NOT IN (${keepIds})`);
+    } else {
+      await AppDatabase.execute('DELETE FROM courses');
+    }
   }
 
   private hasCourseWritePermission(action: AdminPermissionAction): boolean {

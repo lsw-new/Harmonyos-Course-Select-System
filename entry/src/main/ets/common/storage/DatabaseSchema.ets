@@ -1,5 +1,5 @@
 export const DATABASE_NAME: string = 'dtest2_app.db';
-export const DATABASE_VERSION: number = 1;
+export const DATABASE_VERSION: number = 2;
 export const DATABASE_SCHEMA_VERSION_KEY: string = 'schema.version';
 
 export const DATABASE_SCHEMA_SQL: string[] = [
@@ -87,6 +87,8 @@ export const DATABASE_SCHEMA_SQL: string[] = [
     period_end INTEGER,
     weekday INTEGER,
     capacity INTEGER NOT NULL DEFAULT 0,
+    selected_count INTEGER NOT NULL DEFAULT 0,
+    time_text TEXT,
     status TEXT NOT NULL DEFAULT 'draft',
     description TEXT,
     assessment_json TEXT,

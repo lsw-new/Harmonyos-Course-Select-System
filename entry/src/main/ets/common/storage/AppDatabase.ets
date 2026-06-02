@@ -70,12 +70,59 @@ export class AppDatabase {
 
   private static async applySchema(store: relationalStore.RdbStore): Promise<void> {
     await store.executeSql('PRAGMA foreign_keys = ON');
+    const previousVersion = await AppDatabase.readUserVersion(store);
     for (let i = 0; i < DATABASE_SCHEMA_SQL.length; i++) {
       await store.executeSql(DATABASE_SCHEMA_SQL[i]);
     }
+    await AppDatabase.migrateSchema(store, previousVersion);
     await store.executeSql(`PRAGMA user_version = ${DATABASE_VERSION}`);
     await store.executeSql(
       `INSERT OR REPLACE INTO app_meta (key, value, updated_at) VALUES ('${DATABASE_SCHEMA_VERSION_KEY}', '${DATABASE_VERSION}', CURRENT_TIMESTAMP)`
     );
+  }
+
+  private static async readUserVersion(store: relationalStore.RdbStore): Promise<number> {
+    const resultSet = await store.querySql('PRAGMA user_version');
+    try {
+      if (resultSet.goToNextRow()) {
+        return resultSet.getLong(0);
+      }
+      return 0;
+    } finally {
+      resultSet.close();
+    }
+  }
+
+  // 旧库升级：v1 的 courses 表补充 selected_count / time_text 列。
+  // 全新库（previousVersion=0）由 CREATE TABLE 直接建好这两列，无需迁移。
+  private static async migrateSchema(store: relationalStore.RdbStore, previousVersion: number): Promise<void> {
+    if (previousVersion >= 1 && previousVersion < 2) {
+      await AppDatabase.addColumnIfMissing(store, 'courses', 'selected_count', 'INTEGER NOT NULL DEFAULT 0');
+      await AppDatabase.addColumnIfMissing(store, 'courses', 'time_text', 'TEXT');
+    }
+  }
+
+  private static async addColumnIfMissing(
+    store: relationalStore.RdbStore,
+    table: string,
+    column: string,
+    declaration: string
+  ): Promise<void> {
+    const resultSet = await store.querySql(`PRAGMA table_info(${table})`);
+    let exists = false;
+    try {
+      const nameIndex = resultSet.getColumnIndex('name');
+      while (resultSet.goToNextRow()) {
+        if (resultSet.getString(nameIndex) === column) {
+          exists = true;
+          break;
+        }
+      }
+    } finally {
+      resultSet.close();
+    }
+    if (!exists) {
+      await store.executeSql(`ALTER TABLE ${table} ADD COLUMN ${column} ${declaration}`);
+    }
   }
 }
