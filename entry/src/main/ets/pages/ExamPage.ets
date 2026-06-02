@@ -3,7 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { ExamArrangement } from '../models/Academic';
 import { DateUtils } from '../common/utils/DateUtils';
@@ -17,6 +17,9 @@ struct ExamPage {
   @State errorMsg: string = '';
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Exam)) {
+      return;
+    }
     this.loadData();
   }
 

@@ -1,5 +1,7 @@
 // 学业 · 成绩、考试、学籍
 
+export type GradePublishStatus = 'draft' | 'published' | 'pendingAudit' | 'inputting' | 'appealed' | 'rejected';
+
 export interface GradeRecord {
   id: string;
   term: string;
@@ -14,6 +16,9 @@ export interface GradeRecord {
   finalScore?: number | string;
   gradePoint?: number | string;
   rank?: number;
+  // 发布状态：仅 published 的成绩对学生可见
+  status?: GradePublishStatus;
+  publishedAt?: string;
 }
 
 export interface GradeSummary {

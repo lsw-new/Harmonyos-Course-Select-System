@@ -3,7 +3,7 @@
 import { BaseRepository } from './BaseRepository';
 import {
   AdminDashboardSummary, StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound,
-  GradeAuditItem, GradeInputPayload, GradeRejectPayload, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
+  GradeAuditItem, GradeAuditStatus, GradeInputPayload, GradeRejectPayload, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
   AdminPermissionAction, AdminCourseCategory, AdminCourseStatus
 } from '../models/Admin';
 import { LeaveRequest, ApprovalState } from '../models/Misc';
@@ -58,6 +58,19 @@ export class AdminRepository extends BaseRepository {
   }
 
   private async getGradeItems(): Promise<GradeAuditItem[]> {
+    if (AppDatabase.isReady()) {
+      const rdbItems = await this.loadGradeTasksFromRdb();
+      if (rdbItems.length > 0) {
+        const stored = await LocalDataStore.loadArray<GradeAuditItem>(KEY_ADMIN_GRADES, []);
+        this.grades = this.mergeGradeItems(rdbItems, this.mergeGradeItems(stored, mockGradeAudits));
+      } else {
+        const stored = await LocalDataStore.loadArray<GradeAuditItem>(KEY_ADMIN_GRADES, mockGradeAudits);
+        const sanitized = this.sanitizeGradeItems(stored);
+        this.grades = sanitized.length > 0 ? sanitized : JSON.parse(JSON.stringify(mockGradeAudits)) as GradeAuditItem[];
+      }
+      this.isGradesLoaded = true;
+      return this.grades;
+    }
     if (!this.isGradesLoaded) {
       const stored = await LocalDataStore.loadArray<GradeAuditItem>(KEY_ADMIN_GRADES, mockGradeAudits);
       const sanitized = this.sanitizeGradeItems(stored);
@@ -65,6 +78,109 @@ export class AdminRepository extends BaseRepository {
       this.isGradesLoaded = true;
     }
     return this.grades;
+  }
+
+  // 从 grade_tasks 表加载成绩审核任务列表
+  private async loadGradeTasksFromRdb(): Promise<GradeAuditItem[]> {
+    const resultSet = await AppDatabase.query(
+      `SELECT
+         gt.task_id,
+         COALESCE(c.name, '') AS course_name,
+         COALESCE(gt.teaching_class_name, '') AS teaching_class_name,
+         COALESCE(gt.teacher_name, '') AS teacher_name,
+         gt.input_progress,
+         gt.status,
+         gt.updated_at,
+         COALESCE(gt.reject_reason, '') AS reject_reason
+       FROM grade_tasks gt
+       LEFT JOIN courses c ON c.course_id = gt.course_id
+       ORDER BY gt.updated_at DESC`
+    );
+    const items: GradeAuditItem[] = [];
+    try {
+      while (resultSet.goToNextRow()) {
+        const status = resultSet.getString(resultSet.getColumnIndex('status')) as GradeAuditStatus;
+        const rejectReason = resultSet.getString(resultSet.getColumnIndex('reject_reason'));
+        const item: GradeAuditItem = {
+          id: resultSet.getString(resultSet.getColumnIndex('task_id')),
+          courseName: resultSet.getString(resultSet.getColumnIndex('course_name')),
+          teachingClassName: resultSet.getString(resultSet.getColumnIndex('teaching_class_name')),
+          teacherName: resultSet.getString(resultSet.getColumnIndex('teacher_name')),
+          inputProgress: resultSet.getLong(resultSet.getColumnIndex('input_progress')),
+          status: status,
+          updatedAt: resultSet.getString(resultSet.getColumnIndex('updated_at'))
+        };
+        if (status === 'rejected' && rejectReason.length > 0) {
+          item.rejectReason = rejectReason;
+        }
+        items.push(item);
+      }
+    } finally {
+      resultSet.close();
+    }
+    return items;
+  }
+
+  // 合并 grade 列表，以 localItems 中的条目优先（local 覆盖 seed 同 id）
+  private mergeGradeItems(localItems: GradeAuditItem[], seedItems: GradeAuditItem[]): GradeAuditItem[] {
+    const result: GradeAuditItem[] = JSON.parse(JSON.stringify(localItems)) as GradeAuditItem[];
+    seedItems.forEach((item) => {
+      const exists = result.some((cur) => cur.id === item.id);
+      if (!exists) {
+        result.push(item);
+      }
+    });
+    return result;
+  }
+
+  // approve 时：若 RDB 就绪，尝试批量将该任务关联课程的所有选课学生的成绩行置为 published
+  private async publishGradesToRdb(taskId: string): Promise<void> {
+    // 1. 从 grade_tasks 找 course_id
+    const taskResultSet = await AppDatabase.query(
+      `SELECT course_id FROM grade_tasks WHERE task_id = ${AppDatabase.sqlText(taskId)} LIMIT 1`
+    );
+    let courseId = '';
+    try {
+      if (taskResultSet.goToNextRow()) {
+        courseId = taskResultSet.getString(taskResultSet.getColumnIndex('course_id'));
+      }
+    } finally {
+      taskResultSet.close();
+    }
+    if (courseId.length === 0) {
+      // grade_tasks 中无此任务或无 course_id，跳过 grades 写入
+      return;
+    }
+    // 2. 更新 grade_tasks 状态
+    await AppDatabase.execute(
+      `UPDATE grade_tasks SET status = 'published', updated_at = CURRENT_TIMESTAMP WHERE task_id = ${AppDatabase.sqlText(taskId)}`
+    );
+    // 3. 将该课程下所有 grades 行置为 published（若存在）
+    await AppDatabase.execute(
+      `UPDATE grades SET status = 'published', published_at = CURRENT_TIMESTAMP WHERE course_id = ${AppDatabase.sqlText(courseId)} AND status != 'published'`
+    );
+  }
+
+  // 更新 grade_tasks 表状态（用于 inputGrade / rejectGrade）
+  private async updateGradeTaskStatusInRdb(taskId: string, status: string, rejectReason?: string): Promise<void> {
+    const taskResultSet = await AppDatabase.query(
+      `SELECT task_id FROM grade_tasks WHERE task_id = ${AppDatabase.sqlText(taskId)} LIMIT 1`
+    );
+    let exists = false;
+    try {
+      exists = taskResultSet.goToNextRow();
+    } finally {
+      taskResultSet.close();
+    }
+    if (!exists) {
+      return;
+    }
+    const reasonSql = rejectReason !== undefined
+      ? `, reject_reason = ${AppDatabase.sqlText(rejectReason)}`
+      : '';
+    await AppDatabase.execute(
+      `UPDATE grade_tasks SET status = ${AppDatabase.sqlText(status)}, updated_at = CURRENT_TIMESTAMP${reasonSql} WHERE task_id = ${AppDatabase.sqlText(taskId)}`
+    );
   }
 
   private async getCourseItems(): Promise<AdminCourseItem[]> {
@@ -722,6 +838,14 @@ export class AdminRepository extends BaseRepository {
       return updated;
     });
     await this.saveGrades(next);
+    // RDB 就绪时同步 grade_tasks + grades 表
+    if (AppDatabase.isReady()) {
+      await this.publishGradesToRdb(id).catch((err: Object) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        // 非阻断：RDB 写入失败不影响 LocalDataStore 已保存的状态
+        console.warn(`[AdminRepository] publishGradesToRdb failed: ${msg}`);
+      });
+    }
     return this.delay<boolean>(true);
   }
 
@@ -752,6 +876,13 @@ export class AdminRepository extends BaseRepository {
     };
     const next = grades.map((item) => item.id === payload.id ? updated : item);
     await this.saveGrades(next);
+    // RDB 就绪时同步 grade_tasks 状态
+    if (AppDatabase.isReady()) {
+      await this.updateGradeTaskStatusInRdb(payload.id, nextStatus).catch((err: Object) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[AdminRepository] updateGradeTaskStatusInRdb failed: ${msg}`);
+      });
+    }
     return this.delayCopy<GradeAuditItem>(updated);
   }
 
@@ -793,6 +924,13 @@ export class AdminRepository extends BaseRepository {
       return updated;
     });
     await this.saveGrades(next);
+    // RDB 就绪时同步 grade_tasks 状态（含驳回理由）
+    if (AppDatabase.isReady()) {
+      await this.updateGradeTaskStatusInRdb(payload.id, 'rejected', normalizedReason).catch((err: Object) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[AdminRepository] updateGradeTaskStatusInRdb(reject) failed: ${msg}`);
+      });
+    }
     return this.delay<boolean>(true);
   }
 

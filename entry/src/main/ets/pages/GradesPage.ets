@@ -3,7 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, Pill } from '../common/Components';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
-import { AppRoute } from '../app/AppRoute';
+import { AppRoute, Routes } from '../app/AppRoute';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { GradeRecord, GradeSummary } from '../models/Academic';
 
@@ -20,6 +20,9 @@ struct GradesPage {
   private terms: string[] = ['全部', '2025-2026-1', '2025-2026-2'];
 
   aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Grades)) {
+      return;
+    }
     this.loadData();
   }
 

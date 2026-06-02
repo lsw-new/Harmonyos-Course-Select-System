@@ -1,35 +1,41 @@
 import { GradeRecord, GradeSummary, ExamArrangement, StudentRecord } from '../models/Academic';
 
+// 仅 status === 'published' 的成绩对学生端可见
 export const mockGrades: GradeRecord[] = [
   {
     id: 'g-1', term: '2025-2026-1',
     courseCode: 'CS101', teachingClassNo: '01', courseName: '数据结构与算法',
     courseCategory: '必修', credit: 4,
-    midtermScore: 86, finalExamScore: 92, totalScore: 90, finalScore: 90, gradePoint: 3.9
+    midtermScore: 86, finalExamScore: 92, totalScore: 90, finalScore: 90, gradePoint: 3.9,
+    status: 'published', publishedAt: '2026-01-20T10:00:00.000Z'
   },
   {
     id: 'g-2', term: '2025-2026-1',
     courseCode: 'LIT201', teachingClassNo: '02', courseName: '中国古典文学赏析',
     courseCategory: '选修', credit: 2,
-    midtermScore: 88, finalExamScore: 95, totalScore: 92, finalScore: 92, gradePoint: 4.0
+    midtermScore: 88, finalExamScore: 95, totalScore: 92, finalScore: 92, gradePoint: 4.0,
+    status: 'published', publishedAt: '2026-01-20T10:00:00.000Z'
   },
   {
     id: 'g-3', term: '2025-2026-1',
     courseCode: 'MATH101', teachingClassNo: '03', courseName: '高等数学（上）',
     courseCategory: '必修', credit: 5,
-    midtermScore: 78, finalExamScore: 81, totalScore: 80, finalScore: 80, gradePoint: 3.3
+    midtermScore: 78, finalExamScore: 81, totalScore: 80, finalScore: 80, gradePoint: 3.3,
+    status: 'published', publishedAt: '2026-01-20T10:00:00.000Z'
   },
   {
     id: 'g-4', term: '2025-2026-1',
     courseCode: 'PE001', teachingClassNo: '01', courseName: '形体训练',
     courseCategory: '必修', credit: 1,
-    totalScore: '合格', finalScore: '合格'
+    totalScore: '合格', finalScore: '合格',
+    status: 'published', publishedAt: '2026-01-20T10:00:00.000Z'
   },
   {
     id: 'g-5', term: '2025-2026-2',
     courseCode: 'ENG201', teachingClassNo: '04', courseName: '大学英语 III',
     courseCategory: '必修', credit: 3,
-    totalScore: '暂未发布'
+    totalScore: '暂未发布',
+    status: 'pendingAudit'
   }
 ];
 
