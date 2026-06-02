@@ -35,6 +35,8 @@ export class AppStartup {
     await preferences.init(context);
     const session = SessionStorage.get();
     await session.restore();
+    // 用安全存储对齐 token（Asset Store Kit 为权威来源，旧会话回填迁移）
+    await session.reconcileSecureToken();
     if (session.getRole() === 'student' && session.getStudent() === undefined) {
       const profile = await ProfileRepository.get().getProfile();
       await session.restoreProfileIfMissing(profile, undefined);

@@ -3,6 +3,7 @@
 import { UserProfile, UserRole } from '../../models/User';
 import { AdminProfile } from '../../models/Admin';
 import { PreferenceStorage } from './PreferenceStorage';
+import { AssetTokenStore } from '../security/AssetTokenStore';
 
 const KEY_TOKEN = 'session.token';
 const KEY_ROLE = 'session.role';
@@ -59,6 +60,32 @@ export class SessionStorage {
     } else if (this.role === 'admin') {
       const raw = await prefs.getString(KEY_ADMIN_PROFILE);
       this.adminProfile = this.parseAdminProfile(raw);
+    }
+  }
+
+  // 用安全存储(AssetTokenStore)对齐会话 token：
+  // 安全 store 有 token → 以其为权威来源；仅 Preferences 有(旧版本升级场景) → 回填安全 store 完成迁移。
+  // 在 restore() 之后调用，使 token 的读取路径经过 Asset Store Kit。
+  async reconcileSecureToken(): Promise<void> {
+    if (this.role === undefined) {
+      return;
+    }
+    let secure: string | undefined = undefined;
+    if (this.role === 'admin') {
+      secure = await AssetTokenStore.getAdminToken();
+    } else {
+      secure = await AssetTokenStore.getStudentToken();
+    }
+    if (secure !== undefined && secure.length > 0) {
+      this.token = secure;
+      return;
+    }
+    if (this.token !== undefined && this.token.length > 0) {
+      if (this.role === 'admin') {
+        await AssetTokenStore.setAdminToken(this.token);
+      } else {
+        await AssetTokenStore.setStudentToken(this.token);
+      }
     }
   }
 
@@ -215,6 +242,8 @@ export class SessionStorage {
     await prefs.remove(KEY_ROLE);
     await prefs.remove(KEY_STUDENT_PROFILE);
     await prefs.remove(KEY_ADMIN_PROFILE);
+    // 一并清除安全存储中的 token，避免清空会话后残留
+    await AssetTokenStore.clear();
   }
 
   async saveRememberId(studentId: string): Promise<void> {
