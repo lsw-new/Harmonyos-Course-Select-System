@@ -22,4 +22,14 @@ function authRequired(req, res, next) {
   }
 }
 
-module.exports = { signToken, authRequired };
+// 管理端中间件：先校验登录态，再要求 role=admin
+function adminRequired(req, res, next) {
+  authRequired(req, res, () => {
+    if (!req.auth || req.auth.role !== 'admin') {
+      return res.status(403).json(fail('需要管理员权限', 'forbidden'));
+    }
+    next();
+  });
+}
+
+module.exports = { signToken, authRequired, adminRequired };

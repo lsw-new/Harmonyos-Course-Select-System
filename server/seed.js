@@ -48,6 +48,14 @@ async function main() {
        ('prac-002','鸿蒙应用开发企业实习','华为技术有限公司','internship',4.0,'2026 春季','南昌','王工',10,'参与 HarmonyOS 应用开发实战项目。', '["熟悉 ArkTS","有项目经验优先"]'::jsonb)`
   );
   console.log('demo practice projects seeded: 2');
+  // 演示成绩审核任务（幂等）：一条待审、一条录入中
+  await pool.query(`DELETE FROM dtest2.grade_tasks WHERE task_id IN ('gt-cs101','gt-se201')`);
+  await pool.query(
+    `INSERT INTO dtest2.grade_tasks (task_id, course_id, term, teaching_class_name, teacher_name, input_progress, status) VALUES
+       ('gt-cs101','course-cs101','2025-2026-1','CS101-01','王鑫',100,'pendingAudit'),
+       ('gt-se201','course-se201','2025-2026-1','SE201-01','黄卫东',60,'inputting')`
+  );
+  console.log('demo grade tasks seeded: 2');
   await pool.end();
   console.log('seed done');
 }

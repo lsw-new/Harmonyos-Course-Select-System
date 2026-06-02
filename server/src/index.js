@@ -6,7 +6,7 @@ const cors = require('cors');
 const { pool } = require('./db');
 const { ok, fail } = require('./envelope');
 const { verifyPassword } = require('./hash');
-const { signToken, authRequired } = require('./auth');
+const { signToken, authRequired, adminRequired } = require('./auth');
 
 const app = express();
 app.use(cors());
@@ -379,7 +379,7 @@ app.get('/api/leave', authRequired, async (req, res) => {
   }
 });
 
-// ---- 提交请假 ----
+// ---- 提交请假（事务内同步创建审批实例，leave -> approval 闭环）----
 const LEAVE_TYPES = ['sick', 'personal', 'public', 'other'];
 app.post('/api/leave', authRequired, async (req, res) => {
   const b = req.body || {};
@@ -394,18 +394,40 @@ app.post('/api/leave', authRequired, async (req, res) => {
   if (LEAVE_TYPES.indexOf(type) < 0) {
     return res.status(400).json(fail('请假类型不合法'));
   }
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const leaveId = `lv-${Date.now()}`;
-    const r = await pool.query(
+    const r = await client.query(
       `INSERT INTO dtest2.leave_requests (leave_id, student_id, type, start_date, end_date, reason, status, submitted_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, 'pending', now(), now())
        RETURNING leave_id, type, to_char(start_date, 'YYYY-MM-DD') AS start_date, to_char(end_date, 'YYYY-MM-DD') AS end_date,
                  reason, status, COALESCE(feedback, '') AS feedback, submitted_at`,
       [leaveId, studentId, type, startDate, endDate, reason]
     );
+    const nameRow = await client.query(`SELECT name FROM dtest2.student_profiles WHERE student_id=$1`, [studentId]);
+    const applicantName = nameRow.rowCount > 0 ? nameRow.rows[0].name : studentId;
+    const approvalId = `ap-${leaveId}`;
+    await client.query(
+      `INSERT INTO dtest2.approval_instances
+        (approval_id, biz_type, biz_id, applicant_id, applicant_name, title, reason, status, is_urgent, current_step, submitted_at, updated_at)
+       VALUES ($1, 'leave', $2, $3, $4, $5, $6, 'pending', false, 1, now(), now())
+       ON CONFLICT (biz_type, biz_id) DO NOTHING`,
+      [approvalId, leaveId, studentId, applicantName, leaveTypeLabel(type) + '请假申请', reason]
+    );
+    await client.query(
+      `INSERT INTO dtest2.approval_steps (step_id, approval_id, step_order, node_name, approver_role, status)
+       VALUES ($1, $2, 1, '教务审批', '教务管理员', 'pending')
+       ON CONFLICT (approval_id, step_order) DO NOTHING`,
+      [`step-${approvalId}-1`, approvalId]
+    );
+    await client.query('COMMIT');
     res.json(ok(mapLeave(r.rows[0])));
   } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
     res.status(500).json(fail('提交请假失败：' + e.message));
+  } finally {
+    client.release();
   }
 });
 
@@ -680,6 +702,233 @@ app.delete('/api/practice/:id/signup', authRequired, async (req, res) => {
   } catch (e) {
     res.status(500).json(fail('取消报名失败：' + e.message));
   }
+});
+
+// ================= 管理端域（需 role=admin）=================
+
+function leaveTypeLabel(type) {
+  if (type === 'sick') return '病假';
+  if (type === 'personal') return '事假';
+  if (type === 'public') return '公假';
+  return '其他';
+}
+
+function mapStudent(row) {
+  return {
+    studentId: row.student_id,
+    name: row.name,
+    college: row.college,
+    major: row.major,
+    className: row.class_name,
+    status: 'active',
+    educationLevel: 'undergraduate'
+  };
+}
+
+function mapGradeTask(row) {
+  const item = {
+    id: row.task_id,
+    courseName: row.course_name || '',
+    teachingClassName: row.teaching_class_name,
+    teacherName: row.teacher_name,
+    inputProgress: row.input_progress,
+    status: row.status,
+    updatedAt: row.updated_at
+  };
+  if (row.reject_reason) {
+    item.rejectReason = row.reject_reason;
+  }
+  return item;
+}
+
+function mapApproval(row) {
+  return {
+    id: row.approval_id,
+    type: row.biz_type === 'leave' ? '请假' : row.biz_type,
+    applicantName: row.applicant_name,
+    applicantId: row.applicant_id,
+    title: row.title,
+    reason: row.reason || '',
+    status: row.status,
+    isUrgent: row.is_urgent === true,
+    submittedAt: row.submitted_at
+  };
+}
+
+// ---- 学生管理（列表）----
+app.get('/api/admin/students', adminRequired, async (req, res) => {
+  const q = req.query.q ? String(req.query.q) : null;
+  const college = req.query.college ? String(req.query.college) : null;
+  try {
+    const r = await pool.query(
+      `SELECT student_id, name, college, major, class_name, grade FROM dtest2.student_profiles
+       WHERE ($1::text IS NULL OR name ILIKE '%'||$1||'%' OR student_id ILIKE '%'||$1||'%' OR class_name ILIKE '%'||$1||'%')
+         AND ($2::text IS NULL OR college = $2)
+       ORDER BY student_id`,
+      [q, college]
+    );
+    res.json(ok(r.rows.map(mapStudent)));
+  } catch (e) {
+    res.status(500).json(fail('查询学生失败：' + e.message));
+  }
+});
+
+// ---- 成绩审核（列表）----
+app.get('/api/admin/grades', adminRequired, async (req, res) => {
+  const status = req.query.status ? String(req.query.status) : null;
+  try {
+    const r = await pool.query(
+      `SELECT gt.task_id, gt.teaching_class_name, gt.teacher_name, gt.input_progress, gt.status, gt.reject_reason, gt.updated_at,
+              COALESCE(c.name, '') AS course_name
+       FROM dtest2.grade_tasks gt LEFT JOIN dtest2.courses c ON c.course_id = gt.course_id
+       WHERE ($1::text IS NULL OR gt.status = $1)
+       ORDER BY gt.updated_at DESC`,
+      [status]
+    );
+    res.json(ok(r.rows.map(mapGradeTask)));
+  } catch (e) {
+    res.status(500).json(fail('查询成绩审核失败：' + e.message));
+  }
+});
+
+// ---- 成绩录入 ----
+app.post('/api/admin/grades/:id/input', adminRequired, async (req, res) => {
+  const inputProgress = Number((req.body || {}).inputProgress);
+  if (!Number.isInteger(inputProgress) || inputProgress < 0 || inputProgress > 100) {
+    return res.status(400).json(fail('录入进度需为 0-100 的整数'));
+  }
+  try {
+    const cur = await pool.query(`SELECT status FROM dtest2.grade_tasks WHERE task_id=$1`, [req.params.id]);
+    if (cur.rowCount === 0) {
+      return res.status(404).json(fail('成绩任务不存在'));
+    }
+    const st = cur.rows[0].status;
+    if (st !== 'inputting' && st !== 'rejected' && st !== 'appealed') {
+      return res.status(409).json(fail('当前状态不可录入'));
+    }
+    const nextStatus = inputProgress === 100 ? 'pendingAudit' : 'inputting';
+    await pool.query(
+      `UPDATE dtest2.grade_tasks SET input_progress=$2, status=$3, reject_reason=NULL, updated_at=now() WHERE task_id=$1`,
+      [req.params.id, inputProgress, nextStatus]
+    );
+    const updated = await pool.query(
+      `SELECT gt.task_id, gt.teaching_class_name, gt.teacher_name, gt.input_progress, gt.status, gt.reject_reason, gt.updated_at,
+              COALESCE(c.name, '') AS course_name
+       FROM dtest2.grade_tasks gt LEFT JOIN dtest2.courses c ON c.course_id = gt.course_id WHERE gt.task_id=$1`,
+      [req.params.id]
+    );
+    res.json(ok(mapGradeTask(updated.rows[0])));
+  } catch (e) {
+    res.status(500).json(fail('录入成绩失败：' + e.message));
+  }
+});
+
+// ---- 成绩审核通过 ----
+app.post('/api/admin/grades/:id/approve', adminRequired, async (req, res) => {
+  try {
+    const cur = await pool.query(`SELECT status, input_progress FROM dtest2.grade_tasks WHERE task_id=$1`, [req.params.id]);
+    if (cur.rowCount === 0) {
+      return res.status(404).json(fail('成绩任务不存在'));
+    }
+    if (cur.rows[0].status !== 'pendingAudit') {
+      return res.status(409).json(fail('当前状态不可审核'));
+    }
+    if (cur.rows[0].input_progress !== 100) {
+      return res.status(409).json(fail('录入进度达到 100% 后才能审核通过'));
+    }
+    await pool.query(`UPDATE dtest2.grade_tasks SET status='published', updated_at=now() WHERE task_id=$1`, [req.params.id]);
+    res.json(ok({ approved: true }));
+  } catch (e) {
+    res.status(500).json(fail('审核成绩失败：' + e.message));
+  }
+});
+
+// ---- 成绩驳回 ----
+app.post('/api/admin/grades/:id/reject', adminRequired, async (req, res) => {
+  const reason = ((req.body || {}).reason || '').trim();
+  if (!reason) {
+    return res.status(400).json(fail('请填写驳回理由'));
+  }
+  try {
+    const cur = await pool.query(`SELECT status FROM dtest2.grade_tasks WHERE task_id=$1`, [req.params.id]);
+    if (cur.rowCount === 0) {
+      return res.status(404).json(fail('成绩任务不存在'));
+    }
+    if (cur.rows[0].status !== 'pendingAudit') {
+      return res.status(409).json(fail('当前状态不可驳回'));
+    }
+    await pool.query(`UPDATE dtest2.grade_tasks SET status='rejected', reject_reason=$2, updated_at=now() WHERE task_id=$1`, [req.params.id, reason]);
+    res.json(ok({ rejected: true }));
+  } catch (e) {
+    res.status(500).json(fail('驳回成绩失败：' + e.message));
+  }
+});
+
+// ---- 审批（列表）----
+app.get('/api/admin/approvals', adminRequired, async (req, res) => {
+  const status = req.query.status ? String(req.query.status) : null;
+  try {
+    const r = await pool.query(
+      `SELECT approval_id, biz_type, applicant_name, applicant_id, title, COALESCE(reason, '') AS reason, status, is_urgent, submitted_at
+       FROM dtest2.approval_instances WHERE ($1::text IS NULL OR status = $1) ORDER BY submitted_at DESC`,
+      [status]
+    );
+    res.json(ok(r.rows.map(mapApproval)));
+  } catch (e) {
+    res.status(500).json(fail('查询审批失败：' + e.message));
+  }
+});
+
+async function handleApproval(req, res, newStatus, comment) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const cur = await client.query(`SELECT status, biz_type, biz_id FROM dtest2.approval_instances WHERE approval_id=$1`, [req.params.id]);
+    if (cur.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json(fail('审批记录不存在'));
+    }
+    if (cur.rows[0].status !== 'pending') {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail('当前状态不可操作'));
+    }
+    await client.query(`UPDATE dtest2.approval_instances SET status=$2, updated_at=now() WHERE approval_id=$1`, [req.params.id, newStatus]);
+    await client.query(
+      `UPDATE dtest2.approval_steps SET status=$2, comment=$3, handled_at=now() WHERE approval_id=$1 AND step_order=1`,
+      [req.params.id, newStatus, comment]
+    );
+    if (cur.rows[0].biz_type === 'leave') {
+      await client.query(
+        `UPDATE dtest2.leave_requests SET status=$2, feedback=$3, updated_at=now() WHERE leave_id=$1`,
+        [cur.rows[0].biz_id, newStatus, comment]
+      );
+    }
+    await client.query('COMMIT');
+    res.json(ok({ handled: true, status: newStatus }));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    res.status(500).json(fail('审批处理失败：' + e.message));
+  } finally {
+    client.release();
+  }
+}
+
+// ---- 审批通过 ----
+app.post('/api/admin/approvals/:id/approve', adminRequired, async (req, res) => {
+  const comment = ((req.body || {}).comment || '').trim();
+  if (!comment) {
+    return res.status(400).json(fail('请填写审批意见'));
+  }
+  await handleApproval(req, res, 'approved', comment);
+});
+
+// ---- 审批驳回 ----
+app.post('/api/admin/approvals/:id/reject', adminRequired, async (req, res) => {
+  const comment = ((req.body || {}).comment || '').trim();
+  if (!comment) {
+    return res.status(400).json(fail('请填写驳回意见'));
+  }
+  await handleApproval(req, res, 'rejected', comment);
 });
 
 const PORT = parseInt(process.env.PORT || '8090', 10);
