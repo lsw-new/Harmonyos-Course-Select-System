@@ -36,7 +36,7 @@
 
 ## 技术架构
 
-应用采用分层架构，UI 与数据解耦：未来只需把 `AppConfig.useMock` 置为 `false`，即可由 mock 平滑切换到真实后端。
+应用采用分层架构，UI 与数据解耦。**当前数据模式**：`AppConfig.useMock = true`，所有数据来自本地 mock + Preferences 持久化 + 本地 RDB（RelationalStore，courses / selections 表），**App 不直连任何远程数据库或后端服务器**。若需接入真实后端，仅需将 `AppConfig.useMock` 置为 `false` 并实现 `HttpClient` 分支。
 
 ```text
 entry/src/main/ets/
@@ -51,7 +51,7 @@ entry/src/main/ets/
 │   ├── widgets/    # AppIcon 图标 · StateViews 加载/空/错状态 · TabBars 底部导航
 │   ├── constants/  # 颜色 / 尺寸 / 文字样式 token
 │   └── Components.ets · Theme.ets   # 通用组件库与主题
-└── pages/          # 34 个页面（学生端 + 管理端）
+└── pages/          # 42 个页面（学生端 + 管理端）
 ```
 
 **数据流**：`页面 (@Entry/@Component)` → `XxxRepository.get().method()` → `mock 数据` 或 `HttpClient`（真实后端）。
@@ -67,23 +67,27 @@ entry/src/main/ets/
 
 ### 学生端
 
+> 以下功能均为**本地 mock 原型演示**；课程目录与选课关系额外落本地 RDB（courses / selections 表）。
+
 - 用户认证：登录、注册、忘记密码
 - 首页工作台：教学周信息、快捷入口、今日课程、通知摘要
-- 课程模块：我的课表、课程详情、选课中心
-- 学业信息：成绩查询、考试安排、学籍信息
-- 评教与杂项：评教问卷、请假申请、意见反馈、实践公服
+- 课程模块：我的课表、课程详情、选课中心（含选课事务校验：轮次、容量、学分上限、时间冲突）
+- 学业信息：成绩查询、考试安排、学籍信息（mock 数据展示）
+- 评教与杂项：评教问卷、请假申请、意见反馈、实践公服（mock 演示）
 - 个人中心：个人信息、账户安全、资料修改、密码修改、系统设置
 
 ### 管理端
 
-- 管理员认证：工号密码登录、图形验证码
-- 管理仪表盘：统计卡片、选课趋势、课程类型分布
-- 学生管理：学生列表、搜索筛选、学籍操作
-- 课程管理：课程新增、编辑、删除
-- 选课管理：选课数据统计、人工调整
-- 成绩管理：成绩录入、成绩审核
-- 通知发布：通知编辑、发布范围选择
-- 审批管理：审批中心、审批详情、通过与驳回操作
+> 以下功能均为**本地 mock 原型演示**，数据存于本地 RDB / Preferences，不涉及真实后端。
+
+- 管理员认证：工号密码登录、图形验证码（任意 4 位即可）
+- 管理仪表盘：统计卡片、选课趋势、课程类型分布（mock 数据）
+- 学生管理：学生列表、搜索筛选、学籍操作（mock 数据）
+- 课程管理：课程新增、编辑、删除（落本地 RDB courses 表）
+- 选课管理：选课数据统计、人工调整（落本地 RDB selections 表）
+- 成绩管理：成绩录入、成绩审核（mock 演示）
+- 通知发布：通知编辑、发布范围选择（mock 演示）
+- 审批管理：审批中心、审批详情、通过与驳回操作（mock 演示）
 
 ## UI 页面设计展示
 
@@ -249,42 +253,52 @@ entry/src/main/ets/
 
 ## 完整页面清单
 
-| 序号 | 页面 | 角色 | 来源文件 |
+> 「ArkTS 文件」列为实际工程页面文件，位于 `entry/src/main/ets/pages/`。
+
+| 序号 | 页面 | 角色 | ArkTS 文件 |
 | --- | --- | --- | --- |
-| 1 | 学生登录 LoginScreen | 学生 | screens-auth.jsx |
-| 2 | 注册 RegisterScreen | 学生 | screens-auth.jsx |
-| 3 | 忘记密码 ForgotScreen | 学生 | screens-auth.jsx |
-| 4 | 首页工作台 HomeScreen | 学生 | screens-home.jsx |
-| 5 | 今日课程 TodayScreen | 学生 | screens-home.jsx |
-| 6 | 通知列表 NotificationsScreen | 学生 | screens-home.jsx |
-| 7 | 通知详情 NoticeDetailScreen | 学生 | screens-home.jsx |
-| 8 | 我的课表 ScheduleScreen | 学生 | screens-courses.jsx |
-| 9 | 课程详情 CourseDetailScreen | 学生 | screens-courses.jsx |
-| 10 | 选课中心 SelectionScreen | 学生 | screens-courses.jsx |
-| 11 | 成绩查询 GradesScreen | 学生 | screens-academics.jsx |
-| 12 | 考试安排 ExamScreen | 学生 | screens-academics.jsx |
-| 13 | 学籍信息 RosterScreen | 学生 | screens-academics.jsx |
-| 14 | 评教列表 EvalListScreen | 学生 | screens-misc.jsx |
-| 15 | 评教问卷 EvalFormScreen | 学生 | screens-misc.jsx |
-| 16 | 请假申请 LeaveScreen | 学生 | screens-misc.jsx |
-| 17 | 意见反馈 FeedbackScreen | 学生 | screens-misc.jsx |
-| 18 | 实践公服 PracticeScreen | 学生 | screens-misc.jsx |
-| 19 | 我的 MineScreen | 学生 | screens-profile.jsx |
-| 20 | 我的账户 AccountScreen | 学生 | screens-profile.jsx |
-| 21 | 修改资料 EditInfoScreen | 学生 | screens-profile.jsx |
-| 22 | 修改密码 PasswordScreen | 学生 | screens-profile.jsx |
-| 23 | 设置 SettingsScreen | 学生 | screens-profile.jsx |
-| 24 | 管理员登录 AdminLogin | 管理员 | screens-admin-m1.jsx |
-| 25 | 管理仪表盘 AdminDashboard | 管理员 | screens-admin-m1.jsx |
-| 26 | 学生管理 AdminStudents | 管理员 | screens-admin-m1.jsx |
-| 27 | 课程管理 AdminCourses | 管理员 | screens-admin-m2.jsx |
-| 28 | 选课管理 AdminSelection | 管理员 | screens-admin-m2.jsx |
-| 29 | 成绩管理 AdminGrades | 管理员 | screens-admin-m2.jsx |
-| 30 | 通知发布 AdminNotice | 管理员 | screens-admin-m2.jsx |
-| 31 | 评教管理 AdminEval | 管理员 | screens-admin-m3.jsx |
-| 32 | 审批中心 AdminApprovals | 管理员 | screens-admin-m3.jsx |
-| 33 | 审批详情 AdminApprovalDetail | 管理员 | screens-admin-m3.jsx |
-| 34 | 管理员中心 AdminProfile | 管理员 | screens-admin-m3.jsx |
+| 1 | 学生登录 | 学生 | LoginPage.ets |
+| 2 | 注册 | 学生 | RegisterPage.ets |
+| 3 | 忘记密码 | 学生 | ForgotPage.ets |
+| 4 | 首页工作台 | 学生 | HomePage.ets |
+| 5 | 今日课程 | 学生 | TodayPage.ets |
+| 6 | 通知列表 | 学生 | NoticesPage.ets |
+| 7 | 通知详情 | 学生 | NoticeDetailPage.ets |
+| 8 | 我的课表 | 学生 | SchedulePage.ets |
+| 9 | 课程详情 | 学生 | CourseDetailPage.ets |
+| 10 | 选课中心 | 学生 | SelectionPage.ets |
+| 11 | 成绩查询 | 学生 | GradesPage.ets |
+| 12 | 考试安排 | 学生 | ExamPage.ets |
+| 13 | 学籍信息 | 学生 | RosterPage.ets |
+| 14 | 评教列表/问卷 | 学生 | EvalPage.ets |
+| 15 | 请假申请 | 学生 | LeavePage.ets |
+| 16 | 意见反馈 | 学生 | FeedbackPage.ets |
+| 17 | 实践公服 | 学生 | PracticePage.ets |
+| 18 | 实践详情 | 学生 | PracticeDetailPage.ets |
+| 19 | 我的 | 学生 | MinePage.ets |
+| 20 | 我的账户 | 学生 | AccountPage.ets |
+| 21 | 修改资料 | 学生 | EditInfoPage.ets |
+| 22 | 修改密码 | 学生 | PasswordPage.ets |
+| 23 | 设置 | 学生 | SettingsPage.ets |
+| 24 | 关于 | 学生 | AboutPage.ets |
+| 25 | 管理员登录 | 管理员 | AdminLoginPage.ets |
+| 26 | 管理仪表盘 | 管理员 | AdminDashboardPage.ets |
+| 27 | 学生管理 | 管理员 | AdminStudentsPage.ets |
+| 28 | 学生详情 | 管理员 | AdminStudentDetailPage.ets |
+| 29 | 课程管理 | 管理员 | AdminCoursesPage.ets |
+| 30 | 选课管理 | 管理员 | AdminSelectionPage.ets |
+| 31 | 成绩管理 | 管理员 | AdminGradesPage.ets |
+| 32 | 通知发布 | 管理员 | AdminNoticePage.ets |
+| 33 | 评教管理 | 管理员 | AdminEvalPage.ets |
+| 34 | 审批中心 | 管理员 | AdminApprovalsPage.ets |
+| 35 | 管理员中心 | 管理员 | AdminProfilePage.ets |
+| 36 | 管理员修改密码 | 管理员 | AdminPasswordPage.ets |
+| 37 | 审计日志 | 管理员 | AdminAuditLogPage.ets |
+| 38 | 教学日历 | 管理员 | AdminCalendarPage.ets |
+| 39 | 角色权限 | 管理员 | AdminRolePermPage.ets |
+| 40 | 系统配置 | 管理员 | AdminSysConfigPage.ets |
+| 41 | 服务大厅 | 学生 | ServiceHallPage.ets |
+| 42 | 文档页 | 通用 | DocPage.ets |
 
 ## 安装与运行
 
@@ -308,11 +322,11 @@ $env:DEVECO_SDK_HOME = 'D:\DevEco Studio\sdk'
 
 ## 测试账号
 
-当前为 mock 数据模式（`AppConfig.useMock = true`），内置以下测试账号（定义于 `mock/mockUser.ets`、`mock/mockAdmin.ets`，校验在 `repositories/AuthRepository.ets`）：
+当前为本地 mock 原型模式（`AppConfig.useMock = true`，无远程后端），内置以下测试账号（定义于 `mock/mockUser.ets`、`mock/mockAdmin.ets`，校验在 `repositories/AuthRepository.ets`）：
 
 | 角色 | 账号 | 密码 | 登录后身份 |
 | --- | --- | --- | --- |
-| 学生端 | `2023307020941` | `Elysia@2024` | 李仕炜 · 计科 |
+| 学生端 | `2023307020941` | `Elysia@2024` | 李仕炜 |
 | 管理端 | `A20251001` | `Admin@2024` | 爱莉希雅 · 教务管理员 |
 
 - 管理端登录需额外输入**任意 4 位**图形验证码（如 `1234`）。

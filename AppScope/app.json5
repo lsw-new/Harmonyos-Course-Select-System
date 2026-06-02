@@ -1,7 +1,7 @@
 {
   "app": {
-    "bundleName": "com.example.test",
-    "vendor": "D-test2",
+    "bundleName": "com.jdzyyjyzydx.eduapp",
+    "vendor": "景德镇艺术职业大学",
     "versionCode": 1000000,
     "versionName": "1.0.0",
     "icon": "$media:layered_image",
