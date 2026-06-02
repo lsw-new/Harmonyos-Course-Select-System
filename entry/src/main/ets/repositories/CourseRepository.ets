@@ -1,10 +1,10 @@
 // 课程、课表、选课
 
 import { BaseRepository } from './BaseRepository';
-import { Course, ScheduleItem, SelectionCourse, SelectionRoundInfo, SelectionStatus } from '../models/Course';
+import { Course, ScheduleItem, SelectionCourse, SelectionRoundInfo } from '../models/Course';
 import { AdminCourseItem } from '../models/Admin';
 import { Notice } from '../models/Notice';
-import { mockCourses, mockSchedule, mockSelectionCourses } from '../mock/mockCourses';
+import { mockCourses, mockSchedule } from '../mock/mockCourses';
 import { mockNotices } from '../mock/mockNotices';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { NoticeStore } from '../common/services/NoticeStore';
@@ -12,10 +12,9 @@ import { SelectionAdminRepository } from './SelectionAdminRepository';
 import { AdminRepository } from './AdminRepository';
 
 const CREDIT_LIMIT: number = 28; // 学分上限：选课事务据此校验，超出则拒绝
-const KEY_SELECTION_COURSES = 'local.selectionCourses.v1';
+const KEY_SELECTED_IDS = 'local.selectedCourseIds.v1';
 const KEY_IMPORTED_SCHEDULE = 'local.importedSchedule.v1';
-const SELECTION_STATUSES: string[] = ['available', 'selected', 'full', 'conflict'];
-const CONTROL_CHAR_PATTERN: RegExp = /[\r\n\u0000-\u001f\u007f]/;
+const CONTROL_CHAR_PATTERN: RegExp = new RegExp('[\\u0000-\\u001f\\u007f]');
 
 export class CourseRepository extends BaseRepository {
   private static _instance?: CourseRepository;
@@ -26,8 +25,9 @@ export class CourseRepository extends BaseRepository {
     return CourseRepository._instance;
   }
 
-  private selections: SelectionCourse[] = JSON.parse(JSON.stringify(mockSelectionCourses)) as SelectionCourse[];
-  private isSelectionLoaded: boolean = false;
+  // 学生已选课程的 id 集合（管理端课程 id）。课程主数据全部来自管理端目录。
+  private memberIds: string[] = [];
+  private isMemberLoaded: boolean = false;
   // 导入课表：非空时覆盖 mockSchedule，作为 Schedule/Home/Today 的数据源。
   private importedSchedule: ScheduleItem[] = [];
   private isImportedLoaded: boolean = false;
@@ -44,106 +44,24 @@ export class CourseRepository extends BaseRepository {
     return text.length >= min && text.length <= max && !CONTROL_CHAR_PATTERN.test(text);
   }
 
-  private isAllowedSelectionStatus(value: string): boolean {
-    return SELECTION_STATUSES.indexOf(value) >= 0;
+  // ============ 已选成员关系（仅存 id，课程主数据以管理端为准） ============
+
+  private async getMemberIds(): Promise<string[]> {
+    if (!this.isMemberLoaded) {
+      const stored = await LocalDataStore.loadArray<string>(KEY_SELECTED_IDS, []);
+      this.memberIds = stored.filter((id) => typeof id === 'string' && id.length > 0);
+      this.isMemberLoaded = true;
+    }
+    return this.memberIds;
   }
 
-  private isValidStoredCourse(course: Course): boolean {
-    if (!course || typeof course !== 'object') {
-      return false;
-    }
-    if (!this.isCleanText(course.id, 1, 64) || !this.isCleanText(course.code, 1, 32) || !this.isCleanText(course.name, 1, 80)) {
-      return false;
-    }
-    if (!this.isCleanText(course.teacher, 1, 32) || !this.isCleanText(course.college, 1, 80) || !this.isCleanText(course.classroom, 1, 80)) {
-      return false;
-    }
-    if (!this.isCleanText(course.category, 1, 32) || !this.isCleanText(course.teachingClassNo, 1, 64) || !this.isCleanText(course.weeks, 1, 80)) {
-      return false;
-    }
-    if (!this.isFiniteNumber(course.credit) || course.credit <= 0 || course.credit > 30) {
-      return false;
-    }
-    if (!this.isFiniteNumber(course.periodStart) || !this.isFiniteNumber(course.periodEnd) || !this.isFiniteNumber(course.weekday)) {
-      return false;
-    }
-    if (Math.floor(course.periodStart) !== course.periodStart || Math.floor(course.periodEnd) !== course.periodEnd || Math.floor(course.weekday) !== course.weekday) {
-      return false;
-    }
-    if (course.periodStart < 1 || course.periodEnd < course.periodStart || course.periodEnd > 12 || course.weekday < 1 || course.weekday > 7) {
-      return false;
-    }
-    if (course.capacity !== undefined && (!this.isFiniteNumber(course.capacity) || Math.floor(course.capacity) !== course.capacity || course.capacity < 0 || course.capacity > 10000)) {
-      return false;
-    }
-    if (course.selectedCount !== undefined && (!this.isFiniteNumber(course.selectedCount) || Math.floor(course.selectedCount) !== course.selectedCount || course.selectedCount < 0)) {
-      return false;
-    }
-    if (course.capacity !== undefined && course.selectedCount !== undefined && course.selectedCount > course.capacity) {
-      return false;
-    }
-    return true;
+  private async saveMemberIds(ids: string[]): Promise<void> {
+    this.memberIds = ids;
+    this.isMemberLoaded = true;
+    await LocalDataStore.saveArray<string>(KEY_SELECTED_IDS, ids);
   }
 
-  private sanitizeSelections(items: SelectionCourse[]): SelectionCourse[] {
-    const ids: string[] = [];
-    const sanitized: SelectionCourse[] = [];
-    items.forEach((item) => {
-      if (!item || typeof item !== 'object' || !this.isValidStoredCourse(item.course) || !this.isAllowedSelectionStatus(item.status)) {
-        return;
-      }
-      const id = item.course.id.trim();
-      if (ids.indexOf(id) >= 0) {
-        return;
-      }
-      ids.push(id);
-      const course: Course = {
-        id,
-        code: item.course.code.trim(),
-        teachingClassNo: item.course.teachingClassNo.trim(),
-        name: item.course.name.trim(),
-        category: item.course.category.trim(),
-        credit: item.course.credit,
-        teacher: item.course.teacher.trim(),
-        college: item.course.college.trim(),
-        campus: item.course.campus,
-        classroom: item.course.classroom.trim(),
-        weeks: item.course.weeks.trim(),
-        periodStart: item.course.periodStart,
-        periodEnd: item.course.periodEnd,
-        weekday: item.course.weekday,
-        capacity: item.course.capacity,
-        selectedCount: item.course.selectedCount,
-        description: item.course.description,
-        assessment: item.course.assessment
-      };
-      const selection: SelectionCourse = {
-        course,
-        status: item.status as SelectionStatus,
-        conflictWith: item.conflictWith
-      };
-      sanitized.push(selection);
-    });
-    return sanitized;
-  }
-
-  // 学生本地选课记录（成员关系 + 课表结构字段），仅作底座，课程属性以管理端为准
-  private async loadSelections(): Promise<SelectionCourse[]> {
-    if (!this.isSelectionLoaded) {
-      const stored = await LocalDataStore.loadArray<SelectionCourse>(KEY_SELECTION_COURSES, mockSelectionCourses);
-      const sanitized = this.sanitizeSelections(stored);
-      this.selections = sanitized.length > 0 ? sanitized : JSON.parse(JSON.stringify(mockSelectionCourses)) as SelectionCourse[];
-      this.isSelectionLoaded = true;
-    }
-    return this.selections;
-  }
-
-  // 选课读取：以管理端课程为单一事实来源，按课程代码叠加 名称/教师/学分/容量/已选/类型
-  private async getSelections(): Promise<SelectionCourse[]> {
-    const base = await this.loadSelections();
-    const adminCourses = await AdminRepository.get().getCourses();
-    return this.overlayAdmin(base, adminCourses);
-  }
+  // ============ 管理端课程目录 → 学生课程映射（单一事实来源） ============
 
   private mapCategory(category: string): string {
     if (category === 'required') {
@@ -161,43 +79,81 @@ export class CourseRepository extends BaseRepository {
     return category;
   }
 
-  private overlayAdmin(base: SelectionCourse[], adminCourses: AdminCourseItem[]): SelectionCourse[] {
-    return base.map((item) => {
-      const code = item.course.code.trim().toLowerCase();
-      const admin = adminCourses.find((ac) => ac.code.trim().toLowerCase() === code);
-      if (!admin) {
-        return item;
-      }
-      const merged: Course = {
-        id: item.course.id,
-        code: item.course.code,
-        teachingClassNo: item.course.teachingClassNo,
-        name: admin.name,
-        category: this.mapCategory(admin.category),
-        credit: admin.credit,
-        teacher: admin.teacher,
-        college: item.course.college,
-        campus: item.course.campus,
-        classroom: item.course.classroom,
-        weeks: item.course.weeks,
-        periodStart: item.course.periodStart,
-        periodEnd: item.course.periodEnd,
-        weekday: item.course.weekday,
-        capacity: admin.capacity,
-        selectedCount: admin.selectedCount,
-        description: item.course.description,
-        assessment: item.course.assessment
-      };
-      const overlaid: SelectionCourse = { course: merged, status: item.status, conflictWith: item.conflictWith };
-      return overlaid;
-    });
+  private weekdayFromCn(c: string): number {
+    switch (c) {
+      case '一': return 1;
+      case '二': return 2;
+      case '三': return 3;
+      case '四': return 4;
+      case '五': return 5;
+      case '六': return 6;
+      case '日': return 7;
+      case '天': return 7;
+      default: return 0;
+    }
   }
 
-  private async saveSelections(next: SelectionCourse[]): Promise<void> {
-    const sanitized = this.sanitizeSelections(next);
-    this.selections = sanitized;
-    this.isSelectionLoaded = true;
-    await LocalDataStore.saveArray<SelectionCourse>(KEY_SELECTION_COURSES, sanitized);
+  // 解析 "周一 1-2 节" → [weekday, periodStart, periodEnd]；无法解析返回 []
+  private parseTimeText(timeText: string): number[] {
+    const m: RegExpExecArray | null = /周(.)\s*(\d+)\s*-\s*(\d+)\s*节/.exec(timeText);
+    if (m === null) {
+      return [];
+    }
+    const wd = this.weekdayFromCn(m[1]);
+    if (wd === 0) {
+      return [];
+    }
+    return [wd, parseInt(m[2], 10), parseInt(m[3], 10)];
+  }
+
+  // 管理端课程 → 学生课程：排课结构字段优先取同 code 的内置课程，其次解析 timeText
+  private toStudentCourse(a: AdminCourseItem): Course {
+    const code = a.code.trim().toLowerCase();
+    const rich = mockCourses.find((m) => m.code.trim().toLowerCase() === code);
+    const parsed = this.parseTimeText(a.timeText);
+    const hasParsed = parsed.length === 3;
+    const weekday = hasParsed ? parsed[0] : (rich ? rich.weekday : 0);
+    const periodStart = hasParsed ? parsed[1] : (rich ? rich.periodStart : 0);
+    const periodEnd = hasParsed ? parsed[2] : (rich ? rich.periodEnd : 0);
+    const course: Course = {
+      id: a.id,
+      code: a.code,
+      teachingClassNo: rich ? rich.teachingClassNo : '—',
+      name: a.name,
+      category: this.mapCategory(a.category),
+      credit: a.credit,
+      teacher: a.teacher,
+      college: rich ? rich.college : '—',
+      campus: rich ? rich.campus : undefined,
+      classroom: rich ? rich.classroom : (a.timeText.trim().length > 0 ? a.timeText.trim() : '待定'),
+      weeks: rich ? rich.weeks : (weekday > 0 ? '1-16 周' : '—'),
+      periodStart: periodStart,
+      periodEnd: periodEnd,
+      weekday: weekday,
+      capacity: a.capacity,
+      selectedCount: a.selectedCount,
+      description: rich ? rich.description : undefined,
+      assessment: rich ? rich.assessment : undefined
+    };
+    return course;
+  }
+
+  // 学生可选目录：管理端 status='open' 的课程
+  private async getOpenCatalog(): Promise<Course[]> {
+    const adminCourses = await AdminRepository.get().getCourses();
+    const open: Course[] = [];
+    for (let i = 0; i < adminCourses.length; i++) {
+      if (adminCourses[i].status === 'open') {
+        open.push(this.toStudentCourse(adminCourses[i]));
+      }
+    }
+    return open;
+  }
+
+  // 完整目录（含已关闭）：用于「我的已选」与课程详情
+  private async getFullCatalog(): Promise<Course[]> {
+    const adminCourses = await AdminRepository.get().getCourses();
+    return adminCourses.map((a) => this.toStudentCourse(a));
   }
 
   private isValidScheduleItem(s: ScheduleItem): boolean {
@@ -272,13 +228,11 @@ export class CourseRepository extends BaseRepository {
   }
 
   async getCourseDetail(courseId: string): Promise<Course> {
-    const course = mockCourses.find((c) => c.id === courseId);
-    if (course) {
-      // 详情同样以管理端课程为准（名称/教师/学分/容量/已选）
-      const wrapped: SelectionCourse = { course: course, status: 'available', conflictWith: undefined };
-      const adminCourses = await AdminRepository.get().getCourses();
-      const overlaid = this.overlayAdmin([wrapped], adminCourses);
-      return this.delayCopy<Course>(overlaid[0].course);
+    // 课程详情以管理端目录为单一事实来源
+    const catalog = await this.getFullCatalog();
+    const found = catalog.find((c) => c.id === courseId);
+    if (found) {
+      return this.delayCopy<Course>(found);
     }
     // 导入课表的课程没有独立课程库记录：用课表行兜底构造详情（仅含课表中的真实字段）。
     const schedule = await this.getActiveSchedule();
@@ -404,11 +358,12 @@ export class CourseRepository extends BaseRepository {
   // 选课轮次：与管理端「进行中」轮次共享同一事实来源
   async getSelectionRound(): Promise<SelectionRoundInfo> {
     const active = await SelectionAdminRepository.get().getActiveRound();
-    const selections = await this.getSelections();
+    const catalog = await this.getFullCatalog();
+    const memberIds = await this.getMemberIds();
     let selectedCredits = 0;
-    for (let i = 0; i < selections.length; i++) {
-      if (selections[i].status === 'selected') {
-        selectedCredits += selections[i].course.credit;
+    for (let i = 0; i < catalog.length; i++) {
+      if (memberIds.indexOf(catalog[i].id) >= 0) {
+        selectedCredits += catalog[i].credit;
       }
     }
     if (!active) {
@@ -436,7 +391,14 @@ export class CourseRepository extends BaseRepository {
   }
 
   async getSelectionCourses(query?: string, category?: string): Promise<SelectionCourse[]> {
-    let items = this.decorateStatuses(await this.getSelections());
+    const catalog = await this.getOpenCatalog();
+    const memberIds = await this.getMemberIds();
+    const base: SelectionCourse[] = catalog.map((c) => {
+      const isSelected = memberIds.indexOf(c.id) >= 0;
+      const sc: SelectionCourse = { course: c, status: isSelected ? 'selected' : 'available', conflictWith: undefined };
+      return sc;
+    });
+    let items = this.decorateStatuses(base);
     if (query && query.length > 0) {
       const q = query.toLowerCase();
       items = items.filter((s) =>
@@ -457,75 +419,69 @@ export class CourseRepository extends BaseRepository {
     if (!active) {
       return this.reject('当前不在选课时间，暂不能选课');
     }
-    const selections = await this.getSelections();
-    const target = selections.find((s) => s.course.id === courseId);
+    const catalog = await this.getOpenCatalog();
+    const target = catalog.find((c) => c.id === courseId);
     if (!target) {
-      return this.reject('课程不存在', 'notFound');
+      return this.reject('课程不存在或未开放选课', 'notFound');
     }
-    if (target.status === 'selected') {
+    const memberIds = await this.getMemberIds();
+    if (memberIds.indexOf(courseId) >= 0) {
       return this.reject('已选该课程');
     }
-    const cap = target.course.capacity;
-    const cnt = target.course.selectedCount;
+    const cap = target.capacity;
+    const cnt = target.selectedCount;
     if (cap !== undefined && cnt !== undefined && cnt >= cap) {
       return this.reject('课程容量已满');
     }
     // 学分上限与时间冲突：基于当前已选课程
+    const selected: Course[] = [];
     let selectedCredits = 0;
-    const selected: SelectionCourse[] = [];
-    for (let i = 0; i < selections.length; i++) {
-      if (selections[i].status === 'selected') {
-        selectedCredits += selections[i].course.credit;
-        selected.push(selections[i]);
+    for (let i = 0; i < catalog.length; i++) {
+      if (memberIds.indexOf(catalog[i].id) >= 0) {
+        selected.push(catalog[i]);
+        selectedCredits += catalog[i].credit;
       }
     }
-    if (selectedCredits + target.course.credit > CREDIT_LIMIT) {
+    if (selectedCredits + target.credit > CREDIT_LIMIT) {
       return this.reject(`超过学分上限（${CREDIT_LIMIT} 学分）`);
     }
     for (let i = 0; i < selected.length; i++) {
-      if (this.coursesConflict(target.course, selected[i].course)) {
-        return this.reject(`与「${selected[i].course.name}」时间冲突`);
+      if (this.coursesConflict(target, selected[i])) {
+        return this.reject(`与「${selected[i].name}」时间冲突`);
       }
     }
-    // 持久化成员关系（底座保留原始课表字段），选课人数回写管理端单一事实来源
-    const base = await this.loadSelections();
-    const next = base.map((item) => {
-      if (item.course.id !== courseId) {
-        return item;
-      }
-      const sel: SelectionCourse = { course: item.course, status: 'selected', conflictWith: item.conflictWith };
-      return sel;
-    });
-    await this.saveSelections(next);
-    await AdminRepository.get().adjustEnrollment(target.course.code, 1);
+    await this.saveMemberIds([courseId].concat(memberIds));
+    // 选课人数回写管理端单一事实来源
+    await AdminRepository.get().adjustEnrollment(target.code, 1);
     return this.delay<boolean>(true);
   }
 
   async dropCourse(courseId: string): Promise<boolean> {
-    const base = await this.loadSelections();
-    const target = base.find((s) => s.course.id === courseId);
-    if (!target) {
-      return this.reject('课程不存在', 'notFound');
-    }
-    if (target.status !== 'selected') {
+    const memberIds = await this.getMemberIds();
+    if (memberIds.indexOf(courseId) < 0) {
       return this.reject('该课程未被选中');
     }
-    const next = base.map((item) => {
-      if (item.course.id !== courseId) {
-        return item;
-      }
-      const avail: SelectionCourse = { course: item.course, status: 'available', conflictWith: item.conflictWith };
-      return avail;
-    });
-    await this.saveSelections(next);
+    const next = memberIds.filter((id) => id !== courseId);
+    await this.saveMemberIds(next);
     // 退课：名额回退到管理端单一事实来源
-    await AdminRepository.get().adjustEnrollment(target.course.code, -1);
+    const catalog = await this.getFullCatalog();
+    const target = catalog.find((c) => c.id === courseId);
+    if (target) {
+      await AdminRepository.get().adjustEnrollment(target.code, -1);
+    }
     return this.delay<boolean>(true);
   }
 
   async getMySelectedCourses(): Promise<SelectionCourse[]> {
-    const selections = await this.getSelections();
-    const items = selections.filter((s) => s.status === 'selected');
+    const catalog = await this.getFullCatalog();
+    const memberIds = await this.getMemberIds();
+    const items: SelectionCourse[] = [];
+    for (let i = 0; i < catalog.length; i++) {
+      if (memberIds.indexOf(catalog[i].id) >= 0) {
+        const sc: SelectionCourse = { course: catalog[i], status: 'selected', conflictWith: undefined };
+        items.push(sc);
+      }
+    }
     return this.delayCopy<SelectionCourse[]>(items);
   }
 
