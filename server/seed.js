@@ -33,6 +33,21 @@ async function main() {
        ('grade-se201-2025','2023307020941','course-se201','2025-2026-1',85,3.5,now())`
   );
   console.log('demo grades seeded: 2');
+  // 演示评教任务（幂等，CASCADE 清提交）：cs101 开放评教
+  await pool.query(`DELETE FROM dtest2.evaluation_tasks WHERE student_id='2023307020941'`);
+  await pool.query(
+    `INSERT INTO dtest2.evaluation_tasks (task_id, student_id, course_id, term, teacher_name, status, open_time, close_time)
+     VALUES ('eval-cs101-2025','2023307020941','course-cs101','2025-2026-1','王鑫','open', now() - interval '1 day', now() + interval '30 days')`
+  );
+  console.log('demo eval task seeded: 1');
+  // 演示实践项目（幂等，CASCADE 清报名）
+  await pool.query(`DELETE FROM dtest2.practice_projects WHERE project_id IN ('prac-001','prac-002')`);
+  await pool.query(
+    `INSERT INTO dtest2.practice_projects (project_id, title, org, category, credits, period, location, mentor, slots_total, description, requirements_json) VALUES
+       ('prac-001','景德镇陶瓷文化数字化志愿服务','景德镇艺术职业大学','volunteer',2.0,'2026 暑期','景德镇','李导师',20,'参与陶瓷文物数字化采集与线上展示。', '["细心负责","了解摄影优先"]'::jsonb),
+       ('prac-002','鸿蒙应用开发企业实习','华为技术有限公司','internship',4.0,'2026 春季','南昌','王工',10,'参与 HarmonyOS 应用开发实战项目。', '["熟悉 ArkTS","有项目经验优先"]'::jsonb)`
+  );
+  console.log('demo practice projects seeded: 2');
   await pool.end();
   console.log('seed done');
 }

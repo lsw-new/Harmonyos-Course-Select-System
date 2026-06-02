@@ -409,5 +409,278 @@ app.post('/api/leave', authRequired, async (req, res) => {
   }
 });
 
+// ================= 反馈 / 评教 / 实践 扩展域 =================
+
+function mapFeedback(row) {
+  return {
+    id: row.feedback_id,
+    category: row.category,
+    title: row.title,
+    content: row.content,
+    contact: row.contact || '',
+    screenshots: [],
+    submittedAt: row.submitted_at,
+    state: row.state
+  };
+}
+
+function mapEval(row) {
+  return {
+    id: row.task_id,
+    term: row.term,
+    courseCode: row.code || '',
+    courseName: row.name || '',
+    courseCategory: row.category || '',
+    teacherName: row.teacher_name || '',
+    questionnaireName: row.questionnaire_name || '教学质量评价问卷',
+    status: row.status,
+    openTime: row.open_time || '',
+    closeTime: row.close_time || ''
+  };
+}
+
+function mapPractice(row) {
+  return {
+    id: row.project_id,
+    title: row.title,
+    org: row.org,
+    category: row.category,
+    credits: Number(row.credits),
+    period: row.period,
+    location: row.location || '',
+    mentor: row.mentor || '',
+    slotsTotal: row.slots_total,
+    slotsTaken: Number(row.slots_taken || 0),
+    signedUp: row.signed_up === true,
+    description: row.description || '',
+    requirements: Array.isArray(row.requirements_json) ? row.requirements_json : []
+  };
+}
+
+const PRACTICE_SELECT =
+  `SELECT p.project_id, p.title, p.org, p.category, p.credits, p.period, p.location, p.mentor,
+          p.slots_total, p.description, p.requirements_json,
+          COALESCE(st.cnt, 0) AS slots_taken,
+          CASE WHEN ms.project_id IS NULL THEN false ELSE true END AS signed_up
+   FROM dtest2.practice_projects p
+   LEFT JOIN (SELECT project_id, COUNT(*) cnt FROM dtest2.practice_signups WHERE status='signedUp' GROUP BY project_id) st
+     ON st.project_id = p.project_id
+   LEFT JOIN dtest2.practice_signups ms ON ms.project_id = p.project_id AND ms.student_id = $1 AND ms.status='signedUp'`;
+
+// ---- 反馈 ----
+app.get('/api/feedback', authRequired, async (req, res) => {
+  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  if (!studentId) {
+    return res.status(400).json(fail('缺少 studentId'));
+  }
+  try {
+    const r = await pool.query(
+      `SELECT feedback_id, category, title, content, COALESCE(contact, '') AS contact, state, submitted_at
+       FROM dtest2.feedback_items WHERE student_id = $1 ORDER BY submitted_at DESC`,
+      [studentId]
+    );
+    res.json(ok(r.rows.map(mapFeedback)));
+  } catch (e) {
+    res.status(500).json(fail('查询反馈失败：' + e.message));
+  }
+});
+
+const FEEDBACK_CATEGORIES = ['bug', 'suggestion', 'service', 'other'];
+app.post('/api/feedback', authRequired, async (req, res) => {
+  const b = req.body || {};
+  const studentId = ((b.studentId) || '').trim();
+  const category = ((b.category) || '').trim();
+  const title = ((b.title) || '').trim();
+  const content = ((b.content) || '').trim();
+  const contact = ((b.contact) || '').trim();
+  if (!studentId || !category || !title || !content) {
+    return res.status(400).json(fail('反馈信息不完整'));
+  }
+  if (FEEDBACK_CATEGORIES.indexOf(category) < 0) {
+    return res.status(400).json(fail('反馈类型不合法'));
+  }
+  try {
+    const id = `fb-${Date.now()}`;
+    const r = await pool.query(
+      `INSERT INTO dtest2.feedback_items (feedback_id, student_id, category, title, content, contact, state, submitted_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'submitted', now(), now())
+       RETURNING feedback_id, category, title, content, COALESCE(contact, '') AS contact, state, submitted_at`,
+      [id, studentId, category, title, content, contact || null]
+    );
+    res.json(ok(mapFeedback(r.rows[0])));
+  } catch (e) {
+    res.status(500).json(fail('提交反馈失败：' + e.message));
+  }
+});
+
+// ---- 评教任务 ----
+app.get('/api/evaluations', authRequired, async (req, res) => {
+  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  if (!studentId) {
+    return res.status(400).json(fail('缺少 studentId'));
+  }
+  const term = req.query.term ? String(req.query.term) : null;
+  try {
+    const r = await pool.query(
+      `SELECT et.task_id, et.term, et.teacher_name, et.status, et.open_time, et.close_time,
+              COALESCE(c.code, '') AS code, COALESCE(c.name, '') AS name, COALESCE(c.category, '') AS category,
+              COALESCE(tpl.name, '') AS questionnaire_name
+       FROM dtest2.evaluation_tasks et
+       LEFT JOIN dtest2.courses c ON c.course_id = et.course_id
+       LEFT JOIN dtest2.evaluation_templates tpl ON tpl.template_id = et.template_id
+       WHERE et.student_id = $1 AND ($2::text IS NULL OR et.term = $2)
+       ORDER BY et.open_time DESC NULLS LAST`,
+      [studentId, term]
+    );
+    res.json(ok(r.rows.map(mapEval)));
+  } catch (e) {
+    res.status(500).json(fail('查询评教失败：' + e.message));
+  }
+});
+
+// ---- 评教提交 ----
+app.post('/api/evaluations/:taskId/submit', authRequired, async (req, res) => {
+  const b = req.body || {};
+  const studentId = ((b.studentId) || '').trim();
+  const answers = b.answers;
+  const taskId = req.params.taskId;
+  if (!studentId) {
+    return res.status(400).json(fail('缺少 studentId'));
+  }
+  if (!Array.isArray(answers) || answers.length === 0) {
+    return res.status(400).json(fail('答案为空'));
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const task = await client.query(
+      `SELECT status FROM dtest2.evaluation_tasks WHERE task_id=$1 AND student_id=$2`, [taskId, studentId]
+    );
+    if (task.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json(fail('评教任务不存在'));
+    }
+    if (task.rows[0].status !== 'open') {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail('当前任务不在开放期'));
+    }
+    const subId = `evsub-${studentId}-${taskId}`;
+    await client.query(
+      `INSERT INTO dtest2.evaluation_submissions (submission_id, task_id, student_id, answers_json, submitted_at)
+       VALUES ($1, $2, $3, $4::jsonb, now())
+       ON CONFLICT (task_id, student_id) DO UPDATE SET answers_json=EXCLUDED.answers_json, submitted_at=now()`,
+      [subId, taskId, studentId, JSON.stringify(answers)]
+    );
+    await client.query(
+      `UPDATE dtest2.evaluation_tasks SET status='submitted', submitted_at=now() WHERE task_id=$1`, [taskId]
+    );
+    await client.query('COMMIT');
+    res.json(ok({ submitted: true }));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    res.status(500).json(fail('提交评教失败：' + e.message));
+  } finally {
+    client.release();
+  }
+});
+
+// ---- 实践项目列表 ----
+app.get('/api/practice', authRequired, async (req, res) => {
+  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const category = req.query.category ? String(req.query.category) : null;
+  try {
+    const r = await pool.query(
+      `${PRACTICE_SELECT} WHERE ($2::text IS NULL OR p.category = $2) ORDER BY p.created_at DESC`,
+      [studentId, category]
+    );
+    res.json(ok(r.rows.map(mapPractice)));
+  } catch (e) {
+    res.status(500).json(fail('查询实践失败：' + e.message));
+  }
+});
+
+// ---- 实践项目详情 ----
+app.get('/api/practice/:id', authRequired, async (req, res) => {
+  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  try {
+    const r = await pool.query(`${PRACTICE_SELECT} WHERE p.project_id = $2 LIMIT 1`, [studentId, req.params.id]);
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('实践项目不存在'));
+    }
+    res.json(ok(mapPractice(r.rows[0])));
+  } catch (e) {
+    res.status(500).json(fail('查询实践详情失败：' + e.message));
+  }
+});
+
+// ---- 实践报名 ----
+app.post('/api/practice/:id/signup', authRequired, async (req, res) => {
+  const studentId = ((req.body && req.body.studentId) || '').trim();
+  const projectId = req.params.id;
+  if (!studentId) {
+    return res.status(400).json(fail('缺少 studentId'));
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const proj = await client.query(`SELECT slots_total FROM dtest2.practice_projects WHERE project_id=$1`, [projectId]);
+    if (proj.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json(fail('实践项目不存在'));
+    }
+    const existing = await client.query(
+      `SELECT status FROM dtest2.practice_signups WHERE project_id=$1 AND student_id=$2`, [projectId, studentId]
+    );
+    if (existing.rowCount > 0 && existing.rows[0].status === 'signedUp') {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail('您已报名该项目'));
+    }
+    const cnt = await client.query(
+      `SELECT COUNT(*)::int AS n FROM dtest2.practice_signups WHERE project_id=$1 AND status='signedUp'`, [projectId]
+    );
+    if (cnt.rows[0].n >= proj.rows[0].slots_total) {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail('该项目名额已满'));
+    }
+    await client.query(
+      `INSERT INTO dtest2.practice_signups (project_id, student_id, status, signed_at, cancelled_at)
+       VALUES ($1, $2, 'signedUp', now(), NULL)
+       ON CONFLICT (project_id, student_id) DO UPDATE SET status='signedUp', signed_at=now(), cancelled_at=NULL`,
+      [projectId, studentId]
+    );
+    await client.query('COMMIT');
+    const updated = await pool.query(`${PRACTICE_SELECT} WHERE p.project_id = $2 LIMIT 1`, [studentId, projectId]);
+    res.json(ok(mapPractice(updated.rows[0])));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    res.status(500).json(fail('报名失败：' + e.message));
+  } finally {
+    client.release();
+  }
+});
+
+// ---- 实践取消报名 ----
+app.delete('/api/practice/:id/signup', authRequired, async (req, res) => {
+  const studentId = ((req.body && req.body.studentId) || '').trim();
+  const projectId = req.params.id;
+  if (!studentId) {
+    return res.status(400).json(fail('缺少 studentId'));
+  }
+  try {
+    const upd = await pool.query(
+      `UPDATE dtest2.practice_signups SET status='cancelled', cancelled_at=now()
+       WHERE project_id=$1 AND student_id=$2 AND status='signedUp'`,
+      [projectId, studentId]
+    );
+    if (upd.rowCount === 0) {
+      return res.status(404).json(fail('您尚未报名该项目'));
+    }
+    const updated = await pool.query(`${PRACTICE_SELECT} WHERE p.project_id = $2 LIMIT 1`, [studentId, projectId]);
+    res.json(ok(mapPractice(updated.rows[0])));
+  } catch (e) {
+    res.status(500).json(fail('取消报名失败：' + e.message));
+  }
+});
+
 const PORT = parseInt(process.env.PORT || '8090', 10);
 app.listen(PORT, () => console.log(`[dtest2-api] listening on :${PORT}`));
