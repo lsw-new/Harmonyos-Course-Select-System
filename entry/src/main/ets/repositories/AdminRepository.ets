@@ -2,7 +2,7 @@
 
 import { BaseRepository } from './BaseRepository';
 import {
-  AdminDashboardSummary, StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound,
+  AdminDashboardSummary, StudentAdminItem, StudentAdminStatus, StudentEducationLevel, AdminCourseItem, AdminCourseWritePayload, SelectionRound,
   GradeAuditItem, GradeAuditStatus, GradeInputPayload, GradeRejectPayload, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
   AdminPermissionAction, AdminCourseCategory, AdminCourseStatus
 } from '../models/Admin';
@@ -15,6 +15,8 @@ import { AppDatabase } from '../common/storage/AppDatabase';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AuthorizationService } from '../common/security/AuthorizationService';
 import { NoticeStore } from '../common/services/NoticeStore';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteStudent, RemoteGradeTask, RemoteApproval } from '../common/remote/RemoteApi';
 
 const KEY_ADMIN_APPROVALS = 'local.adminApprovals.v1';
 const KEY_ADMIN_GRADES = 'local.adminGrades.v1';
@@ -641,6 +643,51 @@ export class AdminRepository extends BaseRepository {
     await LocalDataStore.saveArray<GradeAuditItem>(KEY_ADMIN_GRADES, sanitized);
   }
 
+  // ===== Track B 管理端远程映射 =====
+  private remoteToStudent(s: RemoteStudent): StudentAdminItem {
+    const item: StudentAdminItem = {
+      studentId: s.studentId,
+      name: s.name,
+      college: s.college,
+      major: s.major,
+      className: s.className,
+      status: s.status as StudentAdminStatus,
+      educationLevel: s.educationLevel as StudentEducationLevel
+    };
+    return item;
+  }
+
+  private remoteToGradeTask(t: RemoteGradeTask): GradeAuditItem {
+    const item: GradeAuditItem = {
+      id: t.id,
+      courseName: t.courseName,
+      teachingClassName: t.teachingClassName,
+      teacherName: t.teacherName,
+      inputProgress: t.inputProgress,
+      status: t.status as GradeAuditStatus,
+      updatedAt: t.updatedAt
+    };
+    if (t.rejectReason !== undefined && t.rejectReason.length > 0) {
+      item.rejectReason = t.rejectReason;
+    }
+    return item;
+  }
+
+  private remoteToApproval(a: RemoteApproval): ApprovalItem {
+    const item: ApprovalItem = {
+      id: a.id,
+      type: a.type,
+      applicantName: a.applicantName,
+      applicantId: a.applicantId,
+      title: a.title,
+      reason: a.reason,
+      status: a.status as ApprovalStatus,
+      isUrgent: a.isUrgent,
+      submittedAt: a.submittedAt
+    };
+    return item;
+  }
+
   async getDashboard(): Promise<AdminDashboardSummary> {
     const approvals = await this.getApprovalItems();
     const summary: AdminDashboardSummary = {
@@ -653,6 +700,14 @@ export class AdminRepository extends BaseRepository {
   }
 
   async getStudents(query?: string, college?: string): Promise<StudentAdminItem[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminListStudents(query, college);
+        return this.delayCopy<StudentAdminItem[]>(remote.map((s) => this.remoteToStudent(s)));
+      } catch (e) {
+        // 远程失败回退本地
+      }
+    }
     let items = mockAdminStudents;
     if (query && query.length > 0) {
       const q = query.toLowerCase();
@@ -800,6 +855,14 @@ export class AdminRepository extends BaseRepository {
   }
 
   async getGradeAudits(status?: string): Promise<GradeAuditItem[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminListGrades(status);
+        return this.delayCopy<GradeAuditItem[]>(remote.map((t) => this.remoteToGradeTask(t)));
+      } catch (e) {
+        // 远程失败回退本地
+      }
+    }
     let items = await this.getGradeItems();
     if (status && status !== '全部') {
       items = items.filter((g) => g.status === status);
@@ -810,6 +873,14 @@ export class AdminRepository extends BaseRepository {
   async approveGrade(id: string): Promise<boolean> {
     if (!this.hasGradePermission('approve')) {
       return this.rejectUnauthorized();
+    }
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.adminGradeApprove(id);
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
     }
     const grades = await this.getGradeItems();
     const target = grades.find((g) => g.id === id);
@@ -853,6 +924,14 @@ export class AdminRepository extends BaseRepository {
     if (!this.hasGradeInputPermission()) {
       return this.rejectUnauthorized();
     }
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminGradeInput(payload.id, payload.inputProgress);
+        return this.delayCopy<GradeAuditItem>(this.remoteToGradeTask(remote));
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
     if (!this.isValidInputProgress(payload.inputProgress)) {
       return this.reject('录入进度需为 0-100 的整数');
     }
@@ -893,6 +972,14 @@ export class AdminRepository extends BaseRepository {
   async rejectGrade(payload: GradeRejectPayload): Promise<boolean> {
     if (!this.hasGradePermission('approve')) {
       return this.rejectUnauthorized();
+    }
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.adminGradeReject(payload.id, payload.reason);
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
     }
     const normalizedReason = this.normalizeRejectReason(payload.reason);
     const reasonError = this.validateRejectReason(normalizedReason);
@@ -953,6 +1040,14 @@ export class AdminRepository extends BaseRepository {
   }
 
   async getApprovals(status?: ApprovalStatus | '全部'): Promise<ApprovalItem[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminListApprovals(status);
+        return this.delayCopy<ApprovalItem[]>(remote.map((a) => this.remoteToApproval(a)));
+      } catch (e) {
+        // 远程失败回退本地
+      }
+    }
     let items = await this.getApprovalItems();
     if (status && status !== '全部') {
       items = items.filter((a) => a.status === status);
@@ -986,6 +1081,14 @@ export class AdminRepository extends BaseRepository {
     }
     if (!comment.trim()) {
       return this.reject('请填写审批意见');
+    }
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.adminApprove(id, comment.trim());
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
     }
     const approvals = await this.getApprovalItems();
     const target = approvals.find((a) => a.id === id);
@@ -1027,6 +1130,14 @@ export class AdminRepository extends BaseRepository {
     }
     if (!comment.trim()) {
       return this.reject('请填写驳回意见');
+    }
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.adminReject(id, comment.trim());
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
     }
     const approvals = await this.getApprovalItems();
     const target = approvals.find((a) => a.id === id);

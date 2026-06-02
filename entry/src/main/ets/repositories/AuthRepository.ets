@@ -177,6 +177,21 @@ export class AuthRepository extends BaseRepository {
       return this.reject('图形验证码错误');
     }
 
+    // Track B：开启远程时优先走后端登录（要求 role=admin），失败回退本地
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.login(req.adminId.trim(), req.password);
+        if (remote.role === 'admin') {
+          const remoteResult: AdminLoginResult = { token: remote.token, profile: mockAdminProfile };
+          await AssetTokenStore.setAdminToken(remote.token);
+          await SessionStorage.get().setAdminSession(remote.token, mockAdminProfile);
+          return this.delay<AdminLoginResult>(remoteResult);
+        }
+      } catch (e) {
+        // 远程登录失败回退本地校验
+      }
+    }
+
     // 先尝试持久化存储校验
     let verified = false;
     try {

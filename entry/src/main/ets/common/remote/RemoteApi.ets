@@ -144,6 +144,51 @@ interface EvalSubmitBody {
   answers: Object;
 }
 
+export interface RemoteStudent {
+  studentId: string;
+  name: string;
+  college: string;
+  major: string;
+  className: string;
+  status: string;
+  educationLevel: string;
+}
+
+export interface RemoteGradeTask {
+  id: string;
+  courseName: string;
+  teachingClassName: string;
+  teacherName: string;
+  inputProgress: number;
+  status: string;
+  updatedAt: string;
+  rejectReason?: string;
+}
+
+export interface RemoteApproval {
+  id: string;
+  type: string;
+  applicantName: string;
+  applicantId: string;
+  title: string;
+  reason: string;
+  status: string;
+  isUrgent: boolean;
+  submittedAt: string;
+}
+
+interface InputProgressBody {
+  inputProgress: number;
+}
+
+interface ReasonBody {
+  reason: string;
+}
+
+interface CommentBody {
+  comment: string;
+}
+
 export class RemoteApi {
   static async login(account: string, password: string): Promise<RemoteLoginResult> {
     const body: LoginBody = { account: account, password: password };
@@ -248,5 +293,58 @@ export class RemoteApi {
   static async practiceCancel(studentId: string, id: string): Promise<RemotePractice> {
     const body: StudentIdBody = { studentId: studentId };
     return apiClient.delete<RemotePractice>('/practice/' + encodeURIComponent(id) + '/signup', body);
+  }
+
+  // ===== 管理端（需管理员 token）=====
+  static async adminListStudents(query?: string, college?: string): Promise<RemoteStudent[]> {
+    const params: string[] = [];
+    if (query && query.length > 0) {
+      params.push('q=' + encodeURIComponent(query));
+    }
+    if (college && college.length > 0 && college !== '全部') {
+      params.push('college=' + encodeURIComponent(college));
+    }
+    const path = params.length > 0 ? '/admin/students?' + params.join('&') : '/admin/students';
+    return apiClient.get<RemoteStudent[]>(path);
+  }
+
+  static async adminListGrades(status?: string): Promise<RemoteGradeTask[]> {
+    let path = '/admin/grades';
+    if (status && status.length > 0 && status !== '全部') {
+      path += '?status=' + encodeURIComponent(status);
+    }
+    return apiClient.get<RemoteGradeTask[]>(path);
+  }
+
+  static async adminGradeInput(taskId: string, inputProgress: number): Promise<RemoteGradeTask> {
+    const body: InputProgressBody = { inputProgress: inputProgress };
+    return apiClient.post<RemoteGradeTask>('/admin/grades/' + encodeURIComponent(taskId) + '/input', body);
+  }
+
+  static async adminGradeApprove(taskId: string): Promise<void> {
+    await apiClient.post<Object>('/admin/grades/' + encodeURIComponent(taskId) + '/approve');
+  }
+
+  static async adminGradeReject(taskId: string, reason: string): Promise<void> {
+    const body: ReasonBody = { reason: reason };
+    await apiClient.post<Object>('/admin/grades/' + encodeURIComponent(taskId) + '/reject', body);
+  }
+
+  static async adminListApprovals(status?: string): Promise<RemoteApproval[]> {
+    let path = '/admin/approvals';
+    if (status && status.length > 0 && status !== '全部') {
+      path += '?status=' + encodeURIComponent(status);
+    }
+    return apiClient.get<RemoteApproval[]>(path);
+  }
+
+  static async adminApprove(id: string, comment: string): Promise<void> {
+    const body: CommentBody = { comment: comment };
+    await apiClient.post<Object>('/admin/approvals/' + encodeURIComponent(id) + '/approve', body);
+  }
+
+  static async adminReject(id: string, comment: string): Promise<void> {
+    const body: CommentBody = { comment: comment };
+    await apiClient.post<Object>('/admin/approvals/' + encodeURIComponent(id) + '/reject', body);
   }
 }
