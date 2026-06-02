@@ -7,6 +7,8 @@ import { Notice } from '../models/Notice';
 import { mockCourses, mockSchedule } from '../mock/mockCourses';
 import { mockNotices } from '../mock/mockNotices';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
+import { AppDatabase } from '../common/storage/AppDatabase';
+import { SessionStorage } from '../common/storage/SessionStorage';
 import { NoticeStore } from '../common/services/NoticeStore';
 import { SelectionAdminRepository } from './SelectionAdminRepository';
 import { AdminRepository } from './AdminRepository';
@@ -46,7 +48,20 @@ export class CourseRepository extends BaseRepository {
 
   // ============ 已选成员关系（仅存 id，课程主数据以管理端为准） ============
 
+  // RDB 就绪且已登录学生时，成员关系走 selections 表（按 studentId）；否则回退 Preferences 全局集合。
+  private useRdbSelections(): boolean {
+    return AppDatabase.isReady() && this.currentStudentId().length > 0;
+  }
+
+  private currentStudentId(): string {
+    const student = SessionStorage.get().getStudent();
+    return student ? student.studentId : '';
+  }
+
   private async getMemberIds(): Promise<string[]> {
+    if (this.useRdbSelections()) {
+      return this.loadMemberIdsFromRdb();
+    }
     if (!this.isMemberLoaded) {
       const stored = await LocalDataStore.loadArray<string>(KEY_SELECTED_IDS, []);
       this.memberIds = stored.filter((id) => typeof id === 'string' && id.length > 0);
@@ -59,6 +74,61 @@ export class CourseRepository extends BaseRepository {
     this.memberIds = ids;
     this.isMemberLoaded = true;
     await LocalDataStore.saveArray<string>(KEY_SELECTED_IDS, ids);
+  }
+
+  private async loadMemberIdsFromRdb(): Promise<string[]> {
+    const resultSet = await AppDatabase.query(
+      `SELECT course_id FROM selections WHERE student_id = ${AppDatabase.sqlText(this.currentStudentId())}`
+    );
+    const ids: string[] = [];
+    try {
+      const idx = resultSet.getColumnIndex('course_id');
+      while (resultSet.goToNextRow()) {
+        ids.push(resultSet.getString(idx));
+      }
+    } finally {
+      resultSet.close();
+    }
+    return ids;
+  }
+
+  // 确保学生档案行存在（selections.student_id 外键），INSERT OR IGNORE 避免删除既有被引用行。
+  private async ensureStudentProfile(): Promise<void> {
+    const student = SessionStorage.get().getStudent();
+    if (!student) {
+      return;
+    }
+    await AppDatabase.execute(
+      `INSERT OR IGNORE INTO student_profiles (student_id, name, college, major, class_name, grade, status, created_at, updated_at)
+       VALUES (${AppDatabase.sqlText(student.studentId)}, ${AppDatabase.sqlText(student.name)}, ${AppDatabase.sqlText(student.college)}, ${AppDatabase.sqlText(student.major)}, ${AppDatabase.sqlText(student.className)}, ${AppDatabase.sqlText(student.grade)}, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+    );
+  }
+
+  // 选课：RDB 模式插入 selections 行（round_id 置 NULL 规避轮次外键）；否则写 Preferences 集合。
+  private async addMember(courseId: string): Promise<void> {
+    if (this.useRdbSelections()) {
+      await this.ensureStudentProfile();
+      const sid = this.currentStudentId();
+      await AppDatabase.execute(
+        `INSERT OR IGNORE INTO selections (id, student_id, course_id, round_id, status, created_at)
+         VALUES (${AppDatabase.sqlText('sel-' + sid + '-' + courseId)}, ${AppDatabase.sqlText(sid)}, ${AppDatabase.sqlText(courseId)}, NULL, 'selected', CURRENT_TIMESTAMP)`
+      );
+      return;
+    }
+    const ids = await this.getMemberIds();
+    await this.saveMemberIds([courseId].concat(ids));
+  }
+
+  // 退课：RDB 模式删除 selections 行；否则从 Preferences 集合移除。
+  private async removeMember(courseId: string): Promise<void> {
+    if (this.useRdbSelections()) {
+      await AppDatabase.execute(
+        `DELETE FROM selections WHERE student_id = ${AppDatabase.sqlText(this.currentStudentId())} AND course_id = ${AppDatabase.sqlText(courseId)}`
+      );
+      return;
+    }
+    const ids = await this.getMemberIds();
+    await this.saveMemberIds(ids.filter((id) => id !== courseId));
   }
 
   // ============ 管理端课程目录 → 学生课程映射（单一事实来源） ============
@@ -450,7 +520,7 @@ export class CourseRepository extends BaseRepository {
         return this.reject(`与「${selected[i].name}」时间冲突`);
       }
     }
-    await this.saveMemberIds([courseId].concat(memberIds));
+    await this.addMember(courseId);
     // 选课人数回写管理端单一事实来源
     await AdminRepository.get().adjustEnrollment(target.code, 1);
     return this.delay<boolean>(true);
@@ -461,8 +531,7 @@ export class CourseRepository extends BaseRepository {
     if (memberIds.indexOf(courseId) < 0) {
       return this.reject('该课程未被选中');
     }
-    const next = memberIds.filter((id) => id !== courseId);
-    await this.saveMemberIds(next);
+    await this.removeMember(courseId);
     // 退课：名额回退到管理端单一事实来源
     const catalog = await this.getFullCatalog();
     const target = catalog.find((c) => c.id === courseId);
