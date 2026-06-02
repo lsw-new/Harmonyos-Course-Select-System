@@ -1,10 +1,16 @@
 // 认证 / 账号 仓储
 
 import { BaseRepository } from './BaseRepository';
-import { LoginRequest, RegisterRequest, ResetPasswordRequest, ChangePasswordRequest, LoginResult, AccountInfo, LoginHistoryItem } from '../models/User';
+import {
+  LoginRequest, RegisterRequest, ResetPasswordRequest, ChangePasswordRequest,
+  LoginResult, AccountInfo, LoginHistoryItem
+} from '../models/User';
 import { AdminLoginRequest, AdminProfile, AdminLoginResult } from '../models/Admin';
 import { mockStudentProfile, mockAccountInfo, mockLoginHistory, TEST_STUDENT_ID, TEST_STUDENT_PASSWORD } from '../mock/mockUser';
 import { mockAdminProfile, TEST_ADMIN_ID, TEST_ADMIN_PASSWORD } from '../mock/mockAdmin';
+import { AccountStore } from '../common/storage/AccountStore';
+import { SessionStorage } from '../common/storage/SessionStorage';
+import { AssetTokenStore } from '../common/security/AssetTokenStore';
 
 export class AuthRepository extends BaseRepository {
   private static _instance?: AuthRepository;
@@ -19,13 +25,35 @@ export class AuthRepository extends BaseRepository {
     if (req.studentId.trim().length === 0 || req.password.length === 0) {
       return this.reject('学号或密码不能为空');
     }
-    if (req.studentId.trim() !== TEST_STUDENT_ID || req.password !== TEST_STUDENT_PASSWORD) {
-      return this.reject('学号或密码错误');
+
+    // 先尝试持久化存储校验（AccountStore）
+    let verified = false;
+    try {
+      verified = await AccountStore.verifyPassword(req.studentId.trim(), req.password);
+    } catch (e) {
+      // AccountStore 异常时降级到 mock 校验
+      verified = false;
     }
-    return this.delay<LoginResult>({
-      token: `mock-student-token-${Date.now()}`,
+
+    // 若持久化校验失败，兜底用 mock 凭据（保证既有测试账号可用）
+    if (!verified) {
+      if (req.studentId.trim() !== TEST_STUDENT_ID || req.password !== TEST_STUDENT_PASSWORD) {
+        return this.reject('学号或密码错误');
+      }
+    }
+
+    const token = `mock-student-token-${Date.now()}`;
+    const result: LoginResult = {
+      token: token,
       user: mockStudentProfile
-    });
+    };
+
+    // 安全存储 token
+    await AssetTokenStore.setStudentToken(token);
+    // 同时写入 SessionStorage（兼容现有读取逻辑）
+    await SessionStorage.get().setStudentSession(token, mockStudentProfile);
+
+    return this.delay<LoginResult>(result);
   }
 
   async register(req: RegisterRequest): Promise<boolean> {
@@ -46,23 +74,74 @@ export class AuthRepository extends BaseRepository {
   }
 
   async resetPassword(req: ResetPasswordRequest): Promise<boolean> {
+    // 校验验证码（mock 阶段固定 '123456'，实际联网后替换）
     if (req.verifyCode !== '123456') {
       return this.reject('验证码错误');
     }
+
+    // 校验账号是否存在（学生 or 管理员）
+    const accountId = req.account.trim();
+    if (accountId.length === 0) {
+      return this.reject('账号不能为空');
+    }
+
+    // 将新密码真正持久化
+    try {
+      await AccountStore.resetPassword(accountId, req.newPassword);
+    } catch (e) {
+      const msg = (e instanceof Error) ? e.message : String(e);
+      return this.reject(`重置密码失败：${msg}`);
+    }
+
     return this.delay<boolean>(true);
   }
 
   async changePassword(req: ChangePasswordRequest): Promise<boolean> {
-    if (req.oldPassword !== TEST_STUDENT_PASSWORD) {
-      return this.reject('原密码错误');
-    }
     if (req.newPassword !== req.confirmPassword) {
       return this.reject('两次新密码不一致');
     }
+
+    // 从 SessionStorage 取当前登录账号 ID
+    const session = SessionStorage.get();
+    const student = session.getStudent();
+    const admin = session.getAdmin();
+    const accountId = student ? student.studentId : (admin ? admin.adminId : '');
+
+    if (accountId.length === 0) {
+      return this.reject('未登录，无法修改密码');
+    }
+
+    // 先用 AccountStore 校验旧密码
+    let verified = false;
+    try {
+      verified = await AccountStore.verifyPassword(accountId, req.oldPassword);
+    } catch (e) {
+      verified = false;
+    }
+
+    // 降级：若 AccountStore 读不到记录（首次使用），用 mock 凭据兜底
+    if (!verified) {
+      const isMockStudent = (accountId === TEST_STUDENT_ID && req.oldPassword === TEST_STUDENT_PASSWORD);
+      const isMockAdmin = (accountId === TEST_ADMIN_ID && req.oldPassword === TEST_ADMIN_PASSWORD);
+      if (!isMockStudent && !isMockAdmin) {
+        return this.reject('原密码错误');
+      }
+    }
+
+    // 持久化新密码
+    try {
+      await AccountStore.changePassword(accountId, req.newPassword);
+    } catch (e) {
+      const msg = (e instanceof Error) ? e.message : String(e);
+      return this.reject(`密码修改失败：${msg}`);
+    }
+
     return this.delay<boolean>(true);
   }
 
   async logout(): Promise<boolean> {
+    // 清除安全存储的 token
+    await AssetTokenStore.clear();
     return this.delay<boolean>(true);
   }
 
@@ -82,12 +161,33 @@ export class AuthRepository extends BaseRepository {
     if (input.length !== 4 || expected.length !== 4 || input !== expected) {
       return this.reject('图形验证码错误');
     }
-    if (req.adminId.trim() !== TEST_ADMIN_ID || req.password !== TEST_ADMIN_PASSWORD) {
-      return this.reject('工号或密码错误');
+
+    // 先尝试持久化存储校验
+    let verified = false;
+    try {
+      verified = await AccountStore.verifyPassword(req.adminId.trim(), req.password);
+    } catch (e) {
+      verified = false;
     }
-    return this.delay<AdminLoginResult>({
-      token: `mock-admin-token-${Date.now()}`,
+
+    // 兜底 mock 校验
+    if (!verified) {
+      if (req.adminId.trim() !== TEST_ADMIN_ID || req.password !== TEST_ADMIN_PASSWORD) {
+        return this.reject('工号或密码错误');
+      }
+    }
+
+    const token = `mock-admin-token-${Date.now()}`;
+    const result: AdminLoginResult = {
+      token: token,
       profile: mockAdminProfile
-    });
+    };
+
+    // 安全存储 token
+    await AssetTokenStore.setAdminToken(token);
+    // 同时写入 SessionStorage
+    await SessionStorage.get().setAdminSession(token, mockAdminProfile);
+
+    return this.delay<AdminLoginResult>(result);
   }
 }

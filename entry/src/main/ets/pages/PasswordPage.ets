@@ -18,6 +18,12 @@ struct PasswordPage {
   @State submitting: boolean = false;
   @State successMsg: string = '';
 
+  aboutToAppear(): void {
+    if (!AppRoute.guard(Routes.Password)) {
+      return;
+    }
+  }
+
   private getStrengthLabel(): string {
     if (this.newPassword.length === 0) return '';
     const s = ValidatorUtils.passwordStrength(this.newPassword);
