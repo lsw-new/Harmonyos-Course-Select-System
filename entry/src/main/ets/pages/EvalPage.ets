@@ -216,11 +216,11 @@ struct EvalPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '量化评教', subtitle: '量 化 评 教', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.eval_title'), subtitle: $r('app.string.eval_subtitle'), onBack: () => AppRoute.back() })
 
         Column() {
           if (this.loading) {
-            LoadingState({ tip: '正在加载评教任务...' })
+            LoadingState({ tip: $r('app.string.eval_loading') })
           } else if (this.errorMsg.length > 0) {
             ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
           } else {
@@ -228,7 +228,7 @@ struct EvalPage {
               Column() {
                 this.ProgressHero()
                 if (this.tasks.length === 0) {
-                  EmptyState({ icon: 'evaluation', title: '暂无评教任务' })
+                  EmptyState({ icon: 'evaluation', title: $r('app.string.eval_empty') })
                 } else {
                   Column({ space: 10 }) {
                     ForEach(this.tasks, (task: EvaluationTask) => {
@@ -266,15 +266,15 @@ struct EvalPage {
 
   @Builder ProgressHero() {
     Column() {
-      Text('玫瑰之声').fontSize(18).fontStyle(FontStyle.Italic)
+      Text($r('app.string.eval_hero_title')).fontSize(18).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
-      Text('每一份诚挚的反馈，都是花瓣般温柔的力量。')
+      Text($r('app.string.eval_hero_sub'))
         .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).lineHeight(18).margin({ top: 6 })
       Row() {
         Text(`${this.doneCount()} / ${this.tasks.length}`)
           .fontSize(28).fontStyle(FontStyle.Italic)
           .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
-        Text('  已完成').fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+        Text($r('app.string.eval_done')).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
       }.alignItems(VerticalAlign.Bottom).margin({ top: 10 })
       Stack({ alignContent: Alignment.Start }) {
         Stack().width('100%').height(6).backgroundColor(ElysiaTheme.glassSoft()).borderRadius(3)
@@ -333,18 +333,18 @@ struct EvalPage {
         Row() {
           Column() {
             Text(this.activeTaskName).fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-            Text(this.questionnaire !== undefined ? this.questionnaire!.title : '问卷')
+            Text(this.questionnaire !== undefined ? this.questionnaire!.title : $r('app.string.eval_questionnaire'))
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 }).maxLines(1)
           }.alignItems(HorizontalAlign.Start).layoutWeight(1)
           Button({ type: ButtonType.Circle }) { AppIcon({ name: 'close', iconSize: 16 }) }
             .width(32).height(32).backgroundColor(ElysiaTheme.glassSoft())
             .border({ width: 1, color: ElysiaTheme.hairline() })
-            .accessibilityText('关闭')
+            .accessibilityText($r('app.string.common_close'))
             .onClick(() => this.closeSheet())
         }.width('100%').padding({ left: 18, right: 18, top: 16, bottom: 10 })
 
         if (this.qLoading) {
-          LoadingState({ tip: '正在加载问卷...' })
+          LoadingState({ tip: $r('app.string.eval_q_loading') })
         } else if (this.questionnaire === undefined) {
           ErrorState({ message: this.qError.length > 0 ? this.qError : '问卷加载失败', onRetry: () => this.loadQuestionnaire() })
         } else {
@@ -361,7 +361,7 @@ struct EvalPage {
                 Text(this.qError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT).width('100%')
               }
 
-              Button(this.submitting ? '提交中...' : '提交评教')
+              Button(this.submitting ? $r('app.string.common_submitting') : $r('app.string.eval_submit'))
                 .width('100%').height(46).fontSize(14).fontWeight(FontWeight.Bold)
                 .fontColor(Color.White).backgroundColor(Color.Transparent)
                 .linearGradient({ angle: 135, colors: [['#FF9FBE', 0], [ElysiaTheme.ROSE_500, 1]] })
@@ -411,7 +411,7 @@ struct EvalPage {
           }, (opt: EvaluationOption) => opt.id)
         }.margin({ top: 10 })
       } else if (q.type === 'text') {
-        TextArea({ placeholder: '请输入...', text: this.answers[i].text })
+        TextArea({ placeholder: $r('app.string.eval_input_ph'), text: this.answers[i].text })
           .height(80).fontSize(13).fontColor(ElysiaTheme.INK)
           .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
           .margin({ top: 10 })

@@ -124,7 +124,7 @@ struct PracticePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '实践', subtitle: '实 践 与 公 服', showBack: false })
+        TopBar({ title: $r('app.string.practice_title'), subtitle: $r('app.string.practice_subtitle'), showBack: false })
 
         // 分类筛选
         Scroll() {
@@ -151,11 +151,11 @@ struct PracticePage {
         .margin({ top: 6, bottom: 8 })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载实践项目...' })
+          LoadingState({ tip: $r('app.string.practice_loading') })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.projects.length === 0) {
-          EmptyState({ icon: 'practice', title: '暂无实践项目' })
+          EmptyState({ icon: 'practice', title: $r('app.string.practice_empty') })
         } else {
           Scroll() {
             Column() {
@@ -193,17 +193,17 @@ struct PracticePage {
   // 项目状态 Pill：可报名 / 已报名 / 已满。
   @Builder StatusPill(project: PracticeProject) {
     if (project.signedUp) {
-      Pill({ text: '已报名', bg: '#E6F5EC', color: '#3E8E5E' })
+      Pill({ text: $r('app.string.practice_signed'), bg: '#E6F5EC', color: '#3E8E5E' })
     } else if (project.slotsTaken >= project.slotsTotal) {
-      Pill({ text: '已满', bg: '#F0F0F0', color: ElysiaTheme.INK_MUTE })
+      Pill({ text: $r('app.string.practice_full'), bg: '#F0F0F0', color: ElysiaTheme.INK_MUTE })
     } else {
-      Pill({ text: '可报名' })
+      Pill({ text: $r('app.string.practice_open') })
     }
   }
 
   @Builder ActionButton(project: PracticeProject) {
     if (project.signedUp) {
-      Button(this.busyId === project.id ? '处理中' : '取消')
+      Button(this.busyId === project.id ? $r('app.string.practice_processing') : $r('app.string.common_cancel'))
         .height(34).fontSize(11).fontWeight(FontWeight.Bold)
         .fontColor(ElysiaTheme.ROSE_700)
         .backgroundColor(ElysiaTheme.glass())
@@ -213,7 +213,7 @@ struct PracticePage {
         .enabled(this.busyId.length === 0)
         .onClick(() => { this.toggleSignUp(project); })
     } else if (project.slotsTaken >= project.slotsTotal) {
-      Button('已 满')
+      Button($r('app.string.practice_btn_full'))
         .height(34).fontSize(11).fontWeight(FontWeight.Bold)
         .fontColor(ElysiaTheme.INK_MUTE)
         .backgroundColor(ElysiaTheme.glass())
@@ -222,7 +222,7 @@ struct PracticePage {
         .padding({ left: 14, right: 14 })
         .enabled(false)
     } else {
-      Button(this.busyId === project.id ? '处理中' : '报 名')
+      Button(this.busyId === project.id ? $r('app.string.practice_processing') : $r('app.string.practice_btn_signup'))
         .height(34).fontSize(11).fontWeight(FontWeight.Bold)
         .fontColor(Color.White)
         .backgroundColor('')

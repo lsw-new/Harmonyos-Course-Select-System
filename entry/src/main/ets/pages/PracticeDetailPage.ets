@@ -134,14 +134,14 @@ struct PracticeDetailPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '实践', subtitle: '实 践 详 情', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.practice_title'), subtitle: $r('app.string.practicedetail_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载项目详情...' })
+          LoadingState({ tip: $r('app.string.practicedetail_loading') })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.detail === undefined) {
-          EmptyState({ icon: 'practice', title: '项目不存在' })
+          EmptyState({ icon: 'practice', title: $r('app.string.practicedetail_empty') })
         } else {
           this.DetailBody(this.detail!)
         }
@@ -166,11 +166,11 @@ struct PracticeDetailPage {
             Row({ space: 6 }) {
               Pill({ text: categoryLabel(d.category), bg: '#EFE4FF', color: ElysiaTheme.LAV_500 })
               if (d.signedUp) {
-                Pill({ text: '已报名', bg: '#E6F5EC', color: '#3E8E5E' })
+                Pill({ text: $r('app.string.practice_signed'), bg: '#E6F5EC', color: '#3E8E5E' })
               } else if (d.slotsTaken >= d.slotsTotal) {
-                Pill({ text: '已满', bg: '#F0F0F0', color: ElysiaTheme.INK_MUTE })
+                Pill({ text: $r('app.string.practice_full'), bg: '#F0F0F0', color: ElysiaTheme.INK_MUTE })
               } else {
-                Pill({ text: '可报名' })
+                Pill({ text: $r('app.string.practice_open') })
               }
             }.width('100%')
             Text(d.title).fontSize(20).fontWeight(FontWeight.Bold)
@@ -183,7 +183,7 @@ struct PracticeDetailPage {
 
           // 基本信息
           Column({ space: 10 }) {
-            Text('项目信息').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text($r('app.string.practicedetail_info')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
               .width('100%')
             ForEach(this.buildInfoRows(d), (row: InfoRow) => {
               Row() {
@@ -198,7 +198,7 @@ struct PracticeDetailPage {
 
           // 项目简介
           Column({ space: 8 }) {
-            Text('项目简介').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text($r('app.string.practicedetail_desc')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
               .width('100%')
             Text(d.description).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
               .lineHeight(20).width('100%')
@@ -209,7 +209,7 @@ struct PracticeDetailPage {
           // 报名要求
           if (d.requirements.length > 0) {
             Column({ space: 8 }) {
-              Text('报名要求').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+              Text($r('app.string.practicedetail_req')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
                 .width('100%')
               ForEach(d.requirements, (req: string, idx: number) => {
                 Row() {
@@ -245,7 +245,7 @@ struct PracticeDetailPage {
   @Builder PrimaryAction(d: PracticeProjectDetail) {
     if (d.signedUp) {
       GhostButton({
-        text: this.submitting ? '处理中...' : '取消报名',
+        text: this.submitting ? $r('app.string.practicedetail_processing') : $r('app.string.practicedetail_cancel'),
         onTap: () => {
           if (!this.submitting) {
             this.confirmingCancel = true;
@@ -253,7 +253,7 @@ struct PracticeDetailPage {
         }
       })
     } else if (d.slotsTaken >= d.slotsTotal) {
-      Button('名额已满')
+      Button($r('app.string.practicedetail_full_btn'))
         .height(46).width('100%').fontSize(14).fontWeight(FontWeight.Bold)
         .fontColor(ElysiaTheme.INK_MUTE)
         .backgroundColor('#F0F0F0')
@@ -261,7 +261,7 @@ struct PracticeDetailPage {
         .enabled(false)
     } else {
       PrimaryButton({
-        text: this.submitting ? '提交中...' : '报 名',
+        text: this.submitting ? $r('app.string.common_submitting') : $r('app.string.practice_btn_signup'),
         onTap: () => this.doSignUp()
       })
     }
@@ -274,12 +274,12 @@ struct PracticeDetailPage {
 
       Column({ space: 14 }) {
         AppIcon({ name: 'info', iconSize: 36 })
-        Text('确认取消报名？').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-        Text('取消后名额将释放，如需再次参与请重新报名。')
+        Text($r('app.string.practicedetail_cancel_confirm')).fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+        Text($r('app.string.practicedetail_cancel_hint'))
           .fontSize(12).fontColor(ElysiaTheme.INK_SOFT).textAlign(TextAlign.Center)
         Row({ space: 10 }) {
-          GhostButton({ text: '再想想', onTap: () => { this.confirmingCancel = false; } }).layoutWeight(1)
-          PrimaryButton({ text: '确认取消', onTap: () => this.doCancel() }).layoutWeight(1)
+          GhostButton({ text: $r('app.string.practicedetail_reconsider'), onTap: () => { this.confirmingCancel = false; } }).layoutWeight(1)
+          PrimaryButton({ text: $r('app.string.practicedetail_confirm_cancel'), onTap: () => this.doCancel() }).layoutWeight(1)
         }.width('100%')
       }
       .width('80%').padding(22).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)

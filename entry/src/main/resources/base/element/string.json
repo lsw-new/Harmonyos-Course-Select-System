@@ -235,6 +235,46 @@
     { "name": "coursedetail_basic", "value": "基本信息" },
     { "name": "coursedetail_desc", "value": "课程简介" },
     { "name": "coursedetail_assess", "value": "考核比例" },
-    { "name": "coursedetail_goeval", "value": "进入评教" }
+    { "name": "coursedetail_goeval", "value": "进入评教" },
+
+    { "name": "common_close", "value": "关闭" },
+    { "name": "common_processing", "value": "处理中" },
+
+    { "name": "eval_title", "value": "量化评教" },
+    { "name": "eval_subtitle", "value": "量 化 评 教" },
+    { "name": "eval_loading", "value": "正在加载评教任务..." },
+    { "name": "eval_empty", "value": "暂无评教任务" },
+    { "name": "eval_hero_title", "value": "玫瑰之声" },
+    { "name": "eval_hero_sub", "value": "每一份诚挚的反馈，都是花瓣般温柔的力量。" },
+    { "name": "eval_done", "value": "  已完成" },
+    { "name": "eval_questionnaire", "value": "问卷" },
+    { "name": "eval_q_loading", "value": "正在加载问卷..." },
+    { "name": "eval_submit", "value": "提交评教" },
+    { "name": "eval_input_ph", "value": "请输入..." },
+
+    { "name": "practice_title", "value": "实践" },
+    { "name": "practice_subtitle", "value": "实 践 与 公 服" },
+    { "name": "practice_loading", "value": "正在加载实践项目..." },
+    { "name": "practice_empty", "value": "暂无实践项目" },
+    { "name": "practice_signed", "value": "已报名" },
+    { "name": "practice_full", "value": "已满" },
+    { "name": "practice_open", "value": "可报名" },
+    { "name": "practice_processing", "value": "处理中" },
+    { "name": "practice_btn_full", "value": "已 满" },
+    { "name": "practice_btn_signup", "value": "报 名" },
+
+    { "name": "practicedetail_subtitle", "value": "实 践 详 情" },
+    { "name": "practicedetail_loading", "value": "正在加载项目详情..." },
+    { "name": "practicedetail_empty", "value": "项目不存在" },
+    { "name": "practicedetail_info", "value": "项目信息" },
+    { "name": "practicedetail_desc", "value": "项目简介" },
+    { "name": "practicedetail_req", "value": "报名要求" },
+    { "name": "practicedetail_processing", "value": "处理中..." },
+    { "name": "practicedetail_cancel", "value": "取消报名" },
+    { "name": "practicedetail_full_btn", "value": "名额已满" },
+    { "name": "practicedetail_cancel_confirm", "value": "确认取消报名？" },
+    { "name": "practicedetail_cancel_hint", "value": "取消后名额将释放，如需再次参与请重新报名。" },
+    { "name": "practicedetail_reconsider", "value": "再想想" },
+    { "name": "practicedetail_confirm_cancel", "value": "确认取消" }
   ]
 }
