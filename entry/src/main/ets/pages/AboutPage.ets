@@ -38,16 +38,16 @@ struct AboutPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '关于', subtitle: '关 于', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: $r('app.string.about_title'), subtitle: $r('app.string.about_subtitle'), onBack: () => { AppRoute.back(); } })
 
         Scroll() {
           Column({ space: 14 }) {
             // 品牌卡片
             Column({ space: 8 }) {
               Monogram({ iconSize: 76 })
-              Text('景德镇艺术职业大学教学管理系统')
+              Text($r('app.string.about_app_name'))
                 .fontSize(20).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 6 })
-              Text('景德镇艺术职业大学 · 教学管理套件')
+              Text($r('app.string.about_app_sub'))
                 .fontSize(12).fontStyle(FontStyle.Italic).fontColor(ElysiaTheme.ROSE_700)
                 .fontFamily(ElysiaTheme.FONT_DISPLAY)
               Pill({ text: 'V1.0.0', color: ElysiaTheme.ROSE_700, bg: ElysiaTheme.SURFACE_GLOW })
@@ -57,8 +57,8 @@ struct AboutPage {
 
             // 简介
             Column({ space: 8 }) {
-              Text('关于本系统').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
-              Text('景德镇艺术职业大学教学管理系统是一套面向高校师生的一体化教务平台，覆盖课表、选课、成绩、考试、评教、请假与办事大厅等核心场景。我们以「瓷都陶瓷艺术」为视觉灵感，致力于把繁琐的教务流程打磨成优雅、顺手的日常体验，让每一次操作都安心、清晰、有温度。')
+              Text($r('app.string.about_section')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
+              Text($r('app.string.about_intro'))
                 .fontSize(13).fontColor(ElysiaTheme.INK_SOFT).lineHeight(22)
             }.width('100%').alignItems(HorizontalAlign.Start).padding(16)
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
@@ -66,7 +66,7 @@ struct AboutPage {
 
             // 构建 / 致谢
             Column() {
-              Text('构建信息').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              Text($r('app.string.about_build_info')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               ForEach(this.credits, (it: CreditItem) => {
                 this.CreditRow(it)
               }, (it: CreditItem) => it.label)
@@ -74,7 +74,7 @@ struct AboutPage {
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-            RoseDivider({ label: '法 律 条 款' })
+            RoseDivider({ label: $r('app.string.about_legal') })
 
             // 协议 / 隐私
             Column() {
@@ -84,7 +84,7 @@ struct AboutPage {
             .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-            Text('© 2026 景德镇艺术职业大学 · 保留所有权利')
+            Text($r('app.string.about_copyright'))
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
               .width('100%').textAlign(TextAlign.Center).margin({ top: 4 })
 

@@ -119,6 +119,36 @@
     { "name": "schedule_subtitle", "value": "我 的 课 表" },
     { "name": "schedule_prev_week", "value": "上一周" },
     { "name": "schedule_next_week", "value": "下一周" },
-    { "name": "schedule_loading", "value": "正在加载课表..." }
+    { "name": "schedule_loading", "value": "正在加载课表..." },
+
+    { "name": "common_change_pwd", "value": "修改密码" },
+    { "name": "common_form", "value": "表单" },
+    { "name": "common_submitting", "value": "提交中..." },
+
+    { "name": "about_title", "value": "关于" },
+    { "name": "about_subtitle", "value": "关 于" },
+    { "name": "about_app_name", "value": "景德镇艺术职业大学教学管理系统" },
+    { "name": "about_app_sub", "value": "景德镇艺术职业大学 · 教学管理套件" },
+    { "name": "about_section", "value": "关于本系统" },
+    { "name": "about_intro", "value": "景德镇艺术职业大学教学管理系统是一套面向高校师生的一体化教务平台，覆盖课表、选课、成绩、考试、评教、请假与办事大厅等核心场景。我们以「瓷都陶瓷艺术」为视觉灵感，致力于把繁琐的教务流程打磨成优雅、顺手的日常体验，让每一次操作都安心、清晰、有温度。" },
+    { "name": "about_build_info", "value": "构建信息" },
+    { "name": "about_legal", "value": "法 律 条 款" },
+    { "name": "about_copyright", "value": "© 2026 景德镇艺术职业大学 · 保留所有权利" },
+
+    { "name": "account_title", "value": "账户" },
+    { "name": "account_subtitle", "value": "我 的 账 户" },
+    { "name": "account_loading", "value": "正在加载账户信息..." },
+    { "name": "account_change_avatar", "value": "更换头像" },
+    { "name": "account_logout", "value": "退出登录" },
+
+    { "name": "password_subtitle", "value": "修 改 密 码" },
+    { "name": "password_security", "value": "账户安全" },
+    { "name": "password_heading", "value": "修改登录密码" },
+    { "name": "password_hint", "value": "修改后需重新登录" },
+    { "name": "password_old", "value": "原密码" },
+    { "name": "password_new", "value": "新密码" },
+    { "name": "password_strength", "value": "密码强度：" },
+    { "name": "password_confirm", "value": "确认新密码" },
+    { "name": "password_submit", "value": "确认修改" }
   ]
 }

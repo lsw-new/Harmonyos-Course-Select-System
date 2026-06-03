@@ -79,10 +79,10 @@ struct AccountPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '账户', subtitle: '我 的 账 户', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.account_title'), subtitle: $r('app.string.account_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载账户信息...' })
+          LoadingState({ tip: $r('app.string.account_loading') })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else {
@@ -113,21 +113,21 @@ struct AccountPage {
               Row({ space: 10 }) {
                 Column() {
                   AppIcon({ name: 'lock', iconSize: 24 })
-                  Text('修改密码').fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({ top: 6 })
+                  Text($r('app.string.common_change_pwd')).fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                 }.layoutWeight(1).padding({ top: 14, bottom: 14 })
                 .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                 .onClick(() => { AppRoute.go(Routes.Password); })
 
                 Column() {
                   AppIcon({ name: 'camera', iconSize: 24 })
-                  Text('更换头像').fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({ top: 6 })
+                  Text($r('app.string.account_change_avatar')).fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                 }.layoutWeight(1).padding({ top: 14, bottom: 14 })
                 .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                 .onClick(() => { AppRoute.go(Routes.EditInfo); })
 
                 Column() {
                   AppIcon({ name: 'close', iconSize: 24 })
-                  Text('退出登录').fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({ top: 6 })
+                  Text($r('app.string.account_logout')).fontSize(11).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                 }.layoutWeight(1).padding({ top: 14, bottom: 14 })
                 .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22).border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                 .onClick(() => { this.showLogoutConfirm = true; })
@@ -155,14 +155,14 @@ struct AccountPage {
       if (this.showLogoutConfirm) {
         Column() {
           Column({ space: 14 }) {
-            Text('确认退出登录？').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-            Text('退出后需重新登录').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+            Text($r('app.string.mine_logout_confirm')).fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text($r('app.string.mine_logout_hint')).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
             Row({ space: 12 }) {
-              Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
+              Text($r('app.string.common_cancel')).fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor('#E0FFFFFF').borderRadius(999)
                 .onClick(() => { this.showLogoutConfirm = false; })
-              Text('退出').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
+              Text($r('app.string.mine_logout')).fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
                 .onClick(() => { this.logout(); })
