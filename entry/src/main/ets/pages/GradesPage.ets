@@ -58,7 +58,7 @@ struct GradesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '我的成绩', subtitle: '我 的 成 绩', showBack: false })
+        TopBar({ title: $r('app.string.grades_title'), subtitle: $r('app.string.grades_subtitle'), showBack: false })
 
         // 学期切换 tabs
         Scroll() {
@@ -89,7 +89,7 @@ struct GradesPage {
         .padding({ left: 16, right: 16, bottom: 12 })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载成绩...' })
+          LoadingState({ tip: $r('app.string.grades_loading') })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else {
@@ -108,7 +108,7 @@ struct GradesPage {
                       .fontStyle(FontStyle.Italic)
                       .fontColor(ElysiaTheme.ROSE_700)
                       .fontFamily(ElysiaTheme.FONT_DISPLAY)
-                    Text('  学期 · 绩点')
+                    Text($r('app.string.grades_term_gpa'))
                       .fontSize(11)
                       .fontColor(ElysiaTheme.INK_SOFT)
                   }
@@ -137,7 +137,7 @@ struct GradesPage {
               RoseDivider({ label: `records · ${this.grades.length} 门` })
 
               if (this.grades.length === 0) {
-                EmptyState({ title: '该学期暂无成绩' })
+                EmptyState({ title: $r('app.string.grades_empty') })
               } else {
                 // 成绩列表
                 Column({ space: 10 }) {
@@ -148,7 +148,7 @@ struct GradesPage {
                 .padding({ left: 16, right: 16 })
               }
 
-              Text('— 努力的回报 —')
+              Text($r('app.string.grades_slogan'))
                 .fontSize(11)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.INK_MUTE)
@@ -230,7 +230,7 @@ struct GradesPage {
                 ? ElysiaTheme.ROSE_700 : ElysiaTheme.INK_SOFT
             )
             .fontFamily(ElysiaTheme.FONT_DISPLAY)
-          Text('最终成绩')
+          Text($r('app.string.grades_final'))
             .fontSize(10)
             .fontColor(ElysiaTheme.INK_SOFT)
             .letterSpacing(2)

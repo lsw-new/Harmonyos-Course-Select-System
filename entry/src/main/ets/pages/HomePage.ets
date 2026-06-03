@@ -144,7 +144,7 @@ struct HomePage {
         Column() {
           if (this.loading) {
             Blank().height(80)
-            LoadingState({ tip: '正在加载工作台...' })
+            LoadingState({ tip: $r('app.string.home_loading') })
           } else if (this.errorMsg.length > 0) {
             Blank().height(80)
             ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
@@ -156,7 +156,7 @@ struct HomePage {
                   this.SearchResults()
                 } else {
                   this.HeroTerm(this.summary!.term)
-                  RoseDivider({ label: '快捷入口' })
+                  RoseDivider({ label: $r('app.string.home_quick_entry') })
                   this.QuickGrid(this.summary!.quickEntries)
                   this.TodaySection(this.summary!.todayCourses)
                   this.NoticeSection(this.summary!.noticeSummary)
@@ -194,7 +194,7 @@ struct HomePage {
         Row() {
           Monogram({ iconSize: 44 })
           Column() {
-            Text('你好 ✦').fontSize(11).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
+            Text($r('app.string.home_hello')).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
             Text(`${p.name} · ${p.studentId}`)
               .fontSize(17).fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
@@ -206,7 +206,7 @@ struct HomePage {
           Button({ type: ButtonType.Circle }) { AppIcon({ name: 'bell', iconSize: 16 }) }
             .width(34).height(34).backgroundColor(ElysiaTheme.glassSoft())
             .border({ width: 1, color: ElysiaTheme.hairline() })
-            .accessibilityText('通知')
+            .accessibilityText($r('app.string.common_notice'))
             .onClick(() => AppRoute.go(Routes.Notices))
           if (unread > 0) {
             Text(unread > 9 ? '9+' : `${unread}`)
@@ -221,7 +221,7 @@ struct HomePage {
 
       Row() {
         AppIcon({ name: 'search', iconSize: 16, mLeft: 14 })
-        TextInput({ placeholder: '搜索课程 · 通知 · 文件', text: this.query })
+        TextInput({ placeholder: $r('app.string.home_search_ph'), text: this.query })
           .height(40).fontSize(12)
           .backgroundColor(Color.Transparent)
           .placeholderColor(ElysiaTheme.INK_MUTE)
@@ -234,7 +234,7 @@ struct HomePage {
             .fontSize(12).fontColor(ElysiaTheme.INK_MUTE).textAlign(TextAlign.Center)
             .width(28).height(28).borderRadius(14).backgroundColor('#33F2709C')
             .margin({ right: 6 })
-            .accessibilityText('清除')
+            .accessibilityText($r('app.string.common_clear'))
             .onClick(() => this.clearSearch())
         }
       }
@@ -316,7 +316,7 @@ struct HomePage {
           .fontSize(10).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
       }.alignItems(HorizontalAlign.Start)
       Blank().layoutWeight(1)
-      Text('查看全部 ›').fontSize(10).fontStyle(FontStyle.Italic)
+      Text($r('app.string.home_view_all')).fontSize(10).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
         .onClick(() => AppRoute.go(Routes.Today))
     }.width('100%').padding({ left: 20, right: 20, top: 18 })
@@ -324,7 +324,7 @@ struct HomePage {
     if (courses.length === 0) {
       Column() {
         AppIcon({ name: 'petal', iconSize: 30, dim: true })
-        Text('今日无课 · 享受片刻闲暇')
+        Text($r('app.string.home_no_class'))
           .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 6 })
       }
       .width('100%').padding(30).margin({ left: 16, right: 16, top: 10 })
@@ -374,10 +374,10 @@ struct HomePage {
 
   @Builder NoticeSection(items: Notice[]) {
     Row() {
-      Text('办事大厅').fontSize(18).fontStyle(FontStyle.Italic)
+      Text($r('app.string.home_service_hall')).fontSize(18).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
       Blank().layoutWeight(1)
-      Text('更多 ›').fontSize(10).fontStyle(FontStyle.Italic)
+      Text($r('app.string.common_more')).fontSize(10).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
         .onClick(() => AppRoute.go(Routes.Notices))
     }.width('100%').padding({ left: 20, right: 20, top: 18 })
@@ -409,7 +409,7 @@ struct HomePage {
   @Builder SearchResults() {
     Column() {
       Row() {
-        Text('搜索结果').fontSize(18).fontStyle(FontStyle.Italic)
+        Text($r('app.string.home_search_result')).fontSize(18).fontStyle(FontStyle.Italic)
           .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
         Blank().layoutWeight(1)
         Text(`${this.courseHits.length + this.noticeHits.length + this.fileHits.length} 项`)
@@ -422,7 +422,7 @@ struct HomePage {
           Text(`未找到与「${this.query}」相关的内容`)
             .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 8 })
             .textAlign(TextAlign.Center)
-          Text('试试课程名 / 老师 / 教室 / 通知标题 / 文件名')
+          Text($r('app.string.home_search_hint'))
             .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 4 })
             .textAlign(TextAlign.Center)
         }
@@ -515,7 +515,7 @@ struct HomePage {
 
   @Builder FilesSection(files: DownloadFile[]) {
     Row() {
-      Text('文件').fontSize(18).fontStyle(FontStyle.Italic)
+      Text($r('app.string.common_file')).fontSize(18).fontStyle(FontStyle.Italic)
         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
       Blank().layoutWeight(1)
       Text(`${files.length} 项`).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
@@ -546,7 +546,7 @@ struct HomePage {
     Row() {
       Sparkle({ iconSize: 14 })
       Column() {
-        Text('上次登录').fontSize(10).fontColor(ElysiaTheme.INK_MUTE).letterSpacing(2)
+        Text($r('app.string.home_last_login')).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).letterSpacing(2)
         Text(`${rl.loginTime} · ${rl.network}`)
           .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
         Text(rl.region).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
