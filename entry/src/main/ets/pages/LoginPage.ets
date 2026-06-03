@@ -14,7 +14,6 @@ import { HttpError } from '../common/http/HttpError';
 import { LoginResult } from '../models/User';
 import { SafeTop } from '../common/widgets/SafeArea';
 
-@Entry
 @Component
 struct LoginPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -64,15 +63,6 @@ struct LoginPage {
       this.submitting = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '登录失败';
     });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -208,4 +198,13 @@ struct LoginPage {
     .width('100%')
     .height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function LoginPageBuilder() {
+  NavDestination() {
+    LoginPage()
+  }
+  .hideTitleBar(true)
 }

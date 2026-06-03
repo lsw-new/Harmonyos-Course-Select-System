@@ -11,7 +11,6 @@ import { ExamArrangement } from '../models/Academic';
 import { DateUtils } from '../common/utils/DateUtils';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
-@Entry
 @Component
 struct ExamPage {
   @State exams: ExamArrangement[] = [];
@@ -75,15 +74,6 @@ struct ExamPage {
       return parts[2];
     }
     return '—';
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -200,4 +190,13 @@ struct ExamPage {
     }
     .width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function ExamPageBuilder() {
+  NavDestination() {
+    ExamPage()
+  }
+  .hideTitleBar(true)
 }

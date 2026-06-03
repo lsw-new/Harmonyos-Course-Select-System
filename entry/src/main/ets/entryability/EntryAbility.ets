@@ -2,7 +2,6 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import display from '@ohos.display';
-import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppStartup } from '../app/AppStartup';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
@@ -25,21 +24,16 @@ export default class EntryAbility extends UIAbility {
     this.setupWindow(windowStage);
 
     AppStartup.init(this.context).then(() => {
-      const session = SessionStorage.get();
-      let startPage = 'pages/LoginPage';
-      if (session.isAuthenticated()) {
-        startPage = session.getRole() === 'admin' ? 'pages/AdminDashboardPage' : 'pages/HomePage';
-      }
-
-      windowStage.loadContent(startPage, (err) => {
+      // 初始页由 pages/Index 的 Navigation 按会话角色决定，这里只加载根容器。
+      windowStage.loadContent('pages/Index', (err) => {
         if (err.code) {
           hilog.error(DOMAIN, TAG, 'Failed to load content: %{public}s', JSON.stringify(err));
           return;
         }
-        hilog.info(DOMAIN, TAG, 'Loaded: %{public}s', startPage);
+        hilog.info(DOMAIN, TAG, 'Loaded: %{public}s', 'pages/Index');
       });
     }).catch(() => {
-      windowStage.loadContent('pages/LoginPage', (err) => {
+      windowStage.loadContent('pages/Index', (err) => {
         if (err.code) {
           hilog.error(DOMAIN, TAG, 'Fallback load failed: %{public}s', JSON.stringify(err));
         }

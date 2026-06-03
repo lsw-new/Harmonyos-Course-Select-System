@@ -14,7 +14,6 @@ import { Toast } from '../common/widgets/Feedback';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminCoursesPage {
   @State loading: boolean = true;
@@ -213,15 +212,6 @@ struct AdminCoursesPage {
     });
   }
 
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
-
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -386,4 +376,13 @@ struct AdminCoursesPage {
       }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminCoursesPageBuilder() {
+  NavDestination() {
+    AdminCoursesPage()
+  }
+  .hideTitleBar(true)
 }

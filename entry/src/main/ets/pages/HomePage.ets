@@ -21,7 +21,6 @@ import { FileService } from '../common/services/FileService';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
-@Entry
 @Component
 struct HomePage {
   @State summary?: HomeSummary = undefined;
@@ -128,15 +127,6 @@ struct HomePage {
   private clearSearch(): void {
     this.query = '';
     this.runSearch('');
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -592,4 +582,13 @@ struct HomePage {
     if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / 1048576).toFixed(1)} MB`;
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function HomePageBuilder() {
+  NavDestination() {
+    HomePage()
+  }
+  .hideTitleBar(true)
 }

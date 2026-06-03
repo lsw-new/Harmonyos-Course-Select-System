@@ -13,7 +13,6 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminStudentsPage {
   @State loading: boolean = true;
@@ -61,15 +60,6 @@ struct AdminStudentsPage {
   private openDetail(item: StudentAdminItem): void {
     const p: Record<string, Object> = { 'studentId': item.studentId };
     AppRoute.go(Routes.AdminStudentDetail, { params: p });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -132,4 +122,13 @@ struct AdminStudentsPage {
       }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminStudentsPageBuilder() {
+  NavDestination() {
+    AdminStudentsPage()
+  }
+  .hideTitleBar(true)
 }

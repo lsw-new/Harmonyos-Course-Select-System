@@ -18,7 +18,6 @@ class ServiceTile {
   }
 }
 
-@Entry
 @Component
 struct ServiceHallPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -38,15 +37,6 @@ struct ServiceHallPage {
 
   aboutToAppear(): void {
     AppRoute.guard(Routes.ServiceHall);
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -103,4 +93,13 @@ struct ServiceHallPage {
     .accessibilityText(it.label)
     .onClick(() => { AppRoute.go(it.route); })
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function ServiceHallPageBuilder() {
+  NavDestination() {
+    ServiceHallPage()
+  }
+  .hideTitleBar(true)
 }

@@ -15,7 +15,6 @@ import { Notice } from '../models/Notice';
 // EXACT category values from mockNotices.ets
 const CATEGORIES: string[] = ['全部', '教务', '学工', '生活'];
 
-@Entry
 @Component
 struct NoticesPage {
   @State activeFilter: number = 0;
@@ -45,15 +44,6 @@ struct NoticesPage {
       this.errorMsg = e instanceof Error ? e.message : '加载失败';
       this.loading = false;
     });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -194,4 +184,13 @@ struct NoticesPage {
       AppRoute.go(Routes.NoticeDetail, opts);
     })
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function NoticesPageBuilder() {
+  NavDestination() {
+    NoticesPage()
+  }
+  .hideTitleBar(true)
 }

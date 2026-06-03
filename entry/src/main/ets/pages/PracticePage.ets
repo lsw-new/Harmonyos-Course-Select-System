@@ -38,7 +38,6 @@ function categoryLabel(c: PracticeCategory): string {
   return '志愿服务';
 }
 
-@Entry
 @Component
 struct PracticePage {
   @State projects: PracticeProject[] = [];
@@ -112,15 +111,6 @@ struct PracticePage {
       this.actionError = msg;
       Toast.show(this.getUIContext(), msg);
     });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -279,4 +269,13 @@ struct PracticePage {
     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
     .onClick(() => { this.openDetail(project); })
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function PracticePageBuilder() {
+  NavDestination() {
+    PracticePage()
+  }
+  .hideTitleBar(true)
 }

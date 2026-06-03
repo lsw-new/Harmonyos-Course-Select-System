@@ -22,7 +22,6 @@ class AdminModule {
   }
 }
 
-@Entry
 @Component
 struct AdminDashboardPage {
   @State loading: boolean = true;
@@ -76,15 +75,6 @@ struct AdminDashboardPage {
     }
     .width('25%').padding({ top: 6, bottom: 6 }).alignItems(HorizontalAlign.Center)
     .onClick(() => { AppRoute.go(m.route); })
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -189,4 +179,13 @@ struct AdminDashboardPage {
       }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminDashboardPageBuilder() {
+  NavDestination() {
+    AdminDashboardPage()
+  }
+  .hideTitleBar(true)
 }

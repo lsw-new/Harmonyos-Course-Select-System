@@ -12,7 +12,6 @@ import { LoadingState } from '../common/widgets/StateViews';
 import { FileService } from '../common/services/FileService';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
-@Entry
 @Component
 struct EditInfoPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -102,15 +101,6 @@ struct EditInfoPage {
     .border({ width: { bottom: 1 }, color: '#22FFB3CE' })
   }
 
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
-
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -186,4 +176,13 @@ struct EditInfoPage {
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function EditInfoPageBuilder() {
+  NavDestination() {
+    EditInfoPage()
+  }
+  .hideTitleBar(true)
 }

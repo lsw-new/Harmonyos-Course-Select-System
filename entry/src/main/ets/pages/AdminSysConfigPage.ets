@@ -28,7 +28,6 @@ class SecurityToggleDef {
   }
 }
 
-@Entry
 @Component
 struct AdminSysConfigPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -390,15 +389,6 @@ struct AdminSysConfigPage {
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(18).border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
-
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -428,4 +418,13 @@ struct AdminSysConfigPage {
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminSysConfigPageBuilder() {
+  NavDestination() {
+    AdminSysConfigPage()
+  }
+  .hideTitleBar(true)
 }

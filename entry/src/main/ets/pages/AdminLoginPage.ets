@@ -1,5 +1,4 @@
 // 管理员登录 · Sign in
-import router from '@ohos.router';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, RoseDivider, PrimaryButton, GhostButton, ElysiaInput, Pill, Monogram } from '../common/Components';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
@@ -12,7 +11,6 @@ import { AdminProfile, AdminLoginResult } from '../models/Admin';
 import { Toast } from '../common/widgets/Feedback';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminLoginPage {
   @State adminId: string = '';
@@ -59,15 +57,6 @@ struct AdminLoginPage {
       this.captcha = '';
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '登录失败';
     });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -131,4 +120,13 @@ struct AdminLoginPage {
       }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminLoginPageBuilder() {
+  NavDestination() {
+    AdminLoginPage()
+  }
+  .hideTitleBar(true)
 }

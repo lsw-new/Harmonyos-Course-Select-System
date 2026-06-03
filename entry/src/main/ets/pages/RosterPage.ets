@@ -9,7 +9,6 @@ import { AcademicRepository } from '../repositories/AcademicRepository';
 import { StudentRecord } from '../models/Academic';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
-@Entry
 @Component
 struct RosterPage {
   @State record?: StudentRecord = undefined;
@@ -37,15 +36,6 @@ struct RosterPage {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
         this.loading = false;
       });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -153,4 +143,13 @@ struct RosterPage {
     }
     .width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function RosterPageBuilder() {
+  NavDestination() {
+    RosterPage()
+  }
+  .hideTitleBar(true)
 }

@@ -10,7 +10,6 @@ import { HttpError } from '../common/http/HttpError';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct ForgotPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -82,15 +81,6 @@ struct ForgotPage {
       this.submitting = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '重置失败';
     });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -191,4 +181,13 @@ struct ForgotPage {
     }
     .width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function ForgotPageBuilder() {
+  NavDestination() {
+    ForgotPage()
+  }
+  .hideTitleBar(true)
 }

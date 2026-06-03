@@ -18,7 +18,6 @@ class CreditItem {
   }
 }
 
-@Entry
 @Component
 struct AboutPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -30,15 +29,6 @@ struct AboutPage {
     new CreditItem('phone', '服务热线', '400-820-0000'),
     new CreditItem('location', '地址', '茶苑校区 · 行政楼 3F')
   ];
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
 
   build() {
     Stack() {
@@ -127,4 +117,13 @@ struct AboutPage {
       AppRoute.go(Routes.Doc, { params: p });
     })
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AboutPageBuilder() {
+  NavDestination() {
+    AboutPage()
+  }
+  .hideTitleBar(true)
 }

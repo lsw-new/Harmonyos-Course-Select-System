@@ -9,7 +9,6 @@ import { HttpError } from '../common/http/HttpError';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct RegisterPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -94,15 +93,6 @@ struct RegisterPage {
       this.submitting = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '注册失败';
     });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -212,4 +202,13 @@ struct RegisterPage {
     }
     .width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function RegisterPageBuilder() {
+  NavDestination() {
+    RegisterPage()
+  }
+  .hideTitleBar(true)
 }

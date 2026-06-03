@@ -10,7 +10,6 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct LeavePage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -93,15 +92,6 @@ struct LeavePage {
     if (state === 'rejected') return '已驳回';
     if (state === 'pending') return '审批中';
     return '已撤回';
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -193,4 +183,13 @@ struct LeavePage {
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function LeavePageBuilder() {
+  NavDestination() {
+    LeavePage()
+  }
+  .hideTitleBar(true)
 }

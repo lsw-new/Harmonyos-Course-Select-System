@@ -1,0 +1,214 @@
+{
+    "routerMap":  [
+                      {
+                          "name":  "pages/AboutPage",
+                          "pageSourceFile":  "src/main/ets/pages/AboutPage.ets",
+                          "buildFunction":  "AboutPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AccountPage",
+                          "pageSourceFile":  "src/main/ets/pages/AccountPage.ets",
+                          "buildFunction":  "AccountPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminApprovalsPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminApprovalsPage.ets",
+                          "buildFunction":  "AdminApprovalsPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminAuditLogPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminAuditLogPage.ets",
+                          "buildFunction":  "AdminAuditLogPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminCalendarPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminCalendarPage.ets",
+                          "buildFunction":  "AdminCalendarPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminCoursesPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminCoursesPage.ets",
+                          "buildFunction":  "AdminCoursesPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminDashboardPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminDashboardPage.ets",
+                          "buildFunction":  "AdminDashboardPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminEvalPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminEvalPage.ets",
+                          "buildFunction":  "AdminEvalPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminGradesPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminGradesPage.ets",
+                          "buildFunction":  "AdminGradesPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminLoginPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminLoginPage.ets",
+                          "buildFunction":  "AdminLoginPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminNoticePage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminNoticePage.ets",
+                          "buildFunction":  "AdminNoticePageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminPasswordPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminPasswordPage.ets",
+                          "buildFunction":  "AdminPasswordPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminProfilePage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminProfilePage.ets",
+                          "buildFunction":  "AdminProfilePageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminRolePermPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminRolePermPage.ets",
+                          "buildFunction":  "AdminRolePermPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminSelectionPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminSelectionPage.ets",
+                          "buildFunction":  "AdminSelectionPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminStudentDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminStudentDetailPage.ets",
+                          "buildFunction":  "AdminStudentDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminStudentsPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminStudentsPage.ets",
+                          "buildFunction":  "AdminStudentsPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminSysConfigPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminSysConfigPage.ets",
+                          "buildFunction":  "AdminSysConfigPageBuilder"
+                      },
+                      {
+                          "name":  "pages/CourseDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/CourseDetailPage.ets",
+                          "buildFunction":  "CourseDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/DocPage",
+                          "pageSourceFile":  "src/main/ets/pages/DocPage.ets",
+                          "buildFunction":  "DocPageBuilder"
+                      },
+                      {
+                          "name":  "pages/EditInfoPage",
+                          "pageSourceFile":  "src/main/ets/pages/EditInfoPage.ets",
+                          "buildFunction":  "EditInfoPageBuilder"
+                      },
+                      {
+                          "name":  "pages/EvalPage",
+                          "pageSourceFile":  "src/main/ets/pages/EvalPage.ets",
+                          "buildFunction":  "EvalPageBuilder"
+                      },
+                      {
+                          "name":  "pages/ExamPage",
+                          "pageSourceFile":  "src/main/ets/pages/ExamPage.ets",
+                          "buildFunction":  "ExamPageBuilder"
+                      },
+                      {
+                          "name":  "pages/FeedbackPage",
+                          "pageSourceFile":  "src/main/ets/pages/FeedbackPage.ets",
+                          "buildFunction":  "FeedbackPageBuilder"
+                      },
+                      {
+                          "name":  "pages/ForgotPage",
+                          "pageSourceFile":  "src/main/ets/pages/ForgotPage.ets",
+                          "buildFunction":  "ForgotPageBuilder"
+                      },
+                      {
+                          "name":  "pages/GradesPage",
+                          "pageSourceFile":  "src/main/ets/pages/GradesPage.ets",
+                          "buildFunction":  "GradesPageBuilder"
+                      },
+                      {
+                          "name":  "pages/HomePage",
+                          "pageSourceFile":  "src/main/ets/pages/HomePage.ets",
+                          "buildFunction":  "HomePageBuilder"
+                      },
+                      {
+                          "name":  "pages/LeavePage",
+                          "pageSourceFile":  "src/main/ets/pages/LeavePage.ets",
+                          "buildFunction":  "LeavePageBuilder"
+                      },
+                      {
+                          "name":  "pages/LoginPage",
+                          "pageSourceFile":  "src/main/ets/pages/LoginPage.ets",
+                          "buildFunction":  "LoginPageBuilder"
+                      },
+                      {
+                          "name":  "pages/MinePage",
+                          "pageSourceFile":  "src/main/ets/pages/MinePage.ets",
+                          "buildFunction":  "MinePageBuilder"
+                      },
+                      {
+                          "name":  "pages/NoticeDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/NoticeDetailPage.ets",
+                          "buildFunction":  "NoticeDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/NoticesPage",
+                          "pageSourceFile":  "src/main/ets/pages/NoticesPage.ets",
+                          "buildFunction":  "NoticesPageBuilder"
+                      },
+                      {
+                          "name":  "pages/PasswordPage",
+                          "pageSourceFile":  "src/main/ets/pages/PasswordPage.ets",
+                          "buildFunction":  "PasswordPageBuilder"
+                      },
+                      {
+                          "name":  "pages/PracticeDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/PracticeDetailPage.ets",
+                          "buildFunction":  "PracticeDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/PracticePage",
+                          "pageSourceFile":  "src/main/ets/pages/PracticePage.ets",
+                          "buildFunction":  "PracticePageBuilder"
+                      },
+                      {
+                          "name":  "pages/RegisterPage",
+                          "pageSourceFile":  "src/main/ets/pages/RegisterPage.ets",
+                          "buildFunction":  "RegisterPageBuilder"
+                      },
+                      {
+                          "name":  "pages/RosterPage",
+                          "pageSourceFile":  "src/main/ets/pages/RosterPage.ets",
+                          "buildFunction":  "RosterPageBuilder"
+                      },
+                      {
+                          "name":  "pages/SchedulePage",
+                          "pageSourceFile":  "src/main/ets/pages/SchedulePage.ets",
+                          "buildFunction":  "SchedulePageBuilder"
+                      },
+                      {
+                          "name":  "pages/SelectionPage",
+                          "pageSourceFile":  "src/main/ets/pages/SelectionPage.ets",
+                          "buildFunction":  "SelectionPageBuilder"
+                      },
+                      {
+                          "name":  "pages/ServiceHallPage",
+                          "pageSourceFile":  "src/main/ets/pages/ServiceHallPage.ets",
+                          "buildFunction":  "ServiceHallPageBuilder"
+                      },
+                      {
+                          "name":  "pages/SettingsPage",
+                          "pageSourceFile":  "src/main/ets/pages/SettingsPage.ets",
+                          "buildFunction":  "SettingsPageBuilder"
+                      },
+                      {
+                          "name":  "pages/TodayPage",
+                          "pageSourceFile":  "src/main/ets/pages/TodayPage.ets",
+                          "buildFunction":  "TodayPageBuilder"
+                      }
+                  ]
+}

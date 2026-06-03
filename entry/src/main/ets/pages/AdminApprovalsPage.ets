@@ -13,7 +13,6 @@ import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminApprovalsPage {
   @State loading: boolean = true;
@@ -103,15 +102,6 @@ struct AdminApprovalsPage {
     if (s === 'approved') return ElysiaTheme.SUCCESS;
     if (s === 'rejected') return ElysiaTheme.ROSE_ACCENT;
     return ElysiaTheme.INK_MUTE;
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -232,4 +222,13 @@ struct AdminApprovalsPage {
       }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminApprovalsPageBuilder() {
+  NavDestination() {
+    AdminApprovalsPage()
+  }
+  .hideTitleBar(true)
 }

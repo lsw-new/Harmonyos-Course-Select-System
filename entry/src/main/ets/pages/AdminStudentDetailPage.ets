@@ -12,7 +12,6 @@ import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminStudentDetailPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -277,15 +276,6 @@ struct AdminStudentDetailPage {
     }
   }
 
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
-
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -309,4 +299,13 @@ struct AdminStudentDetailPage {
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminStudentDetailPageBuilder() {
+  NavDestination() {
+    AdminStudentDetailPage()
+  }
+  .hideTitleBar(true)
 }

@@ -20,7 +20,6 @@ function formatRemaining(seconds: number): string {
   return `${days}d ${hours}h`;
 }
 
-@Entry
 @Component
 struct SelectionPage {
   @State courses: SelectionCourse[] = [];
@@ -73,15 +72,6 @@ struct SelectionPage {
       .catch((e: object) => {
         this.actionError = e instanceof Error ? e.message : '操作失败';
       });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -296,4 +286,13 @@ struct SelectionPage {
     }
     .width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function SelectionPageBuilder() {
+  NavDestination() {
+    SelectionPage()
+  }
+  .hideTitleBar(true)
 }

@@ -1,6 +1,7 @@
 // 路由跳转封装 + 角色守卫
+// Navigation 迁移：内部由已废弃的 @ohos.router 改为 NavPathStack（系统路由表）。
+// 门面方法签名保持不变，调用点零改动；初始路由由 pages/Index 托管的 Navigation 承载。
 
-import router from '@ohos.router';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { UserRole } from '../models/User';
 
@@ -72,6 +73,9 @@ const PUBLIC_ROUTES: string[] = [
   Routes.About, Routes.Doc
 ];
 
+// 空参数占位（ArkTS 严格模式禁裸字面量，统一用此具名常量）。
+const EMPTY_PARAMS: Record<string, Object> = {};
+
 export interface NavigateOptions {
   params?: Record<string, Object>;
   replace?: boolean;
@@ -84,17 +88,12 @@ function expectedRoleFor(url: string): UserRole | undefined {
 }
 
 export class AppRoute {
-  private static loadingTimer: number = -1;
+  // 全局唯一返回栈：由 pages/Index 的 Navigation(AppRoute.stack) 托管，所有跳转走它。
+  static readonly stack: NavPathStack = new NavPathStack();
 
-  // 已移除固定 1.5s 假加载遮罩：旧实现每次跳转都强制全屏「正在加载」1.5s，
-  // 即便数据 60ms 就绪也要硬等，且把报错也延后，属反体验。
-  // 现加载态改由各页真实 @State loading + 骨架屏(SkeletonList)体现：数据就绪即切换、慢请求才显示。
-  // 保留方法名以兼容既有调用点，这里只确保遮罩处于关闭态。
+  // 已移除固定 1.5s 假加载遮罩（保留方法名兼容调用点，确保遮罩关闭态）。
+  // 加载态改由各页真实 @State loading + 骨架屏(SkeletonList) 体现。
   static showLoading(): void {
-    if (AppRoute.loadingTimer >= 0) {
-      clearTimeout(AppRoute.loadingTimer);
-      AppRoute.loadingTimer = -1;
-    }
     AppStorage.setOrCreate('routeLoading', false);
   }
 
@@ -103,22 +102,23 @@ export class AppRoute {
       return;
     }
     AppRoute.showLoading();
+    const params: Record<string, Object> = options.params ?? EMPTY_PARAMS;
     if (options.replace) {
-      router.replaceUrl({ url, params: options.params });
+      AppRoute.stack.replacePathByName(url, params);
     } else {
-      router.pushUrl({ url, params: options.params });
+      AppRoute.stack.pushPathByName(url, params);
     }
   }
 
   static back(): void {
     AppRoute.showLoading();
-    router.back();
+    AppRoute.stack.pop();
   }
 
   static clearTo(url: string, params?: Record<string, Object>): void {
     AppRoute.showLoading();
-    router.clear();
-    router.replaceUrl({ url, params });
+    AppRoute.stack.clear();
+    AppRoute.stack.pushPathByName(url, params ?? EMPTY_PARAMS);
   }
 
   static guard(url: string): boolean {
@@ -131,24 +131,23 @@ export class AppRoute {
       return true;
     }
     if (!session.isAuthenticated()) {
-      router.replaceUrl({ url: required === 'admin' ? Routes.AdminLogin : Routes.Login });
+      AppRoute.stack.replacePathByName(required === 'admin' ? Routes.AdminLogin : Routes.Login, EMPTY_PARAMS);
       return false;
     }
     if (session.getRole() !== required) {
-      router.replaceUrl({ url: required === 'admin' ? Routes.AdminLogin : Routes.Login });
+      AppRoute.stack.replacePathByName(required === 'admin' ? Routes.AdminLogin : Routes.Login, EMPTY_PARAMS);
       return false;
     }
     return true;
   }
 
   static getParam<T>(key: string, fallback: T): T {
-    try {
-      const params = router.getParams() as Record<string, Object>;
-      if (params && params[key] !== undefined) {
-        return params[key] as T;
+    const size: number = AppRoute.stack.size();
+    if (size > 0) {
+      const raw = AppRoute.stack.getParamByIndex(size - 1) as Record<string, Object> | undefined;
+      if (raw !== undefined && raw[key] !== undefined) {
+        return raw[key] as T;
       }
-    } catch (e) {
-      // ignore
     }
     return fallback;
   }

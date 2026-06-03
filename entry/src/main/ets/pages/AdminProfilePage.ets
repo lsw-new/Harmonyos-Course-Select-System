@@ -12,7 +12,6 @@ import { AdminRepository } from '../repositories/AdminRepository';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminProfilePage {
   @State profile: AdminProfile | null = null;
@@ -93,15 +92,6 @@ struct AdminProfilePage {
         .onChange((on: boolean) => { onChange(on); })
     }.width('100%').padding({ top: 12, bottom: 12 })
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -232,4 +222,13 @@ struct AdminProfilePage {
       }
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminProfilePageBuilder() {
+  NavDestination() {
+    AdminProfilePage()
+  }
+  .hideTitleBar(true)
 }

@@ -15,7 +15,6 @@ class DocSection {
   }
 }
 
-@Entry
 @Component
 struct DocPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -83,15 +82,6 @@ struct DocPage {
     return this.isAgreement() ? this.agreementSections() : this.privacySections();
   }
 
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
-
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -142,4 +132,13 @@ struct DocPage {
         .fontSize(13).fontColor(ElysiaTheme.INK_SOFT).lineHeight(22)
     }.width('100%').alignItems(HorizontalAlign.Start)
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function DocPageBuilder() {
+  NavDestination() {
+    DocPage()
+  }
+  .hideTitleBar(true)
 }

@@ -9,7 +9,6 @@ import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminNoticePage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -68,15 +67,6 @@ struct AdminNoticePage {
       this.submitting = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '发布失败';
     });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -184,4 +174,13 @@ struct AdminNoticePage {
       }
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminNoticePageBuilder() {
+  NavDestination() {
+    AdminNoticePage()
+  }
+  .hideTitleBar(true)
 }

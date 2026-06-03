@@ -14,7 +14,6 @@ import { AuditLogEntry } from '../models/AccessControlModels';
 import { AUDIT_ACTION_TYPES } from '../mock/mockAccessControl';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminAuditLogPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -117,15 +116,6 @@ struct AdminAuditLogPage {
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
-
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -157,4 +147,13 @@ struct AdminAuditLogPage {
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminAuditLogPageBuilder() {
+  NavDestination() {
+    AdminAuditLogPage()
+  }
+  .hideTitleBar(true)
 }

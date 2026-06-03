@@ -10,7 +10,6 @@ import { StudentTabBar } from '../common/widgets/TabBars';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { GradeRecord, GradeSummary } from '../models/Academic';
 
-@Entry
 @Component
 struct GradesPage {
   @State activeTerm: number = 0;
@@ -46,15 +45,6 @@ struct GradesPage {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
         this.loading = false;
       });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -287,4 +277,13 @@ struct GradesPage {
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Center)
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function GradesPageBuilder() {
+  NavDestination() {
+    GradesPage()
+  }
+  .hideTitleBar(true)
 }

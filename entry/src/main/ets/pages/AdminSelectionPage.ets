@@ -14,7 +14,6 @@ import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminSelectionPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -168,15 +167,6 @@ struct AdminSelectionPage {
       this.conflictError = (e instanceof HttpError) ? (e as HttpError).message : '冲突明细加载失败';
       this.conflictLoading = false;
     });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -389,4 +379,13 @@ struct AdminSelectionPage {
       .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminSelectionPageBuilder() {
+  NavDestination() {
+    AdminSelectionPage()
+  }
+  .hideTitleBar(true)
 }

@@ -10,7 +10,6 @@ import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { HttpError } from '../common/http/HttpError';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
-@Entry
 @Component
 struct CourseDetailPage {
   @State loading: boolean = true;
@@ -43,15 +42,6 @@ struct CourseDetailPage {
       Text(value || '—').fontSize(13).fontColor(ElysiaTheme.INK).layoutWeight(1)
     }.width('100%').padding({ top: 8, bottom: 8 })
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -143,4 +133,13 @@ struct CourseDetailPage {
       Text(label).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
     }.alignItems(HorizontalAlign.Center).layoutWeight(1)
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function CourseDetailPageBuilder() {
+  NavDestination() {
+    CourseDetailPage()
+  }
+  .hideTitleBar(true)
 }

@@ -22,7 +22,6 @@ class FontScaleOption {
   }
 }
 
-@Entry
 @Component
 struct SettingsPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -109,15 +108,6 @@ struct SettingsPage {
     }.width('100%').padding({ top: 14, bottom: 14 })
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
     .onClick(() => { if (onTap !== undefined) onTap(); })
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -267,4 +257,13 @@ struct SettingsPage {
     .backgroundColor(opt.key === this.fontScale ? ElysiaTheme.SURFACE_GLOW : Color.Transparent)
     .onClick(() => { this.selectFontScale(opt.key); })
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function SettingsPageBuilder() {
+  NavDestination() {
+    SettingsPage()
+  }
+  .hideTitleBar(true)
 }

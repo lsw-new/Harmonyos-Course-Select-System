@@ -11,7 +11,6 @@ import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminCalendarPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -194,15 +193,6 @@ struct AdminCalendarPage {
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
   }
 
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
-
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -245,4 +235,13 @@ struct AdminCalendarPage {
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminCalendarPageBuilder() {
+  NavDestination() {
+    AdminCalendarPage()
+  }
+  .hideTitleBar(true)
 }

@@ -10,7 +10,6 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct FeedbackPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -75,15 +74,6 @@ struct FeedbackPage {
     if (state === 'submitted') return '已提交';
     if (state === 'processing') return '处理中';
     return '已关闭';
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -174,4 +164,13 @@ struct FeedbackPage {
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function FeedbackPageBuilder() {
+  NavDestination() {
+    FeedbackPage()
+  }
+  .hideTitleBar(true)
 }

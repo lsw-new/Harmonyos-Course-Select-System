@@ -22,7 +22,6 @@ const ACTION_LABELS: Record<string, string> = {
   'publish': '发布'
 };
 
-@Entry
 @Component
 struct AdminRolePermPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -228,15 +227,6 @@ struct AdminRolePermPage {
     }.scrollBar(BarState.Off).layoutWeight(1)
   }
 
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
-
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -260,4 +250,13 @@ struct AdminRolePermPage {
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminRolePermPageBuilder() {
+  NavDestination() {
+    AdminRolePermPage()
+  }
+  .hideTitleBar(true)
 }

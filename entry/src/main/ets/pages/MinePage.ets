@@ -36,7 +36,6 @@ interface MineEntry {
   danger?: boolean;
 }
 
-@Entry
 @Component
 struct MinePage {
   @State loading: boolean = true;
@@ -130,15 +129,6 @@ struct MinePage {
     if (it.route && it.route.length > 0) {
       AppRoute.go(it.route);
     }
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -398,4 +388,13 @@ struct MinePage {
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     .shadow({ radius: 16, color: '#1FD85487', offsetX: 0, offsetY: 4 })
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function MinePageBuilder() {
+  NavDestination() {
+    MinePage()
+  }
+  .hideTitleBar(true)
 }

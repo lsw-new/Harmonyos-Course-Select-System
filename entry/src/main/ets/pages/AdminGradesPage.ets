@@ -11,7 +11,6 @@ import { Toast } from '../common/widgets/Feedback';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AdminGradesPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -147,15 +146,6 @@ struct AdminGradesPage {
     if (s === 'published') return '已发布';
     if (s === 'rejected') return '已驳回/需重录';
     return '异议';
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -311,4 +301,13 @@ struct AdminGradesPage {
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminGradesPageBuilder() {
+  NavDestination() {
+    AdminGradesPage()
+  }
+  .hideTitleBar(true)
 }

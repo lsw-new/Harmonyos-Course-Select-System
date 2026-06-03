@@ -11,7 +11,6 @@ import { AccountInfo, LoginHistoryItem } from '../models/User';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
-@Entry
 @Component
 struct AccountPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -67,15 +66,6 @@ struct AccountPage {
     SessionStorage.get().clear().then(() => {
       AppRoute.clearTo(Routes.Login);
     });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -202,4 +192,13 @@ struct AccountPage {
     }.width('100%').padding({ top: 10, bottom: 10 })
     if (!isLast) { Divider().strokeWidth(1).color(ElysiaTheme.hairline()) }
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AccountPageBuilder() {
+  NavDestination() {
+    AccountPage()
+  }
+  .hideTitleBar(true)
 }

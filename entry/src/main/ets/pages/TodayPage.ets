@@ -15,7 +15,6 @@ function toWeekday(jsDay: number): number {
   return jsDay === 0 ? 7 : jsDay;
 }
 
-@Entry
 @Component
 struct TodayPage {
   @State courses: ScheduleItem[] = [];
@@ -57,15 +56,6 @@ struct TodayPage {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
         this.loading = false;
       });
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -160,4 +150,13 @@ struct TodayPage {
     }
     .width('100%').height('100%')
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function TodayPageBuilder() {
+  NavDestination() {
+    TodayPage()
+  }
+  .hideTitleBar(true)
 }

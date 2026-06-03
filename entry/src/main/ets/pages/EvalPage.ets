@@ -24,7 +24,6 @@ class QAnswer {
   text: string = '';
 }
 
-@Entry
 @Component
 struct EvalPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -204,15 +203,6 @@ struct EvalPage {
     if (s === 'open') return '去评教';
     if (s === 'submitted') return '已提交';
     return '未开放';
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -450,4 +440,13 @@ struct EvalPage {
     .width('100%').padding({ top: 6, bottom: 6 })
     .onClick(() => { if (multi) { this.toggleMulti(i, opt.id); } else { this.setSingle(i, opt.id); } })
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function EvalPageBuilder() {
+  NavDestination() {
+    EvalPage()
+  }
+  .hideTitleBar(true)
 }

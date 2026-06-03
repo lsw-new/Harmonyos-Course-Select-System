@@ -15,7 +15,6 @@ import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 const BAR_LABELS: string[] = ['5 星', '4 星', '3 星', '2 星', '1 星'];
 
-@Entry
 @Component
 struct AdminEvalPage {
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -246,15 +245,6 @@ struct AdminEvalPage {
     return `${star} 星`;
   }
 
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
-  }
-
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -468,4 +458,13 @@ struct AdminEvalPage {
     .backgroundColor('#FFFDFE').borderRadius(16)
     .border({ width: 1, color: '#4DFFB3CE' })
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function AdminEvalPageBuilder() {
+  NavDestination() {
+    AdminEvalPage()
+  }
+  .hideTitleBar(true)
 }

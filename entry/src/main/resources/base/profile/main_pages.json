@@ -1,52 +1,5 @@
 {
   "src": [
-    "pages/LoginPage",
-    "pages/RegisterPage",
-    "pages/ForgotPage",
-
-    "pages/HomePage",
-    "pages/TodayPage",
-    "pages/NoticesPage",
-    "pages/NoticeDetailPage",
-
-    "pages/SchedulePage",
-    "pages/CourseDetailPage",
-    "pages/SelectionPage",
-
-    "pages/GradesPage",
-    "pages/ExamPage",
-    "pages/RosterPage",
-
-    "pages/EvalPage",
-    "pages/LeavePage",
-    "pages/FeedbackPage",
-    "pages/PracticePage",
-
-    "pages/MinePage",
-    "pages/AccountPage",
-    "pages/EditInfoPage",
-    "pages/PasswordPage",
-    "pages/SettingsPage",
-    "pages/ServiceHallPage",
-    "pages/PracticeDetailPage",
-    "pages/AboutPage",
-    "pages/DocPage",
-
-    "pages/AdminLoginPage",
-    "pages/AdminDashboardPage",
-    "pages/AdminStudentsPage",
-    "pages/AdminStudentDetailPage",
-    "pages/AdminCoursesPage",
-    "pages/AdminSelectionPage",
-    "pages/AdminGradesPage",
-    "pages/AdminNoticePage",
-    "pages/AdminEvalPage",
-    "pages/AdminApprovalsPage",
-    "pages/AdminProfilePage",
-    "pages/AdminRolePermPage",
-    "pages/AdminAuditLogPage",
-    "pages/AdminCalendarPage",
-    "pages/AdminSysConfigPage",
-    "pages/AdminPasswordPage"
+    "pages/Index"
   ]
 }

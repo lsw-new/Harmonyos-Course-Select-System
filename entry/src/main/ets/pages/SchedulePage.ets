@@ -22,7 +22,6 @@ function generateWeekNumbers(): number[] {
   return weeks;
 }
 
-@Entry
 @Component
 struct SchedulePage {
   @State currentWeek: number = 14;
@@ -137,15 +136,6 @@ struct SchedulePage {
     .width('100%').padding({ top: 12, bottom: 12 })
     .border({ width: { bottom: 1 }, color: ElysiaTheme.hairlineSoft() })
     .onClick(() => { onTap(); })
-  }
-
-  pageTransition() {
-    PageTransitionEnter({ duration: 280, curve: Curve.Friction })
-      .slide(SlideEffect.Right)
-      .opacity(0.4)
-    PageTransitionExit({ duration: 240, curve: Curve.Friction })
-      .slide(SlideEffect.Left)
-      .opacity(0.4)
   }
 
   build() {
@@ -411,4 +401,13 @@ struct SchedulePage {
     if (courseType === '公选') return [['#FFF1D6', 0], [ElysiaTheme.GOLD_300, 1]];
     return [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.ROSE_300, 1]];
   }
+}
+
+// 系统路由表构建函数
+@Builder
+export function SchedulePageBuilder() {
+  NavDestination() {
+    SchedulePage()
+  }
+  .hideTitleBar(true)
 }
