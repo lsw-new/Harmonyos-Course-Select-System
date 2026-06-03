@@ -152,7 +152,7 @@ struct AdminStudentDetailPage {
   AcademicCard(d: StudentDetail) {
     GlowCard() {
       Column() {
-        Text('培养信息').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700).margin({ bottom: 4 })
+        Text($r('app.string.adminstudentdetail_academic')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700).margin({ bottom: 4 })
         this.InfoRow('students', '学院', d.college)
         Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft())
         this.InfoRow('book', '专业', d.major)
@@ -170,7 +170,7 @@ struct AdminStudentDetailPage {
   ContactCard(d: StudentDetail) {
     GlowCard() {
       Column() {
-        Text('联系方式').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700).margin({ bottom: 4 })
+        Text($r('app.string.adminstudentdetail_contact')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700).margin({ bottom: 4 })
         this.InfoRow('phone', '电话', d.phone)
         Divider().strokeWidth(1).color(ElysiaTheme.hairlineSoft())
         this.InfoRow('mail', '邮箱', d.email)
@@ -200,7 +200,7 @@ struct AdminStudentDetailPage {
   StatusActions(d: StudentDetail) {
     GlowCard() {
       Column() {
-        Text('学籍状态操作').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
+        Text($r('app.string.adminstudentdetail_status_ops')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
         Text(`当前状态：${this.statusLabel(d.status)}`).fontSize(12).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 6, bottom: 12 })
 
         if (d.status === 'active') {
@@ -227,7 +227,7 @@ struct AdminStudentDetailPage {
         } else {
           Row() {
             AppIcon({ name: 'info', iconSize: 16, mRight: 8, dim: true })
-            Text('该学生已毕业，学籍状态为终态，无可执行操作。').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
+            Text($r('app.string.adminstudentdetail_graduated_note')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
           }.width('100%').alignItems(VerticalAlign.Center)
         }
 
@@ -235,7 +235,7 @@ struct AdminStudentDetailPage {
           Column() {
             Row() {
               AppIcon({ name: 'warning', iconSize: 16, mRight: 8 })
-              Text('毕业为不可逆操作，确认为该学生办理毕业？').fontSize(12).fontColor('#A93C68').layoutWeight(1)
+              Text($r('app.string.adminstudentdetail_grad_confirm')).fontSize(12).fontColor('#A93C68').layoutWeight(1)
             }.width('100%').alignItems(VerticalAlign.Center)
             Row({ space: 10 }) {
               this.ActionButton('取消', ElysiaTheme.INK_SOFT, '#F5F2F4', '#E4D7DE', () => {
@@ -284,14 +284,14 @@ struct AdminStudentDetailPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '学籍详情', subtitle: '学 籍 详 情', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: $r('app.string.adminstudentdetail_title'), subtitle: $r('app.string.adminstudentdetail_subtitle'), onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {
           LoadingState({})
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (!this.hasDetail) {
-          EmptyState({ title: '未找到该学生', hint: '请返回学生列表重新进入' })
+          EmptyState({ title: $r('app.string.adminstudentdetail_empty'), hint: '请返回学生列表重新进入' })
         } else {
           this.ProfileContent()
         }

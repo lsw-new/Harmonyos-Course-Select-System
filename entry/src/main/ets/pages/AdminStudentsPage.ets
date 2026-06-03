@@ -70,10 +70,10 @@ struct AdminStudentsPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '学生管理', subtitle: '学 生 管 理', showBack: false })
+        TopBar({ title: $r('app.string.adminstudents_title'), subtitle: $r('app.string.adminstudents_subtitle'), showBack: false })
 
         Column({ space: 10 }) {
-          TextInput({ placeholder: '搜索学号/姓名/班级', text: this.query })
+          TextInput({ placeholder: $r('app.string.adminstudents_search'), text: this.query })
             .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass())
             .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
             .onChange((v: string) => { this.query = v; this.loadData(); })
@@ -97,7 +97,7 @@ struct AdminStudentsPage {
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.students.length === 0) {
-          EmptyState({ title: '无匹配学生' })
+          EmptyState({ title: $r('app.string.adminstudents_empty') })
         } else {
           List() {
             LazyForEach(this.studentsDs, (s: StudentAdminItem) => {

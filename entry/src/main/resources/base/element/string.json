@@ -294,6 +294,20 @@
     { "name": "admindash_trend", "value": "选课趋势" },
     { "name": "admindash_dist", "value": "课程类型分布" },
     { "name": "admindash_pending", "value": "待办审批" },
-    { "name": "admindash_urgent", "value": "紧急" }
+    { "name": "admindash_urgent", "value": "紧急" },
+
+    { "name": "adminstudents_title", "value": "学生管理" },
+    { "name": "adminstudents_subtitle", "value": "学 生 管 理" },
+    { "name": "adminstudents_search", "value": "搜索学号/姓名/班级" },
+    { "name": "adminstudents_empty", "value": "无匹配学生" },
+
+    { "name": "adminstudentdetail_title", "value": "学籍详情" },
+    { "name": "adminstudentdetail_subtitle", "value": "学 籍 详 情" },
+    { "name": "adminstudentdetail_academic", "value": "培养信息" },
+    { "name": "adminstudentdetail_contact", "value": "联系方式" },
+    { "name": "adminstudentdetail_status_ops", "value": "学籍状态操作" },
+    { "name": "adminstudentdetail_graduated_note", "value": "该学生已毕业，学籍状态为终态，无可执行操作。" },
+    { "name": "adminstudentdetail_grad_confirm", "value": "毕业为不可逆操作，确认为该学生办理毕业？" },
+    { "name": "adminstudentdetail_empty", "value": "未找到该学生" }
   ]
 }
