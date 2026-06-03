@@ -9,10 +9,12 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
 struct AdminCalendarPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State submitting: boolean = false;
   @State errorMsg: string = '';
@@ -239,6 +241,8 @@ struct AdminCalendarPage {
           }.layoutWeight(1).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 })
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

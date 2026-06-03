@@ -7,6 +7,7 @@ import { StudentTabBar } from '../common/widgets/TabBars';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { AcademicRepository } from '../repositories/AcademicRepository';
@@ -47,6 +48,7 @@ struct MinePage {
   @State leaveTotal: number = 0;
   @State leavePending: number = 0;
   @State showLogoutConfirm: boolean = false;
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   private quickItems: QuickItem[] = [
     new QuickItem('schedule', '课表', Routes.Schedule),
@@ -286,6 +288,8 @@ struct MinePage {
           }
         })
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       // Logout confirm dialog
       if (this.showLogoutConfirm) {

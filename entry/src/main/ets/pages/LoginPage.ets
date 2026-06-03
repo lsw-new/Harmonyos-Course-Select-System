@@ -6,6 +6,7 @@ import {
 } from '../common/Components';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { ValidatorUtils } from '../common/utils/ValidatorUtils';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { SessionStorage } from '../common/storage/SessionStorage';
@@ -202,6 +203,7 @@ struct LoginPage {
         .padding({ left: 26, right: 26 })
       }
       .scrollBar(BarState.Off)
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%')
     .height('100%')

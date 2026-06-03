@@ -12,6 +12,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 // 安全策略开关项（用于驱动 ForEach 渲染）
 class SecurityToggleDef {
@@ -30,6 +31,7 @@ class SecurityToggleDef {
 @Entry
 @Component
 struct AdminSysConfigPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State submitting: boolean = false;
@@ -422,6 +424,8 @@ struct AdminSysConfigPage {
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

@@ -7,6 +7,7 @@ import { ValidatorUtils } from '../common/utils/ValidatorUtils';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { HttpError } from '../common/http/HttpError';
 import { SafeTop } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
@@ -206,6 +207,8 @@ struct RegisterPage {
         .scrollBar(BarState.Off)
         .layoutWeight(1)
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%').height('100%')
   }

@@ -11,12 +11,14 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 const BAR_LABELS: string[] = ['5 星', '4 星', '3 星', '2 星', '1 星'];
 
 @Entry
 @Component
 struct AdminEvalPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State submitting: boolean = false;
   @State periodSubmitting: boolean = false;
@@ -279,6 +281,8 @@ struct AdminEvalPage {
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 

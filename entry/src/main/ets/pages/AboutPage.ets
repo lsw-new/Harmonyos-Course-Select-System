@@ -4,6 +4,7 @@ import { TopBar, Monogram, Pill, RoseDivider } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 class CreditItem {
@@ -101,6 +102,8 @@ struct AboutPage {
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 

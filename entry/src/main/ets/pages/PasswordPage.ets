@@ -8,6 +8,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
@@ -141,6 +142,8 @@ struct PasswordPage {
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

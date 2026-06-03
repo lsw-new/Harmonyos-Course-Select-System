@@ -10,10 +10,12 @@ import { StudentDetail, StudentStatus } from '../models/StudentDetailModels';
 import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
 struct AdminStudentDetailPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State submitting: boolean = false;
   @State errorMsg: string = '';
@@ -304,6 +306,7 @@ struct AdminStudentDetailPage {
           this.ProfileContent()
         }
       }.width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

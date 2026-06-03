@@ -7,6 +7,7 @@ import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { Toast } from '../common/widgets/Feedback';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 const LETTER_PATTERN: RegExp = /[A-Za-z]/;
 const DIGIT_PATTERN: RegExp = /[0-9]/;
@@ -15,6 +16,7 @@ const MIN_PWD_LENGTH = 8;
 @Entry
 @Component
 struct AdminPasswordPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State oldPassword: string = '';
   @State newPassword: string = '';
   @State confirmPassword: string = '';
@@ -126,6 +128,8 @@ struct AdminPasswordPage {
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

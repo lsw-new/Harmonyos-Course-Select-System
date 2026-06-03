@@ -3,6 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar } from '../common/Components';
 import { AppRoute } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 class DocSection {
@@ -128,6 +129,8 @@ struct DocPage {
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 

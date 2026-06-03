@@ -8,6 +8,7 @@ import { ArrayDataSource } from '../common/widgets/DataSource';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { Notice } from '../models/Notice';
 
@@ -21,6 +22,7 @@ struct NoticesPage {
   @State notices: Notice[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  @StorageProp('breakpoint') bp: string = 'sm';
   private noticesDs: ArrayDataSource<Notice> = new ArrayDataSource<Notice>();
 
   aboutToAppear(): void {
@@ -126,6 +128,7 @@ struct NoticesPage {
         })
       }
       .width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%').height('100%')
   }

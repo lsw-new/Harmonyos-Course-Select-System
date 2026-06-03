@@ -7,6 +7,7 @@ import { SkeletonList } from '../common/widgets/Skeleton';
 import { ArrayDataSource } from '../common/widgets/DataSource';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { SelectionCourse, SelectionRoundInfo } from '../models/Course';
 import { SafeTop } from '../common/widgets/SafeArea';
@@ -30,6 +31,7 @@ struct SelectionPage {
   @State errorMsg: string = '';
   @State actionError: string = '';
   @StorageProp('safeBottom') safeBottom: number = 0;
+  @StorageProp('breakpoint') bp: string = 'sm';
   private coursesDs: ArrayDataSource<SelectionCourse> = new ArrayDataSource<SelectionCourse>();
 
   aboutToAppear(): void {
@@ -289,6 +291,8 @@ struct SelectionPage {
           .scrollBar(BarState.Off)
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%').height('100%')
   }

@@ -6,6 +6,7 @@ import { Course } from '../models/Course';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { HttpError } from '../common/http/HttpError';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
@@ -15,6 +16,7 @@ struct CourseDetailPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State course: Course | null = null;
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.CourseDetail)) {
@@ -127,6 +129,8 @@ struct CourseDetailPage {
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 

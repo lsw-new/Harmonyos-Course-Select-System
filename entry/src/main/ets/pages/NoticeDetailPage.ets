@@ -5,6 +5,7 @@ import { CourseRepository } from '../repositories/CourseRepository';
 import { Notice, NoticeAttachment } from '../models/Notice';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { HttpError } from '../common/http/HttpError';
@@ -18,6 +19,7 @@ struct NoticeDetailPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State notice: Notice | null = null;
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.NoticeDetail)) {
@@ -133,6 +135,8 @@ struct NoticeDetailPage {
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

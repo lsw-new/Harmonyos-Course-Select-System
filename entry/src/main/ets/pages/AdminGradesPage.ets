@@ -9,10 +9,12 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
 struct AdminGradesPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State items: GradeAuditItem[] = [];
   @State activeStatus: string = '全部';
@@ -305,6 +307,8 @@ struct AdminGradesPage {
           }.layoutWeight(1).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 })
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

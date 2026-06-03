@@ -7,10 +7,12 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
 struct AdminNoticePage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State title: string = '';
   @State content: string = '';
   @State publisher: string = '教务处';
@@ -155,6 +157,8 @@ struct AdminNoticePage {
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       if (this.showConfirm) {
         Column() {

@@ -2,6 +2,7 @@
 import { ElysiaTheme } from '../common/Theme';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { TopBar, RoseDivider, PrimaryButton, ElysiaInput, Pill } from '../common/Components';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { ValidatorUtils } from '../common/utils/ValidatorUtils';
@@ -181,6 +182,8 @@ struct EditInfoPage {
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

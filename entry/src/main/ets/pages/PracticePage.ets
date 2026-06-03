@@ -7,6 +7,7 @@ import { StudentTabBar } from '../common/widgets/TabBars';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { PracticeRepository } from '../repositories/PracticeRepository';
 import { PracticeProject, PracticeCategory } from '../models/PracticeModels';
 import { HttpError } from '../common/http/HttpError';
@@ -46,6 +47,7 @@ struct PracticePage {
   @State errorMsg: string = '';
   @State actionError: string = '';
   @State busyId: string = '';
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.Practice)) {
@@ -192,6 +194,8 @@ struct PracticePage {
 
         StudentTabBar({ active: 'prac', onTap: (id: string, route: string) => { AppRoute.go(route, { replace: true }); } })
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%').height('100%')
   }

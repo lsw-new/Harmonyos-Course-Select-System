@@ -4,6 +4,7 @@ import { TopBar, RoseDivider } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 class ServiceTile {
@@ -20,6 +21,7 @@ class ServiceTile {
 @Entry
 @Component
 struct ServiceHallPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   private tiles: ServiceTile[] = [
     new ServiceTile('leave', '请假申请', Routes.Leave),
     new ServiceTile('feedback', '意见反馈', Routes.Feedback),
@@ -77,6 +79,8 @@ struct ServiceHallPage {
           }
         }.scrollBar(BarState.Off).layoutWeight(1)
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 

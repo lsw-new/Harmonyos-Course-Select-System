@@ -12,10 +12,12 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
 struct AdminSelectionPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State error: string = '';
   @State submitting: boolean = false;
@@ -204,6 +206,7 @@ struct AdminSelectionPage {
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
       }.width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       if (this.isEditing) {
         this.EditSheet()

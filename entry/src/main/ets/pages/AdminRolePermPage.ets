@@ -10,6 +10,7 @@ import { HttpError } from '../common/http/HttpError';
 import { AccessControlRepository } from '../repositories/AccessControlRepository';
 import { AdminRoleView, PermItem, PermModuleGroup, ModuleLabel } from '../models/AccessControlModels';
 import { MODULE_LABELS } from '../mock/mockAccessControl';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 // 操作键 -> 中文标签
 const ACTION_LABELS: Record<string, string> = {
@@ -24,6 +25,7 @@ const ACTION_LABELS: Record<string, string> = {
 @Entry
 @Component
 struct AdminRolePermPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State roles: AdminRoleView[] = [];
@@ -255,6 +257,7 @@ struct AdminRolePermPage {
           this.Body()
         }
       }.width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

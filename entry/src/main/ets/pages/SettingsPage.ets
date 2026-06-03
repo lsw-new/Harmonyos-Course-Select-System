@@ -8,6 +8,7 @@ import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { Toast } from '../common/widgets/Feedback';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 // 字体档位定义
 class FontScaleOption {
@@ -208,6 +209,8 @@ struct SettingsPage {
           }.padding({ left: 16, right: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       if (this.showLogoutConfirm) {
         Column() {

@@ -12,10 +12,12 @@ import { HttpError } from '../common/http/HttpError';
 import { AccessControlRepository } from '../repositories/AccessControlRepository';
 import { AuditLogEntry } from '../models/AccessControlModels';
 import { AUDIT_ACTION_TYPES } from '../mock/mockAccessControl';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
 struct AdminAuditLogPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State logs: AuditLogEntry[] = [];
@@ -152,6 +154,7 @@ struct AdminAuditLogPage {
           }.layoutWeight(1).cachedCount(6).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 }).scrollBar(BarState.Off)
         }
       }.width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

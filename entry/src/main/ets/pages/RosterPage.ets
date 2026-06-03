@@ -4,6 +4,7 @@ import { TopBar, Pill } from '../common/Components';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { StudentRecord } from '../models/Academic';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
@@ -14,6 +15,7 @@ struct RosterPage {
   @State record?: StudentRecord = undefined;
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.Roster)) {
@@ -146,6 +148,8 @@ struct RosterPage {
           .layoutWeight(1)
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%').height('100%')
   }

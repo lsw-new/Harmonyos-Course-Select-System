@@ -5,6 +5,7 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { PracticeRepository } from '../repositories/PracticeRepository';
 import { PracticeProjectDetail, PracticeCategory } from '../models/PracticeModels';
 import { HttpError } from '../common/http/HttpError';
@@ -38,6 +39,7 @@ struct PracticeDetailPage {
   @State errorMsg: string = '';
   @State submitting: boolean = false;
   @State confirmingCancel: boolean = false;
+  @StorageProp('breakpoint') bp: string = 'sm';
   private projectId: string = '';
 
   aboutToAppear(): void {
@@ -154,6 +156,8 @@ struct PracticeDetailPage {
           this.DetailBody(this.detail!)
         }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       // 取消报名确认浮层
       if (this.confirmingCancel) {

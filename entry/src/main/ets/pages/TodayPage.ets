@@ -6,6 +6,7 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { ScheduleItem } from '../models/Course';
 
@@ -23,6 +24,7 @@ struct TodayPage {
   @State errorMsg: string = '';
   // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
   @StorageProp('safeBottom') safeBottom: number = 0;
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   private todayWeekday: number = toWeekday(new Date().getDay());
   private tomorrowWeekday: number = toWeekday((new Date().getDay() + 1) % 7);
@@ -153,6 +155,8 @@ struct TodayPage {
           }
         }.layoutWeight(1)
       }
+      .width('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%').height('100%')
   }
