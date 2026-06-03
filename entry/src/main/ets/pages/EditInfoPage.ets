@@ -109,7 +109,7 @@ struct EditInfoPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '修改资料', subtitle: '修 改 资 料', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.editinfo_title'), subtitle: $r('app.string.editinfo_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})
@@ -117,7 +117,7 @@ struct EditInfoPage {
           Scroll() {
             Column({ space: 14 }) {
               Column() {
-                Text('基本信息（只读）').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 6 })
+                Text($r('app.string.editinfo_readonly_section')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 6 })
                 this.ReadonlyRow('学号', this.studentId)
                 this.ReadonlyRow('姓名', this.name)
                 this.ReadonlyRow('学院', this.college)
@@ -127,15 +127,15 @@ struct EditInfoPage {
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
               Column() {
-                Text('头像').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
+                Text($r('app.string.editinfo_avatar')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
                 Row() {
                   Column() {
-                    Text(this.avatarUrl.length > 0 ? '已选择' : '未选择')
+                    Text(this.avatarUrl.length > 0 ? $r('app.string.editinfo_picked') : $r('app.string.editinfo_unpicked'))
                       .fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
-                    Text(this.avatarUrl.length > 0 ? this.avatarUrl : '点击右侧按钮选择本地图片')
+                    Text(this.avatarUrl.length > 0 ? this.avatarUrl : $r('app.string.editinfo_pick_hint'))
                       .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 4 }).maxLines(2)
                   }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-                  Text(this.pickingAvatar ? '选择中...' : '选择头像')
+                  Text(this.pickingAvatar ? $r('app.string.editinfo_picking') : $r('app.string.editinfo_pick_avatar'))
                     .fontSize(12).fontColor(Color.White).fontWeight(FontWeight.Bold)
                     .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                     .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
@@ -144,14 +144,14 @@ struct EditInfoPage {
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-              RoseDivider({ label: '可编辑' })
+              RoseDivider({ label: $r('app.string.editinfo_editable') })
 
               Column({ space: 12 }) {
-                ElysiaInput({ placeholder: '手机号', value: $phone, leadingIcon: 'phone' })
-                ElysiaInput({ placeholder: '邮箱', value: $email, leadingIcon: 'mail' })
-                ElysiaInput({ placeholder: '通讯地址', value: $address, leadingIcon: 'location' })
-                ElysiaInput({ placeholder: '紧急联系人', value: $emergencyContact, leadingIcon: 'phone' })
-                TextArea({ placeholder: '个人简介', text: this.bio })
+                ElysiaInput({ placeholder: $r('app.string.editinfo_phone'), value: $phone, leadingIcon: 'phone' })
+                ElysiaInput({ placeholder: $r('app.string.editinfo_email'), value: $email, leadingIcon: 'mail' })
+                ElysiaInput({ placeholder: $r('app.string.editinfo_address'), value: $address, leadingIcon: 'location' })
+                ElysiaInput({ placeholder: $r('app.string.editinfo_emergency'), value: $emergencyContact, leadingIcon: 'phone' })
+                TextArea({ placeholder: $r('app.string.editinfo_bio'), text: this.bio })
                   .height(80).fontSize(13).fontColor(ElysiaTheme.INK)
                   .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                   .onChange((v: string) => { this.bio = v; })
@@ -163,7 +163,7 @@ struct EditInfoPage {
                   Text(this.successMsg).fontSize(12).fontColor(ElysiaTheme.SUCCESS)
                 }
 
-                PrimaryButton({ text: this.submitting ? '保存中...' : '保存修改', onTap: () => this.submit() })
+                PrimaryButton({ text: this.submitting ? $r('app.string.common_saving') : $r('app.string.editinfo_save'), onTap: () => this.submit() })
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 

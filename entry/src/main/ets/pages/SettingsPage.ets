@@ -118,12 +118,12 @@ struct SettingsPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '系统设置', subtitle: '系 统 设 置', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.settings_title'), subtitle: $r('app.string.settings_subtitle'), onBack: () => AppRoute.back() })
 
         Scroll() {
           Column({ space: 14 }) {
             Column() {
-              Text('通知').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              Text($r('app.string.settings_sec_notify')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.ToggleRow('消息推送', '接收系统通知', this.pushEnabled, (v: boolean) => {
                 this.pushEnabled = v;
                 this.togglePref('push', v);
@@ -144,7 +144,7 @@ struct SettingsPage {
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Column() {
-              Text('外观').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              Text($r('app.string.settings_sec_appearance')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.LinkRow('字体大小', this.fontScaleLabel(), () => {
                 this.showFontSheet = true;
               })
@@ -158,7 +158,7 @@ struct SettingsPage {
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Column() {
-              Text('安全与存储').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              Text($r('app.string.settings_sec_security')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.ToggleRow('生物识别登录', '指纹/面容', this.biometric, (v: boolean) => {
                 this.biometric = v;
                 this.togglePref('biometric', v);
@@ -188,7 +188,7 @@ struct SettingsPage {
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-            Text('退出登录')
+            Text($r('app.string.account_logout'))
               .fontSize(14).fontColor(ElysiaTheme.ROSE_ACCENT).fontWeight(FontWeight.Medium)
               .width('100%').textAlign(TextAlign.Center)
               .padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
@@ -205,14 +205,14 @@ struct SettingsPage {
       if (this.showLogoutConfirm) {
         Column() {
           Column({ space: 14 }) {
-            Text('确认退出登录？').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-            Text('退出后需重新登录').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+            Text($r('app.string.mine_logout_confirm')).fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text($r('app.string.mine_logout_hint')).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
             Row({ space: 12 }) {
-              Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
+              Text($r('app.string.common_cancel')).fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(999)
                 .onClick(() => { this.showLogoutConfirm = false; })
-              Text('退出').fontSize(14).fontColor(ElysiaTheme.SURFACE).fontWeight(FontWeight.Bold)
+              Text($r('app.string.mine_logout')).fontSize(14).fontColor(ElysiaTheme.SURFACE).fontWeight(FontWeight.Bold)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
                 .onClick(() => { this.logout(); })
@@ -228,7 +228,7 @@ struct SettingsPage {
       if (this.showFontSheet) {
         Column() {
           Column({ space: 6 }) {
-            Text('选择字体大小').fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text($r('app.string.settings_font_title')).fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
               .width('100%').textAlign(TextAlign.Start).margin({ bottom: 6 })
             ForEach(this.fontOptions, (opt: FontScaleOption) => {
               this.FontOptionRow(opt)

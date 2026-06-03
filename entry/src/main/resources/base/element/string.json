@@ -149,6 +149,32 @@
     { "name": "password_new", "value": "新密码" },
     { "name": "password_strength", "value": "密码强度：" },
     { "name": "password_confirm", "value": "确认新密码" },
-    { "name": "password_submit", "value": "确认修改" }
+    { "name": "password_submit", "value": "确认修改" },
+
+    { "name": "common_saving", "value": "保存中..." },
+
+    { "name": "editinfo_title", "value": "修改资料" },
+    { "name": "editinfo_subtitle", "value": "修 改 资 料" },
+    { "name": "editinfo_readonly_section", "value": "基本信息（只读）" },
+    { "name": "editinfo_avatar", "value": "头像" },
+    { "name": "editinfo_picked", "value": "已选择" },
+    { "name": "editinfo_unpicked", "value": "未选择" },
+    { "name": "editinfo_pick_hint", "value": "点击右侧按钮选择本地图片" },
+    { "name": "editinfo_picking", "value": "选择中..." },
+    { "name": "editinfo_pick_avatar", "value": "选择头像" },
+    { "name": "editinfo_editable", "value": "可编辑" },
+    { "name": "editinfo_phone", "value": "手机号" },
+    { "name": "editinfo_email", "value": "邮箱" },
+    { "name": "editinfo_address", "value": "通讯地址" },
+    { "name": "editinfo_emergency", "value": "紧急联系人" },
+    { "name": "editinfo_bio", "value": "个人简介" },
+    { "name": "editinfo_save", "value": "保存修改" },
+
+    { "name": "settings_title", "value": "系统设置" },
+    { "name": "settings_subtitle", "value": "系 统 设 置" },
+    { "name": "settings_sec_notify", "value": "通知" },
+    { "name": "settings_sec_appearance", "value": "外观" },
+    { "name": "settings_sec_security", "value": "安全与存储" },
+    { "name": "settings_font_title", "value": "选择字体大小" }
   ]
 }
