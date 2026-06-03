@@ -85,7 +85,7 @@ struct SelectionPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '选课中心', subtitle: '选 课 中 心', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.selection_title'), subtitle: $r('app.string.selection_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
           SkeletonList({ count: 5 })
@@ -100,7 +100,7 @@ struct SelectionPage {
                 Column() {
                   Row() {
                     Column() {
-                      Pill({ text: this.round!.inProgress ? '正选阶段·进行中' : '选课未开放' })
+                      Pill({ text: this.round!.inProgress ? $r('app.string.selection_round_active') : $r('app.string.selection_round_closed') })
                       Text(this.round!.roundName).fontSize(18).fontStyle(FontStyle.Italic)
                         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
                         .margin({ top: 6 })
@@ -110,7 +110,7 @@ struct SelectionPage {
                       Text(formatRemaining(this.round!.remainingSeconds))
                         .fontSize(14).fontStyle(FontStyle.Italic)
                         .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                      Text('剩余时间').fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
+                      Text($r('app.string.selection_remaining')).fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
                     }.alignItems(HorizontalAlign.End)
                   }
 
@@ -138,7 +138,7 @@ struct SelectionPage {
               // 搜索框
               Row() {
                 AppIcon({ name: 'search', iconSize: 16, mLeft: 10 })
-                TextInput({ placeholder: '搜索课程名 / 教师 / 代码', text: this.query })
+                TextInput({ placeholder: $r('app.string.selection_search'), text: this.query })
                   .height(40).fontSize(12)
                   .backgroundColor(Color.Transparent)
                   .placeholderColor(ElysiaTheme.INK_MUTE)
@@ -191,7 +191,7 @@ struct SelectionPage {
 
             if (this.courses.length === 0) {
               ListItem() {
-                EmptyState({ icon: 'petal', title: '没有找到相关课程' })
+                EmptyState({ icon: 'petal', title: $r('app.string.selection_empty') })
               }
             } else {
               LazyForEach(this.coursesDs, (c: SelectionCourse) => {
@@ -218,7 +218,7 @@ struct SelectionPage {
                       }.alignItems(HorizontalAlign.Start).layoutWeight(1)
 
                       if (c.status === 'available') {
-                        Button('选 课')
+                        Button($r('app.string.selection_btn_select'))
                           .height(34).fontSize(11).fontWeight(FontWeight.Bold)
                           .fontColor(Color.White)
                           .backgroundColor('')
@@ -233,7 +233,7 @@ struct SelectionPage {
                               });
                           })
                       } else if (c.status === 'selected') {
-                        Button('退 选')
+                        Button($r('app.string.selection_btn_drop'))
                           .height(34).fontSize(11).fontWeight(FontWeight.Bold)
                           .fontColor(ElysiaTheme.ROSE_700)
                           .backgroundColor(ElysiaTheme.glass())
@@ -248,7 +248,7 @@ struct SelectionPage {
                               });
                           })
                       } else if (c.status === 'full') {
-                        Button('已 满')
+                        Button($r('app.string.selection_btn_full'))
                           .height(34).fontSize(11).fontWeight(FontWeight.Bold)
                           .fontColor(ElysiaTheme.INK_MUTE)
                           .backgroundColor(ElysiaTheme.glass())
@@ -257,7 +257,7 @@ struct SelectionPage {
                           .padding({ left: 14, right: 14 })
                           .enabled(false)
                       } else {
-                        Button('冲 突')
+                        Button($r('app.string.selection_btn_conflict'))
                           .height(34).fontSize(11).fontWeight(FontWeight.Bold)
                           .fontColor(ElysiaTheme.INK_MUTE)
                           .backgroundColor(ElysiaTheme.glass())

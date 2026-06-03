@@ -52,7 +52,7 @@ struct CourseDetailPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '课程详情', subtitle: '课 程 详 情', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.coursedetail_title'), subtitle: $r('app.string.coursedetail_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})
@@ -74,7 +74,7 @@ struct CourseDetailPage {
 
               // 基本信息
               Column() {
-                Text('基本信息').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+                Text($r('app.string.coursedetail_basic')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                 this.InfoRow('课程代码', this.course!.code)
                 this.InfoRow('教学班号', this.course!.teachingClassNo)
                 this.InfoRow('授课教师', this.course!.teacher)
@@ -89,7 +89,7 @@ struct CourseDetailPage {
               // 课程简介
               if (this.course!.description && this.course!.description!.length > 0) {
                 Column() {
-                  Text('课程简介').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 6 })
+                  Text($r('app.string.coursedetail_desc')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 6 })
                   Text(this.course!.description!)
                     .fontSize(13).fontColor(ElysiaTheme.INK).lineHeight(20)
                 }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
@@ -99,7 +99,7 @@ struct CourseDetailPage {
               // 考核方式
               if (this.course!.assessment) {
                 Column() {
-                  Text('考核比例').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 })
+                  Text($r('app.string.coursedetail_assess')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 })
                   Row({ space: 12 }) {
                     this.AssessBar('平时', this.course!.assessment!.usual, ElysiaTheme.ROSE_500)
                     this.AssessBar('实验', this.course!.assessment!.experiment, ElysiaTheme.LAV_500)
@@ -111,7 +111,7 @@ struct CourseDetailPage {
 
               // 操作
               Row({ space: 12 }) {
-                GhostButton({ text: '进入评教', onTap: () => AppRoute.go(Routes.Eval) })
+                GhostButton({ text: $r('app.string.coursedetail_goeval'), onTap: () => AppRoute.go(Routes.Eval) })
               }.width('100%')
 
               SafeBottom()

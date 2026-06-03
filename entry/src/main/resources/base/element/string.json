@@ -216,6 +216,25 @@
     { "name": "roster_title", "value": "学籍信息" },
     { "name": "roster_subtitle", "value": "学 籍 信 息" },
     { "name": "roster_loading", "value": "正在加载学籍信息..." },
-    { "name": "roster_photo", "value": "照片" }
+    { "name": "roster_photo", "value": "照片" },
+
+    { "name": "selection_title", "value": "选课中心" },
+    { "name": "selection_subtitle", "value": "选 课 中 心" },
+    { "name": "selection_round_active", "value": "正选阶段·进行中" },
+    { "name": "selection_round_closed", "value": "选课未开放" },
+    { "name": "selection_remaining", "value": "剩余时间" },
+    { "name": "selection_search", "value": "搜索课程名 / 教师 / 代码" },
+    { "name": "selection_empty", "value": "没有找到相关课程" },
+    { "name": "selection_btn_select", "value": "选 课" },
+    { "name": "selection_btn_drop", "value": "退 选" },
+    { "name": "selection_btn_full", "value": "已 满" },
+    { "name": "selection_btn_conflict", "value": "冲 突" },
+
+    { "name": "coursedetail_title", "value": "课程详情" },
+    { "name": "coursedetail_subtitle", "value": "课 程 详 情" },
+    { "name": "coursedetail_basic", "value": "基本信息" },
+    { "name": "coursedetail_desc", "value": "课程简介" },
+    { "name": "coursedetail_assess", "value": "考核比例" },
+    { "name": "coursedetail_goeval", "value": "进入评教" }
   ]
 }
