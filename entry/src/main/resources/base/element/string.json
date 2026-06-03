@@ -175,6 +175,28 @@
     { "name": "settings_sec_notify", "value": "通知" },
     { "name": "settings_sec_appearance", "value": "外观" },
     { "name": "settings_sec_security", "value": "安全与存储" },
-    { "name": "settings_font_title", "value": "选择字体大小" }
+    { "name": "settings_font_title", "value": "选择字体大小" },
+
+    { "name": "common_loading_now", "value": "正在加载..." },
+
+    { "name": "leave_title", "value": "请假申请" },
+    { "name": "leave_subtitle", "value": "请 假 申 请" },
+    { "name": "leave_tab_new", "value": "新建申请" },
+    { "name": "leave_tab_mine", "value": "我的申请" },
+    { "name": "leave_start_date", "value": "开始日期（年-月-日）" },
+    { "name": "leave_end_date", "value": "结束日期（年-月-日）" },
+    { "name": "leave_reason", "value": "请假事由" },
+    { "name": "leave_submit", "value": "提交申请" },
+    { "name": "leave_empty", "value": "暂无申请记录" },
+
+    { "name": "feedback_title", "value": "意见反馈" },
+    { "name": "feedback_subtitle", "value": "意 见 反 馈" },
+    { "name": "feedback_tab_submit", "value": "提交反馈" },
+    { "name": "feedback_tab_history", "value": "历史反馈" },
+    { "name": "feedback_field_title", "value": "标题" },
+    { "name": "feedback_content", "value": "详细描述" },
+    { "name": "feedback_contact", "value": "联系方式（选填）" },
+    { "name": "feedback_submit", "value": "提交反馈" },
+    { "name": "feedback_empty", "value": "暂无反馈记录" }
   ]
 }

@@ -84,10 +84,10 @@ struct FeedbackPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '意见反馈', subtitle: '意 见 反 馈', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.feedback_title'), subtitle: $r('app.string.feedback_subtitle'), onBack: () => AppRoute.back() })
 
         Row({ space: 0 }) {
-          Text('提交反馈').fontSize(13)
+          Text($r('app.string.feedback_tab_submit')).fontSize(13)
             .fontColor(this.activeTab === 0 ? ElysiaTheme.ROSE_700 : ElysiaTheme.INK_MUTE)
             .fontWeight(this.activeTab === 0 ? FontWeight.Bold : FontWeight.Normal)
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
@@ -96,7 +96,7 @@ struct FeedbackPage {
               this.activeTab = 0;
               this.successMsg = '';
             })
-          Text('历史反馈').fontSize(13)
+          Text($r('app.string.feedback_tab_history')).fontSize(13)
             .fontColor(this.activeTab === 1 ? ElysiaTheme.ROSE_700 : ElysiaTheme.INK_MUTE)
             .fontWeight(this.activeTab === 1 ? FontWeight.Bold : FontWeight.Normal)
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
@@ -121,12 +121,12 @@ struct FeedbackPage {
                 }, (label: string, idx: number) => `cat-${idx}`)
               }.width('100%').margin({ top: 4 })
 
-              ElysiaInput({ placeholder: '标题', value: $title, leadingIcon: 'edit' })
-              TextArea({ placeholder: '详细描述', text: this.content })
+              ElysiaInput({ placeholder: $r('app.string.feedback_field_title'), value: $title, leadingIcon: 'edit' })
+              TextArea({ placeholder: $r('app.string.feedback_content'), text: this.content })
                 .height(120).fontSize(13).fontColor(ElysiaTheme.INK)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                 .onChange((v: string) => { this.content = v; })
-              ElysiaInput({ placeholder: '联系方式（选填）', value: $contact, leadingIcon: 'phone' })
+              ElysiaInput({ placeholder: $r('app.string.feedback_contact'), value: $contact, leadingIcon: 'phone' })
 
               if (this.errorMsg.length > 0) {
                 Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
@@ -135,14 +135,14 @@ struct FeedbackPage {
                 Text(this.successMsg).fontSize(12).fontColor(ElysiaTheme.SUCCESS)
               }
 
-              PrimaryButton({ text: this.submitting ? '提交中...' : '提交反馈', onTap: () => this.submit() })
+              PrimaryButton({ text: this.submitting ? $r('app.string.common_submitting') : $r('app.string.feedback_submit'), onTap: () => this.submit() })
             } else {
               if (this.loading) {
-                LoadingState({ tip: '正在加载...' })
+                LoadingState({ tip: $r('app.string.common_loading_now') })
               } else if (this.historyErrorMsg.length > 0) {
                 ErrorState({ message: this.historyErrorMsg, onRetry: () => this.loadHistory() })
               } else if (this.history.length === 0) {
-                EmptyState({ title: '暂无反馈记录' })
+                EmptyState({ title: $r('app.string.feedback_empty') })
               } else {
                 ForEach(this.history, (item: FeedbackItem) => {
                   Row() {

@@ -102,10 +102,10 @@ struct LeavePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '请假申请', subtitle: '请 假 申 请', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.leave_title'), subtitle: $r('app.string.leave_subtitle'), onBack: () => AppRoute.back() })
 
         Row({ space: 0 }) {
-          Text('新建申请').fontSize(13)
+          Text($r('app.string.leave_tab_new')).fontSize(13)
             .fontColor(this.activeTab === 0 ? ElysiaTheme.ROSE_700 : ElysiaTheme.INK_MUTE)
             .fontWeight(this.activeTab === 0 ? FontWeight.Bold : FontWeight.Normal)
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
@@ -114,7 +114,7 @@ struct LeavePage {
               this.activeTab = 0;
               this.successMsg = '';
             })
-          Text('我的申请').fontSize(13)
+          Text($r('app.string.leave_tab_mine')).fontSize(13)
             .fontColor(this.activeTab === 1 ? ElysiaTheme.ROSE_700 : ElysiaTheme.INK_MUTE)
             .fontWeight(this.activeTab === 1 ? FontWeight.Bold : FontWeight.Normal)
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
@@ -139,10 +139,10 @@ struct LeavePage {
                 }, (label: string, idx: number) => `type-${idx}`)
               }.width('100%').margin({ top: 4 })
 
-              ElysiaInput({ placeholder: '开始日期（年-月-日）', value: $startDate, leadingIcon: 'calendar' })
-              ElysiaInput({ placeholder: '结束日期（年-月-日）', value: $endDate, leadingIcon: 'calendar' })
+              ElysiaInput({ placeholder: $r('app.string.leave_start_date'), value: $startDate, leadingIcon: 'calendar' })
+              ElysiaInput({ placeholder: $r('app.string.leave_end_date'), value: $endDate, leadingIcon: 'calendar' })
 
-              TextArea({ placeholder: '请假事由', text: this.reason })
+              TextArea({ placeholder: $r('app.string.leave_reason'), text: this.reason })
                 .height(100).fontSize(13).fontColor(ElysiaTheme.INK)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                 .onChange((v: string) => { this.reason = v; })
@@ -154,14 +154,14 @@ struct LeavePage {
                 Text(this.successMsg).fontSize(12).fontColor(ElysiaTheme.SUCCESS)
               }
 
-              PrimaryButton({ text: this.submitting ? '提交中...' : '提交申请', onTap: () => this.submit() })
+              PrimaryButton({ text: this.submitting ? $r('app.string.common_submitting') : $r('app.string.leave_submit'), onTap: () => this.submit() })
             } else {
               if (this.loading) {
-                LoadingState({ tip: '正在加载...' })
+                LoadingState({ tip: $r('app.string.common_loading_now') })
               } else if (this.historyErrorMsg.length > 0) {
                 ErrorState({ message: this.historyErrorMsg, onRetry: () => this.loadHistory() })
               } else if (this.history.length === 0) {
-                EmptyState({ title: '暂无申请记录' })
+                EmptyState({ title: $r('app.string.leave_empty') })
               } else {
                 ForEach(this.history, (item: LeaveRequest) => {
                   Row() {
