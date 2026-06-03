@@ -70,18 +70,18 @@ struct AdminLoginPage {
 
         Column({ space: 6 }) {
           Monogram({ iconSize: 56 })
-          Pill({ text: '管理员 · 教务' })
-          Text('管理员控制台登录')
+          Pill({ text: $r('app.string.adminlogin_role') })
+          Text($r('app.string.adminlogin_title'))
             .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 8 }).padding({ bottom: 24 })
         }.width('100%').alignItems(HorizontalAlign.Center)
 
         Scroll() {
           Column({ space: 14 }) {
-            ElysiaInput({ placeholder: '工号', value: $adminId, leadingIcon: 'students' })
-            ElysiaInput({ placeholder: '密码', value: $password, secure: true, leadingIcon: 'lock' })
+            ElysiaInput({ placeholder: $r('app.string.common_workid'), value: $adminId, leadingIcon: 'students' })
+            ElysiaInput({ placeholder: $r('app.string.common_password'), value: $password, secure: true, leadingIcon: 'lock' })
 
             Row({ space: 10 }) {
-              TextInput({ placeholder: '验证码', text: this.captcha })
+              TextInput({ placeholder: $r('app.string.common_captcha'), text: this.captcha })
                 .type(InputType.Normal).height(46).fontSize(13)
                 .fontColor(ElysiaTheme.INK).placeholderColor(ElysiaTheme.INK_MUTE)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
@@ -91,7 +91,7 @@ struct AdminLoginPage {
                 .fontSize(18).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
                 .letterSpacing(4).padding({ left: 14, right: 14, top: 10, bottom: 10 })
                 .backgroundColor('#FFE9F1').borderRadius(10)
-                .accessibilityText('刷新验证码')
+                .accessibilityText($r('app.string.adminlogin_refresh_captcha'))
                 .onClick(() => { this.refreshCaptcha(); })
             }.width('100%')
 
@@ -99,16 +99,16 @@ struct AdminLoginPage {
               Toggle({ type: ToggleType.Checkbox, isOn: this.remember })
                 .selectedColor(ElysiaTheme.ROSE_500).width(18).height(18)
                 .onChange((v: boolean) => { this.remember = v; })
-              Text('本机记住').fontSize(12).fontColor(ElysiaTheme.ROSE_500)
+              Text($r('app.string.adminlogin_remember')).fontSize(12).fontColor(ElysiaTheme.ROSE_500)
             }.width('100%').alignItems(VerticalAlign.Center)
 
             if (this.errorMsg.length > 0) {
               Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
             }
 
-            PrimaryButton({ text: this.submitting ? '登录中...' : '进入控制台', onTap: () => this.login() })
+            PrimaryButton({ text: this.submitting ? $r('app.string.login_submitting') : $r('app.string.adminlogin_enter'), onTap: () => this.login() })
             GhostButton({
-              text: '返回学生登录',
+              text: $r('app.string.adminlogin_back_student'),
               onTap: () => {
                 AppRoute.go(Routes.Login, { replace: true });
               }

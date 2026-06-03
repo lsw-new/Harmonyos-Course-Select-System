@@ -103,29 +103,29 @@ struct RegisterPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '注册', subtitle: '注 册', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.register_title'), subtitle: $r('app.string.register_subtitle'), onBack: () => AppRoute.back() })
 
         Scroll() {
           Column() {
-            Text('开启你的故事')
+            Text($r('app.string.register_heading'))
               .fontSize(24)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700)
               .fontFamily(ElysiaTheme.FONT_DISPLAY)
               .margin({ top: 6, bottom: 4 })
-            Text('填写以下信息以开始你的旅程')
+            Text($r('app.string.register_sub'))
               .fontSize(11)
               .fontColor(ElysiaTheme.INK_SOFT)
               .letterSpacing(2)
               .margin({ bottom: 16 })
 
             Column({ space: 10 }) {
-              ElysiaInput({ placeholder: '学号', value: $sid })
-              ElysiaInput({ placeholder: '姓名', value: $name })
-              ElysiaInput({ placeholder: '校园邮箱 / name@example.com', value: $email })
+              ElysiaInput({ placeholder: $r('app.string.common_student_id'), value: $sid })
+              ElysiaInput({ placeholder: $r('app.string.common_name'), value: $name })
+              ElysiaInput({ placeholder: $r('app.string.register_email'), value: $email })
               Row({ space: 8 }) {
-                Column() { ElysiaInput({ placeholder: '6 位验证码', value: $code }) }.layoutWeight(1)
-                Button(this.codeCountdown > 0 ? `${this.codeCountdown}s` : '获取')
+                Column() { ElysiaInput({ placeholder: $r('app.string.common_code6'), value: $code }) }.layoutWeight(1)
+                Button(this.codeCountdown > 0 ? `${this.codeCountdown}s` : $r('app.string.register_get_code'))
                   .height(46).fontSize(11)
                   .backgroundColor(ElysiaTheme.glass())
                   .fontColor(this.codeCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
@@ -134,8 +134,8 @@ struct RegisterPage {
                   .padding({ left: 14, right: 14 })
                   .onClick(() => { this.sendEmailCode(); })
               }
-              ElysiaInput({ placeholder: '初始密码', value: $pwd, secure: true })
-              ElysiaInput({ placeholder: '确认密码', value: $pwd2, secure: true })
+              ElysiaInput({ placeholder: $r('app.string.register_pwd'), value: $pwd, secure: true })
+              ElysiaInput({ placeholder: $r('app.string.register_pwd2'), value: $pwd2, secure: true })
             }
             .width('100%')
 
@@ -144,7 +144,7 @@ struct RegisterPage {
                 .width(16).height(16)
                 .selectedColor(ElysiaTheme.ROSE_500)
                 .onChange((v: boolean) => { this.agreed = v; })
-              Text('  我已阅读并同意《用户协议》与《隐私政策》')
+              Text($r('app.string.register_agree'))
                 .fontSize(11)
                 .fontColor(ElysiaTheme.INK_SOFT)
                 .layoutWeight(1)
@@ -174,14 +174,14 @@ struct RegisterPage {
             }
 
             PrimaryButton({
-              text: this.submitting ? '提交中...' : '提交注册 · CREATE',
+              text: this.submitting ? $r('app.string.register_submitting') : $r('app.string.register_submit'),
               onTap: () => { this.doRegister(); }
             })
 
             Row() {
-              Text('已有账号？')
+              Text($r('app.string.register_have_account'))
                 .fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
-              Text('  登录')
+              Text($r('app.string.register_login_link'))
                 .fontSize(11)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)

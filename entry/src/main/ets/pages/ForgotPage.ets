@@ -91,7 +91,7 @@ struct ForgotPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '找回密码', subtitle: '找 回 密 码', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.forgot_title'), subtitle: $r('app.string.forgot_subtitle'), onBack: () => AppRoute.back() })
 
         Scroll() {
           Column() {
@@ -107,14 +107,14 @@ struct ForgotPage {
               })
               .shadow({ radius: 24, color: '#99F2709C', offsetX: 0, offsetY: 12 })
 
-              Text('重拾玫瑰')
+              Text($r('app.string.forgot_heading'))
                 .fontSize(24)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)
                 .fontFamily(ElysiaTheme.FONT_DISPLAY)
                 .margin({ top: 14 })
 
-              Text('忘记密码并不可怕 —— 玫瑰，依旧绽放为你')
+              Text($r('app.string.forgot_sub'))
                 .fontSize(11)
                 .fontColor(ElysiaTheme.INK_SOFT)
                 .letterSpacing(2)
@@ -126,11 +126,11 @@ struct ForgotPage {
 
             Column() {
               Column({ space: 10 }) {
-                ElysiaInput({ placeholder: '学号', value: $sid })
-                ElysiaInput({ placeholder: '校园邮箱', value: $email })
+                ElysiaInput({ placeholder: $r('app.string.common_student_id'), value: $sid })
+                ElysiaInput({ placeholder: $r('app.string.forgot_email'), value: $email })
                 Row({ space: 8 }) {
-                  Column() { ElysiaInput({ placeholder: '6 位验证码', value: $code }) }.layoutWeight(1)
-                  Button(this.codeCountdown > 0 ? `${this.codeCountdown}s` : '获取验证码')
+                  Column() { ElysiaInput({ placeholder: $r('app.string.common_code6'), value: $code }) }.layoutWeight(1)
+                  Button(this.codeCountdown > 0 ? `${this.codeCountdown}s` : $r('app.string.forgot_get_code'))
                     .height(46).fontSize(11)
                     .backgroundColor(ElysiaTheme.glass())
                     .fontColor(this.codeCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
@@ -139,7 +139,7 @@ struct ForgotPage {
                     .padding({ left: 12, right: 12 })
                     .onClick(() => { this.sendCode(); })
                 }
-                ElysiaInput({ placeholder: '新密码 ≥ 8 位', value: $newPwd, secure: true })
+                ElysiaInput({ placeholder: $r('app.string.forgot_new_pwd'), value: $newPwd, secure: true })
               }
 
               if (this.errorMsg.length > 0) {
@@ -167,7 +167,7 @@ struct ForgotPage {
             .margin({ top: 24 })
 
             PrimaryButton({
-              text: this.submitting ? '重置中...' : '重 置 密 码 · RESET',
+              text: this.submitting ? $r('app.string.forgot_submitting') : $r('app.string.forgot_submit'),
               onTap: () => { this.doReset(); }
             })
           }

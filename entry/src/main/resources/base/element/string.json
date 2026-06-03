@@ -1,90 +1,62 @@
 {
   "string": [
-    {
-      "name": "module_desc",
-      "value": "景德镇艺术职业大学教学管理学生端"
-    },
-    {
-      "name": "EntryAbility_desc",
-      "value": "爱莉希雅 入口能力"
-    },
-    {
-      "name": "EntryAbility_label",
-      "value": "教学管理"
-    },
+    { "name": "module_desc", "value": "景德镇艺术职业大学教学管理学生端" },
+    { "name": "EntryAbility_desc", "value": "爱莉希雅 入口能力" },
+    { "name": "EntryAbility_label", "value": "教学管理" },
 
-    {
-      "name": "common_loading",
-      "value": "加载中..."
-    },
-    {
-      "name": "common_empty",
-      "value": "暂无数据"
-    },
-    {
-      "name": "common_load_failed",
-      "value": "加载失败"
-    },
-    {
-      "name": "common_reload",
-      "value": "重新加载"
-    },
-    {
-      "name": "common_back",
-      "value": "返回"
-    },
-    {
-      "name": "common_school",
-      "value": "景德镇艺术职业大学"
-    },
-    {
-      "name": "common_student_id",
-      "value": "学号"
-    },
-    {
-      "name": "common_password",
-      "value": "密码"
-    },
+    { "name": "common_loading", "value": "加载中..." },
+    { "name": "common_empty", "value": "暂无数据" },
+    { "name": "common_load_failed", "value": "加载失败" },
+    { "name": "common_reload", "value": "重新加载" },
+    { "name": "common_back", "value": "返回" },
+    { "name": "common_school", "value": "景德镇艺术职业大学" },
+    { "name": "common_student_id", "value": "学号" },
+    { "name": "common_password", "value": "密码" },
+    { "name": "common_name", "value": "姓名" },
+    { "name": "common_code6", "value": "6 位验证码" },
+    { "name": "common_workid", "value": "工号" },
+    { "name": "common_captcha", "value": "验证码" },
 
-    {
-      "name": "login_hello",
-      "value": "你好，"
-    },
-    {
-      "name": "login_welcome",
-      "value": "欢迎回到 · 教学管理学生端"
-    },
-    {
-      "name": "login_divider",
-      "value": "登录"
-    },
-    {
-      "name": "login_remember",
-      "value": "记住我"
-    },
-    {
-      "name": "login_forgot",
-      "value": "忘记密码？"
-    },
-    {
-      "name": "login_submitting",
-      "value": "登录中..."
-    },
-    {
-      "name": "login_submit",
-      "value": "登 录 · ENTER"
-    },
-    {
-      "name": "login_register",
-      "value": "注册新账号"
-    },
-    {
-      "name": "login_admin",
-      "value": "管理员登录"
-    },
-    {
-      "name": "login_slogan",
-      "value": "— 敢问芳名？ —"
-    }
+    { "name": "login_hello", "value": "你好，" },
+    { "name": "login_welcome", "value": "欢迎回到 · 教学管理学生端" },
+    { "name": "login_divider", "value": "登录" },
+    { "name": "login_remember", "value": "记住我" },
+    { "name": "login_forgot", "value": "忘记密码？" },
+    { "name": "login_submitting", "value": "登录中..." },
+    { "name": "login_submit", "value": "登 录 · ENTER" },
+    { "name": "login_register", "value": "注册新账号" },
+    { "name": "login_admin", "value": "管理员登录" },
+    { "name": "login_slogan", "value": "— 敢问芳名？ —" },
+
+    { "name": "forgot_title", "value": "找回密码" },
+    { "name": "forgot_subtitle", "value": "找 回 密 码" },
+    { "name": "forgot_heading", "value": "重拾玫瑰" },
+    { "name": "forgot_sub", "value": "忘记密码并不可怕 —— 玫瑰，依旧绽放为你" },
+    { "name": "forgot_email", "value": "校园邮箱" },
+    { "name": "forgot_get_code", "value": "获取验证码" },
+    { "name": "forgot_new_pwd", "value": "新密码 ≥ 8 位" },
+    { "name": "forgot_submitting", "value": "重置中..." },
+    { "name": "forgot_submit", "value": "重 置 密 码 · RESET" },
+
+    { "name": "register_title", "value": "注册" },
+    { "name": "register_subtitle", "value": "注 册" },
+    { "name": "register_heading", "value": "开启你的故事" },
+    { "name": "register_sub", "value": "填写以下信息以开始你的旅程" },
+    { "name": "register_email", "value": "校园邮箱 / name@example.com" },
+    { "name": "register_get_code", "value": "获取" },
+    { "name": "register_pwd", "value": "初始密码" },
+    { "name": "register_pwd2", "value": "确认密码" },
+    { "name": "register_agree", "value": "  我已阅读并同意《用户协议》与《隐私政策》" },
+    { "name": "register_submitting", "value": "提交中..." },
+    { "name": "register_submit", "value": "提交注册 · CREATE" },
+    { "name": "register_have_account", "value": "已有账号？" },
+    { "name": "register_login_link", "value": "  登录" },
+
+    { "name": "adminlogin_role", "value": "管理员 · 教务" },
+    { "name": "adminlogin_title", "value": "管理员控制台登录" },
+    { "name": "adminlogin_refresh_captcha", "value": "刷新验证码" },
+    { "name": "adminlogin_remember", "value": "本机记住" },
+    { "name": "adminlogin_enter", "value": "进入控制台" },
+    { "name": "adminlogin_back_student", "value": "返回学生登录" }
   ]
 }
