@@ -86,17 +86,16 @@ function expectedRoleFor(url: string): UserRole | undefined {
 export class AppRoute {
   private static loadingTimer: number = -1;
 
-  // 全局加载遮罩：导航或页内重载时显示全屏「正在加载」，1.5s 后自动隐藏（带防抖，连续触发重置计时）。
-  // 页面在 this.loading=true 处调用本方法，使 loading→content 切换发生在遮罩之后，避免布局跳动。
+  // 已移除固定 1.5s 假加载遮罩：旧实现每次跳转都强制全屏「正在加载」1.5s，
+  // 即便数据 60ms 就绪也要硬等，且把报错也延后，属反体验。
+  // 现加载态改由各页真实 @State loading + 骨架屏(SkeletonList)体现：数据就绪即切换、慢请求才显示。
+  // 保留方法名以兼容既有调用点，这里只确保遮罩处于关闭态。
   static showLoading(): void {
-    AppStorage.setOrCreate('routeLoading', true);
     if (AppRoute.loadingTimer >= 0) {
       clearTimeout(AppRoute.loadingTimer);
-    }
-    AppRoute.loadingTimer = setTimeout(() => {
-      AppStorage.setOrCreate('routeLoading', false);
       AppRoute.loadingTimer = -1;
-    }, 1500);
+    }
+    AppStorage.setOrCreate('routeLoading', false);
   }
 
   static go(url: string, options: NavigateOptions = {}): void {

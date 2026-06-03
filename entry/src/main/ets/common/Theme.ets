@@ -18,6 +18,9 @@ interface ElysiaPalette {
   gold300: string;
   gold500: string;
   gold700: string;
+  // 语义状态色 —— 收敛页面里散落的写死强调/成功色字面量（精确沿用现有取值，零视觉变化）。
+  roseAccent: string;   // 页面高频强调玫瑰（原散落 #D8546B 60 处）
+  success: string;      // 成功 / 通过 绿（原散落 #7BB07B 24 处）
   ink: string;
   inkSoft: string;
   inkMute: string;
@@ -51,6 +54,8 @@ export class ElysiaTheme {
     gold300: '#F2D5A0',
     gold500: '#D9B675',
     gold700: '#A8854A',
+    roseAccent: '#D8546B',
+    success: '#7BB07B',
     ink: '#4B2A38',
     inkSoft: '#7A5266',
     inkMute: '#B294A4',
@@ -92,6 +97,11 @@ export class ElysiaTheme {
   static get GOLD_300(): string { return ElysiaTheme.palette.gold300; }
   static get GOLD_500(): string { return ElysiaTheme.palette.gold500; }
   static get GOLD_700(): string { return ElysiaTheme.palette.gold700; }
+
+  // 语义状态色
+  static get ROSE_ACCENT(): string { return ElysiaTheme.palette.roseAccent; }
+  static get SUCCESS(): string { return ElysiaTheme.palette.success; }
+  static get WARNING(): string { return ElysiaTheme.palette.gold500; }
 
   // 文本
   static get INK(): string { return ElysiaTheme.palette.ink; }

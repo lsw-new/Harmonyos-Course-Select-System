@@ -4,6 +4,7 @@ import { window } from '@kit.ArkUI';
 import display from '@ohos.display';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppStartup } from '../app/AppStartup';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 const DOMAIN = 0x0000;
 const TAG = 'Elysia';
@@ -75,11 +76,24 @@ export default class EntryAbility extends UIAbility {
         }
       };
 
+      // 响应式断点：按窗口宽度(vp)归类 sm/md/lg，写入 AppStorage 供页面订阅。
+      const publishBreakpoint = (): void => {
+        try {
+          const widthVp: number = toVp(win.getWindowProperties().windowRect.width);
+          AppStorage.setOrCreate<string>('breakpoint', BreakpointManager.classify(widthVp));
+        } catch (err) {
+          AppStorage.setOrCreate<string>('breakpoint', 'sm');
+        }
+      };
+
       publish();
+      publishBreakpoint();
       win.on('avoidAreaChange', () => { publish(); });
+      win.on('windowSizeChange', (_size: window.Size) => { publishBreakpoint(); });
     } catch (err) {
       AppStorage.setOrCreate<number>('safeTop', 40);
       AppStorage.setOrCreate<number>('safeBottom', 0);
+      AppStorage.setOrCreate<string>('breakpoint', 'sm');
     }
   }
 

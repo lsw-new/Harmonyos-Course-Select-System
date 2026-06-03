@@ -77,12 +77,13 @@ export struct TopBar {
         Button({ type: ButtonType.Circle }) {
           AppIcon({ name: 'back', iconSize: 18 })
         }
-        .width(34).height(34)
+        .width(44).height(44)
         .backgroundColor(ElysiaTheme.glassSoft())
         .border({ width: 1, color: ElysiaTheme.hairline() })
+        .accessibilityText('返回')
         .onClick(() => { if (this.onBack) this.onBack(); })
       } else {
-        Blank().width(34)
+        Blank().width(44)
       }
 
       Column() {
@@ -100,7 +101,7 @@ export struct TopBar {
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Center)
 
-      Blank().width(34)
+      Blank().width(44)
     }
     .width('100%')
     .padding({ left: 18, right: 18, top: 12, bottom: 10 })
