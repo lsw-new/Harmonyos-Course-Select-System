@@ -64,10 +64,10 @@ struct NoticeDetailPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '通知详情', subtitle: '通 知 详 情', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.noticedetail_title'), subtitle: $r('app.string.noticedetail_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载通知...' })
+          LoadingState({ tip: $r('app.string.noticedetail_loading') })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.notice !== null) {
@@ -78,7 +78,7 @@ struct NoticeDetailPage {
                 Row({ space: 8 }) {
                   Pill({ text: this.notice!.category })
                   if (this.notice!.isRead) {
-                    Pill({ text: '已读', color: ElysiaTheme.SUCCESS, bg: '#E8F8E8' })
+                    Pill({ text: $r('app.string.noticedetail_read'), color: ElysiaTheme.SUCCESS, bg: '#E8F8E8' })
                   }
                 }
                 Text(this.notice!.title)
@@ -89,7 +89,7 @@ struct NoticeDetailPage {
               }.width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(22)
               .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.LAV_200, 1]] })
 
-              RoseDivider({ label: '正文' })
+              RoseDivider({ label: $r('app.string.noticedetail_body') })
 
               // 正文
               Column() {
@@ -101,7 +101,7 @@ struct NoticeDetailPage {
               // 附件
               if (this.notice!.attachments.length > 0) {
                 Column({ space: 8 }) {
-                  Text('附件').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+                  Text($r('app.string.noticedetail_attachment')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                   ForEach(this.notice!.attachments, (att: NoticeAttachment) => {
                     Row() {
                       AppIcon({ name: 'file', iconSize: 16, mRight: 8 })
@@ -111,7 +111,7 @@ struct NoticeDetailPage {
                           Text(`${(att.fileSize! / 1024).toFixed(0)} KB`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
                         }
                       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-                      Text('下载').fontSize(11).fontColor(ElysiaTheme.ROSE_500)
+                      Text($r('app.string.common_download')).fontSize(11).fontColor(ElysiaTheme.ROSE_500)
                         .onClick(() => this.downloadAttachment(att))
                     }.width('100%').padding(12).backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(12)
                     .border({ width: 1, color: ElysiaTheme.hairlineSoft() })

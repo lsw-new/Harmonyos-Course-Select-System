@@ -57,7 +57,7 @@ struct NoticesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '通知公告', subtitle: '通 知 公 告' })
+        TopBar({ title: $r('app.string.notices_title'), subtitle: $r('app.string.notices_subtitle') })
 
         Scroll() {
           Row({ space: 6 }) {
@@ -92,7 +92,7 @@ struct NoticesPage {
           } else if (this.errorMsg.length > 0) {
             ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
           } else if (this.notices.length === 0) {
-            EmptyState({ title: '暂无通知' })
+            EmptyState({ title: $r('app.string.notices_empty') })
           } else {
             List({ space: 10 }) {
               LazyForEach(this.noticesDs, (n: Notice) => {

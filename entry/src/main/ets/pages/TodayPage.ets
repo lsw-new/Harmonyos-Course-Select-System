@@ -69,7 +69,7 @@ struct TodayPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '今日课程', subtitle: '今 日 课 程', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.today_title'), subtitle: $r('app.string.today_subtitle'), onBack: () => AppRoute.back() })
 
         Column() {
           Scroll() {
@@ -95,11 +95,11 @@ struct TodayPage {
           .padding({ left: 16, right: 16, bottom: 14 })
 
           if (this.loading) {
-            LoadingState({ tip: '正在加载课程...' })
+            LoadingState({ tip: $r('app.string.today_loading') })
           } else if (this.errorMsg.length > 0) {
             ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
           } else if (this.courses.length === 0) {
-            EmptyState({ icon: 'petal', title: '今日无课' })
+            EmptyState({ icon: 'petal', title: $r('app.string.today_empty') })
           } else {
             List({ space: 12 }) {
               ForEach(this.courses, (c: ScheduleItem) => {

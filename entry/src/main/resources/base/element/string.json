@@ -81,6 +81,44 @@
     { "name": "grades_term_gpa", "value": "  学期 · 绩点" },
     { "name": "grades_empty", "value": "该学期暂无成绩" },
     { "name": "grades_slogan", "value": "— 努力的回报 —" },
-    { "name": "grades_final", "value": "最终成绩" }
+    { "name": "grades_final", "value": "最终成绩" },
+
+    { "name": "common_download", "value": "下载" },
+
+    { "name": "today_title", "value": "今日课程" },
+    { "name": "today_subtitle", "value": "今 日 课 程" },
+    { "name": "today_loading", "value": "正在加载课程..." },
+    { "name": "today_empty", "value": "今日无课" },
+
+    { "name": "notices_title", "value": "通知公告" },
+    { "name": "notices_subtitle", "value": "通 知 公 告" },
+    { "name": "notices_empty", "value": "暂无通知" },
+
+    { "name": "noticedetail_title", "value": "通知详情" },
+    { "name": "noticedetail_subtitle", "value": "通 知 详 情" },
+    { "name": "noticedetail_loading", "value": "正在加载通知..." },
+    { "name": "noticedetail_read", "value": "已读" },
+    { "name": "noticedetail_body", "value": "正文" },
+    { "name": "noticedetail_attachment", "value": "附件" },
+
+    { "name": "common_cancel", "value": "取消" },
+
+    { "name": "mine_open_settings", "value": "打开系统设置" },
+    { "name": "mine_loading", "value": "正在加载..." },
+    { "name": "mine_affairs", "value": "我 的 事 务" },
+    { "name": "mine_prefs", "value": "偏好与系统" },
+    { "name": "mine_logout_confirm", "value": "确认退出登录？" },
+    { "name": "mine_logout_hint", "value": "退出后需重新登录" },
+    { "name": "mine_cancel_logout", "value": "取消退出登录" },
+    { "name": "mine_logout", "value": "退出" },
+    { "name": "mine_confirm_logout", "value": "确认退出登录" },
+
+    { "name": "schedule_import_title", "value": "导入课表" },
+    { "name": "schedule_import_sub", "value": "以教务导出的「学生课表 .xlsx」为模板" },
+    { "name": "schedule_title", "value": "课程表" },
+    { "name": "schedule_subtitle", "value": "我 的 课 表" },
+    { "name": "schedule_prev_week", "value": "上一周" },
+    { "name": "schedule_next_week", "value": "下一周" },
+    { "name": "schedule_loading", "value": "正在加载课表..." }
   ]
 }

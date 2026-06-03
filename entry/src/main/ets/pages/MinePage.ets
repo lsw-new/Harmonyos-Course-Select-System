@@ -147,7 +147,7 @@ struct MinePage {
         Column() {
           // 顶部标题
           Row() {
-            Text('景德镇艺术职业大学')
+            Text($r('app.string.common_school'))
               .fontSize(14)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700)
@@ -159,7 +159,7 @@ struct MinePage {
             .width(34).height(34)
             .backgroundColor(ElysiaTheme.SURFACE_GLOW)
             .border({ width: 1, color: '#99FFB3CE' })
-            .accessibilityText('打开系统设置')
+            .accessibilityText($r('app.string.mine_open_settings'))
             .onClick(() => { AppRoute.go(Routes.Settings); })
           }
           .width('100%')
@@ -217,7 +217,7 @@ struct MinePage {
         // 内容区包一层 layoutWeight(1)，底部 TabBar 走正常流，避免全屏覆盖层拦截手势。
         Column() {
           if (this.loading) {
-            LoadingState({ tip: '正在加载...' })
+            LoadingState({ tip: $r('app.string.mine_loading') })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else {
@@ -256,10 +256,10 @@ struct MinePage {
               .margin({ top: 4, bottom: 6 })
               .padding({ left: 16, right: 16 })
 
-              RoseDivider({ label: '我 的 事 务' })
+              RoseDivider({ label: $r('app.string.mine_affairs') })
               this.EntryGroup(this.makeAffairs())
 
-              RoseDivider({ label: '偏好与系统' })
+              RoseDivider({ label: $r('app.string.mine_prefs') })
               this.EntryGroup(this.prefs)
 
               SafeBottom()
@@ -285,18 +285,18 @@ struct MinePage {
       if (this.showLogoutConfirm) {
         Column() {
           Column({ space: 14 }) {
-            Text('确认退出登录？').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-            Text('退出后需重新登录').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+            Text($r('app.string.mine_logout_confirm')).fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text($r('app.string.mine_logout_hint')).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
             Row({ space: 12 }) {
-              Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
+              Text($r('app.string.common_cancel')).fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
                 .padding({ left: 24, right: 24, top: 14, bottom: 14 })
                 .backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(999)
-                .accessibilityText('取消退出登录')
+                .accessibilityText($r('app.string.mine_cancel_logout'))
                 .onClick(() => { this.showLogoutConfirm = false; })
-              Text('退出').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
+              Text($r('app.string.mine_logout')).fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
                 .padding({ left: 24, right: 24, top: 14, bottom: 14 })
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
-                .accessibilityText('确认退出登录')
+                .accessibilityText($r('app.string.mine_confirm_logout'))
                 .onClick(() => { this.logout(); })
             }.margin({ top: 8 })
           }.padding(24).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)

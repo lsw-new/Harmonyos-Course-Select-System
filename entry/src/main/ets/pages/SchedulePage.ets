@@ -101,9 +101,9 @@ struct SchedulePage {
   @Builder ImportSheet() {
     Column() {
       Column({ space: 4 }) {
-        Text('导入课表').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+        Text($r('app.string.schedule_import_title')).fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
           .width('100%').textAlign(TextAlign.Start)
-        Text('以教务导出的「学生课表 .xlsx」为模板').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+        Text($r('app.string.schedule_import_sub')).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
           .width('100%').textAlign(TextAlign.Start).margin({ bottom: 8 })
         this.ImportOption('download', '导入我的课表', '内置示例：李仕炜 · 2025-2026 第二学期', () => { this.importBundled(); })
         this.ImportOption('file', '从文件导入', '选择教务导出的 .xlsx 课表文件', () => { this.importFromFile(); })
@@ -149,7 +149,7 @@ struct SchedulePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '课程表', subtitle: '我 的 课 表', showBack: false })
+        TopBar({ title: $r('app.string.schedule_title'), subtitle: $r('app.string.schedule_subtitle'), showBack: false })
 
         // 周次切换
         Column() {
@@ -175,14 +175,14 @@ struct SchedulePage {
               .border({ width: 1, color: ElysiaTheme.hairline() })
               .margin({ right: 6 })
               .enabled(!this.importing)
-              .accessibilityText('导入课表')
+              .accessibilityText($r('app.string.schedule_import_title'))
               .onClick(() => { this.showImportSheet = true; })
 
             Button({ type: ButtonType.Circle }) { AppIcon({ name: 'back', iconSize: 16 }) }
               .width(34).height(34)
               .backgroundColor(ElysiaTheme.glassSoft())
               .border({ width: 1, color: ElysiaTheme.hairline() })
-              .accessibilityText('上一周')
+              .accessibilityText($r('app.string.schedule_prev_week'))
               .onClick(() => {
                 if (this.currentWeek > 1) {
                   this.currentWeek--;
@@ -194,7 +194,7 @@ struct SchedulePage {
               .backgroundColor(ElysiaTheme.glassSoft())
               .border({ width: 1, color: ElysiaTheme.hairline() })
               .margin({ left: 6 })
-              .accessibilityText('下一周')
+              .accessibilityText($r('app.string.schedule_next_week'))
               .onClick(() => {
                 if (this.currentWeek < 18) {
                   this.currentWeek++;
@@ -236,7 +236,7 @@ struct SchedulePage {
         .padding({ left: 16, right: 16 })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载课表...' })
+          LoadingState({ tip: $r('app.string.schedule_loading') })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadSchedule() })
         } else {
