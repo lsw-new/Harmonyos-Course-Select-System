@@ -9,6 +9,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 class AdminModule {
   icon: string = '';
@@ -27,6 +28,7 @@ struct AdminDashboardPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State dashboard: AdminDashboardSummary | null = null;
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   private modules: AdminModule[] = [
     new AdminModule('selection', '选课管理', Routes.AdminSelection),
@@ -110,7 +112,7 @@ struct AdminDashboardPage {
                       Text(String(card.value)).fontSize(24).fontWeight(FontWeight.Bold).fontColor(card.color ?? ElysiaTheme.ROSE_500)
                       Text(card.label).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
                       if (card.delta !== undefined && card.delta !== 0) {
-                        Text(`${card.delta! > 0 ? '+' : ''}${card.delta}`).fontSize(10).fontColor(card.delta! > 0 ? '#7BB07B' : '#D8546B')
+                        Text(`${card.delta! > 0 ? '+' : ''}${card.delta}`).fontSize(10).fontColor(card.delta! > 0 ? ElysiaTheme.SUCCESS : ElysiaTheme.ROSE_ACCENT)
                       }
                     }.width('100%').padding(12).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
                     .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).alignItems(HorizontalAlign.Center)
@@ -170,7 +172,7 @@ struct AdminDashboardPage {
                       Text(a.title).fontSize(13).fontColor(ElysiaTheme.INK)
                       Text(`${a.applicantName} · ${a.submittedAt}`).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
                     }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-                    if (a.isUrgent) { Pill({ text: '紧急', color: '#D8546B', bg: '#FFF0F0' }) }
+                    if (a.isUrgent) { Pill({ text: '紧急', color: ElysiaTheme.ROSE_ACCENT, bg: '#FFF0F0' }) }
                   }.width('100%').padding({ top: 8, bottom: 8 })
                   .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
                   .onClick(() => AppRoute.go(Routes.AdminApprovals))
@@ -184,7 +186,7 @@ struct AdminDashboardPage {
         }
 
         AdminTabBar({ active: 'dashboard', onTap: (id: string, route: string) => { AppRoute.go(route, { replace: true }); } })
-      }
+      }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

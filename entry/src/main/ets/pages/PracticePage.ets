@@ -10,7 +10,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { PracticeRepository } from '../repositories/PracticeRepository';
 import { PracticeProject, PracticeCategory } from '../models/PracticeModels';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 
 // 分类筛选项：value 为空字符串表示「全部」。
 class PracticeFilter {
@@ -92,7 +92,7 @@ struct PracticePage {
     }
     if (!project.signedUp && project.slotsTaken >= project.slotsTotal) {
       this.actionError = '该项目名额已满';
-      promptAction.showToast({ message: '该项目名额已满' });
+      Toast.show(this.getUIContext(), '该项目名额已满');
       return;
     }
     this.busyId = project.id;
@@ -102,13 +102,13 @@ struct PracticePage {
     const action: Promise<PracticeProject> = isCancel ? repo.cancelSignUp(project.id) : repo.signUp(project.id);
     action.then(() => {
       this.busyId = '';
-      promptAction.showToast({ message: isCancel ? '已取消报名' : '报名成功' });
+      Toast.show(this.getUIContext(), isCancel ? '已取消报名' : '报名成功');
       this.reloadProjects();
     }).catch((e: object) => {
       this.busyId = '';
       const msg = (e instanceof HttpError) ? (e as HttpError).message : (isCancel ? '取消失败' : '报名失败');
       this.actionError = msg;
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 

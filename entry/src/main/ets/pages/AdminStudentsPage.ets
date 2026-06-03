@@ -9,6 +9,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { SafeTop } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
@@ -18,6 +19,7 @@ struct AdminStudentsPage {
   @State query: string = '';
   @State students: StudentAdminItem[] = [];
   @State activeCollege: string = '全部';
+  @StorageProp('breakpoint') bp: string = 'sm';
   private colleges: string[] = ['全部', '电子信息工程学院', '陶瓷艺术学院', '设计艺术学院', '美术学院', '音乐舞蹈学院'];
 
   aboutToAppear(): void {
@@ -39,9 +41,9 @@ struct AdminStudentsPage {
   }
 
   private statusColor(s: string): string {
-    if (s === 'active') return '#7BB07B';
+    if (s === 'active') return ElysiaTheme.SUCCESS;
     if (s === 'graduating') return '#D9B675';
-    if (s === 'suspended') return '#D8546B';
+    if (s === 'suspended') return ElysiaTheme.ROSE_ACCENT;
     return ElysiaTheme.INK_MUTE;
   }
 
@@ -123,7 +125,7 @@ struct AdminStudentsPage {
         }
 
         AdminTabBar({ active: 'students', onTap: (id: string, route: string) => { AppRoute.go(route, { replace: true }); } })
-      }
+      }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

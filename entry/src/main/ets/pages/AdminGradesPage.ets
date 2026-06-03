@@ -7,7 +7,7 @@ import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateVie
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import { SafeTop } from '../common/widgets/SafeArea';
 
 @Entry
@@ -55,12 +55,12 @@ struct AdminGradesPage {
     this.formErrorMsg = '';
     AdminRepository.get().approveGrade(id).then(() => {
       this.approvingId = '';
-      promptAction.showToast({ message: '审核已通过' });
+      Toast.show(this.getUIContext(), '审核已通过');
       this.loadData();
     }).catch((e: object) => {
       this.approvingId = '';
       this.formErrorMsg = (e instanceof HttpError) ? (e as HttpError).message : '审核失败';
-      promptAction.showToast({ message: this.formErrorMsg });
+      Toast.show(this.getUIContext(), this.formErrorMsg);
     });
   }
 
@@ -88,7 +88,7 @@ struct AdminGradesPage {
       this.submittingId = '';
       this.editingId = '';
       this.progressText = '';
-      promptAction.showToast({ message: progress === 100 ? '成绩已提交审核' : '录入进度已保存' });
+      Toast.show(this.getUIContext(), progress === 100 ? '成绩已提交审核' : '录入进度已保存');
       this.loadData();
     }).catch((e: object) => {
       this.submittingId = '';
@@ -119,7 +119,7 @@ struct AdminGradesPage {
       this.submittingId = '';
       this.rejectingId = '';
       this.rejectReason = '';
-      promptAction.showToast({ message: '已驳回，需重录' });
+      Toast.show(this.getUIContext(), '已驳回，需重录');
       this.loadData();
     }).catch((e: object) => {
       this.submittingId = '';
@@ -134,8 +134,8 @@ struct AdminGradesPage {
   private statusColor(s: string): string {
     if (s === 'pendingAudit') return '#D9B675';
     if (s === 'inputting') return ElysiaTheme.ROSE_500;
-    if (s === 'published') return '#7BB07B';
-    if (s === 'rejected') return '#D8546B';
+    if (s === 'published') return ElysiaTheme.SUCCESS;
+    if (s === 'rejected') return ElysiaTheme.ROSE_ACCENT;
     return '#B589FF';
   }
 
@@ -187,7 +187,7 @@ struct AdminGradesPage {
           EmptyState({ title: '暂无成绩记录' })
         } else {
           if (this.formErrorMsg.length > 0) {
-            Text(this.formErrorMsg).fontSize(11).fontColor('#D8546B')
+            Text(this.formErrorMsg).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
               .width('100%')
               .padding({ left: 16, right: 16, top: 8 })
           }
@@ -201,7 +201,7 @@ struct AdminGradesPage {
                   }.width('100%')
                   Text(`${item.teachingClassName} · ${item.teacherName}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
                   if (item.status === 'rejected' && item.rejectReason !== undefined && item.rejectReason.length > 0) {
-                    Text(`驳回理由：${item.rejectReason}`).fontSize(11).fontColor('#D8546B')
+                    Text(`驳回理由：${item.rejectReason}`).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
                       .padding({ left: 10, right: 10, top: 6, bottom: 6 })
                       .backgroundColor('#FFF0F0')
                       .borderRadius(10)
@@ -225,7 +225,7 @@ struct AdminGradesPage {
                         })
                     }
                     if (item.status === 'pendingAudit') {
-                      Text('驳回').fontSize(11).fontColor('#D8546B')
+                      Text('驳回').fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
                         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
                         .backgroundColor('#FFF0F0')
                         .borderRadius(999)
@@ -270,7 +270,7 @@ struct AdminGradesPage {
 
                   if (this.rejectingId === item.id) {
                     Column({ space: 8 }) {
-                      Text('请填写驳回理由，确认后该记录将标记为“已驳回/需重录”。').fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+                      Text('请填写驳回理由，确认后该记录将标记为"已驳回/需重录"。').fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
                       TextArea({ placeholder: '驳回理由（1-120 字，不能换行）', text: this.rejectReason })
                         .height(70)
                         .fontSize(12)
@@ -287,7 +287,7 @@ struct AdminGradesPage {
                           .onClick(() => { this.cancelReject(); })
                         Text(this.submittingId === item.id ? '驳回中...' : '确认驳回').fontSize(11).fontColor(Color.White)
                           .padding({ left: 12, right: 12, top: 5, bottom: 5 })
-                          .backgroundColor(this.submittingId === item.id ? ElysiaTheme.INK_MUTE : '#D8546B')
+                          .backgroundColor(this.submittingId === item.id ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_ACCENT)
                           .borderRadius(999)
                           .enabled(this.submittingId !== item.id)
                           .onClick(() => { this.submitReject(item.id); })
@@ -296,7 +296,7 @@ struct AdminGradesPage {
                   }
 
                   if (this.formErrorMsg.length > 0 && (this.editingId === item.id || this.rejectingId === item.id)) {
-                    Text(this.formErrorMsg).fontSize(11).fontColor('#D8546B')
+                    Text(this.formErrorMsg).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
                   }
                 }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
                 .border({ width: 1, color: ElysiaTheme.hairlineSoft() })

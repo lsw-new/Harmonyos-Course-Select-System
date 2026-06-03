@@ -1,5 +1,4 @@
 // 我的账户 · Account
-import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, Monogram } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
@@ -10,10 +9,12 @@ import { SessionStorage } from '../common/storage/SessionStorage';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { AccountInfo, LoginHistoryItem } from '../models/User';
 import { SafeTop } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
 struct AccountPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State account: AccountInfo | null = null;
@@ -52,7 +53,7 @@ struct AccountPage {
 
   private statusColor(s: string): string {
     if (s === 'active') return '#3F7A4A';
-    if (s === 'locked') return '#D8546B';
+    if (s === 'locked') return ElysiaTheme.ROSE_ACCENT;
     return ElysiaTheme.INK_MUTE;
   }
 
@@ -157,6 +158,8 @@ struct AccountPage {
           .layoutWeight(1)
         }
       }
+      .width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       // Logout confirm dialog
       if (this.showLogoutConfirm) {

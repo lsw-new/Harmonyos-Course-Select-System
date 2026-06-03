@@ -17,7 +17,7 @@ import { Notice } from '../models/Notice';
 import { UserProfile } from '../models/User';
 import { DateUtils } from '../common/utils/DateUtils';
 import { FileService } from '../common/services/FileService';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
@@ -213,6 +213,7 @@ struct HomePage {
           Button({ type: ButtonType.Circle }) { AppIcon({ name: 'bell', iconSize: 16 }) }
             .width(34).height(34).backgroundColor(ElysiaTheme.glassSoft())
             .border({ width: 1, color: ElysiaTheme.hairline() })
+            .accessibilityText('通知')
             .onClick(() => AppRoute.go(Routes.Notices))
           if (unread > 0) {
             Text(unread > 9 ? '9+' : `${unread}`)
@@ -240,6 +241,7 @@ struct HomePage {
             .fontSize(12).fontColor(ElysiaTheme.INK_MUTE).textAlign(TextAlign.Center)
             .width(28).height(28).borderRadius(14).backgroundColor('#33F2709C')
             .margin({ right: 6 })
+            .accessibilityText('清除')
             .onClick(() => this.clearSearch())
         }
       }
@@ -511,10 +513,10 @@ struct HomePage {
 
   private downloadFile(f: DownloadFile): void {
     FileService.downloadFile(f.url, f.fileName).then((path: string) => {
-      promptAction.showToast({ message: `已下载：${path}` });
+      Toast.show(this.getUIContext(), `已下载：${path}`);
     }).catch((e: object) => {
       const message = e instanceof Error ? e.message : '下载失败';
-      promptAction.showToast({ message });
+      Toast.show(this.getUIContext(), message);
     });
   }
 

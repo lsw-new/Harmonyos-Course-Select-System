@@ -16,6 +16,7 @@ import { SafeTop } from '../common/widgets/SafeArea';
 @Entry
 @Component
 struct LoginPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State studentId: string = '';
   @State password: string = '';
   @State remember: boolean = true;
@@ -160,7 +161,7 @@ struct LoginPage {
             if (this.errorMsg.length > 0) {
               Text(this.errorMsg)
                 .fontSize(12)
-                .fontColor('#D8546B')
+                .fontColor(ElysiaTheme.ROSE_ACCENT)
                 .width('100%')
                 .padding({ left: 4 })
             }

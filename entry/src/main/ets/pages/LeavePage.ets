@@ -8,10 +8,12 @@ import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateVie
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
 struct LeavePage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State activeTab: number = 0;
   @State leaveType: string = 'sick';
   @State startDate: string = '';
@@ -80,8 +82,8 @@ struct LeavePage {
   }
 
   private stateColor(state: string): string {
-    if (state === 'approved') return '#7BB07B';
-    if (state === 'rejected') return '#D8546B';
+    if (state === 'approved') return ElysiaTheme.SUCCESS;
+    if (state === 'rejected') return ElysiaTheme.ROSE_ACCENT;
     if (state === 'pending') return '#D9B675';
     return ElysiaTheme.INK_MUTE;
   }
@@ -156,10 +158,10 @@ struct LeavePage {
                 .onChange((v: string) => { this.reason = v; })
 
               if (this.errorMsg.length > 0) {
-                Text(this.errorMsg).fontSize(12).fontColor('#D8546B')
+                Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
               }
               if (this.successMsg.length > 0) {
-                Text(this.successMsg).fontSize(12).fontColor('#7BB07B')
+                Text(this.successMsg).fontSize(12).fontColor(ElysiaTheme.SUCCESS)
               }
 
               PrimaryButton({ text: this.submitting ? '提交中...' : '提交申请', onTap: () => this.submit() })
@@ -187,6 +189,8 @@ struct LeavePage {
           }.padding({ left: 16, right: 16, top: 12 })
         }.scrollBar(BarState.Off).layoutWeight(1)
       }
+      .width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

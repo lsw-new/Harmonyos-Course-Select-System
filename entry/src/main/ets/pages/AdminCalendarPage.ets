@@ -8,7 +8,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 
 @Entry
 @Component
@@ -56,8 +56,8 @@ struct AdminCalendarPage {
 
   private typeColor(t: string): string {
     if (t === 'term') return ElysiaTheme.ROSE_600;
-    if (t === 'exam') return '#D8546B';
-    if (t === 'holiday') return '#7BB07B';
+    if (t === 'exam') return ElysiaTheme.ROSE_ACCENT;
+    if (t === 'holiday') return ElysiaTheme.SUCCESS;
     if (t === 'selection') return ElysiaTheme.LAV_500;
     if (t === 'makeup') return ElysiaTheme.GOLD_700;
     return ElysiaTheme.INK_MUTE;
@@ -92,7 +92,7 @@ struct AdminCalendarPage {
     this.formError = '';
     SysConfigRepository.get().addCalendarEvent(payload).then(() => {
       this.submitting = false;
-      promptAction.showToast({ message: '校历事件已新增' });
+      Toast.show(this.getUIContext(), '校历事件已新增');
       this.cancelEdit();
       this.loadData();
     }).catch((e: object) => {
@@ -116,12 +116,12 @@ struct AdminCalendarPage {
     SysConfigRepository.get().deleteCalendarEvent(item.id).then(() => {
       this.submitting = false;
       this.pendingDeleteId = '';
-      promptAction.showToast({ message: '校历事件已删除' });
+      Toast.show(this.getUIContext(), '校历事件已删除');
       this.loadData();
     }).catch((e: object) => {
       this.submitting = false;
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '删除失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 
@@ -149,7 +149,7 @@ struct AdminCalendarPage {
         }.width('100%').alignItems(HorizontalAlign.Start)
 
         if (this.formError.length > 0) {
-          Text(this.formError).fontSize(12).fontColor('#D8546B')
+          Text(this.formError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
         }
 
         Row({ space: 10 }) {
@@ -171,18 +171,18 @@ struct AdminCalendarPage {
       Text(item.date).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
       Row() {
         if (this.pendingDeleteId === item.id) {
-          Text(`确认删除「${item.title}」`).fontSize(11).fontColor('#D8546B').layoutWeight(1)
+          Text(`确认删除「${item.title}」`).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
           Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#F5F2F4').borderRadius(999).margin({ right: 10 })
             .onClick(() => { this.cancelDelete(); })
           Text('确认删除').fontSize(12).fontColor(Color.White)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-            .backgroundColor('#D8546B').borderRadius(999)
+            .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
             .onClick(() => { this.deleteEvent(item); })
         } else {
           Blank().layoutWeight(1)
-          Text('删除').fontSize(12).fontColor('#D8546B')
+          Text('删除').fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#FFF0F3').borderRadius(999)
             .onClick(() => { this.requestDelete(item); })

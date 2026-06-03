@@ -8,7 +8,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import { FileService } from '../common/services/FileService';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
@@ -48,10 +48,10 @@ struct NoticeDetailPage {
 
   private downloadAttachment(att: NoticeAttachment): void {
     FileService.downloadFile(att.fileUrl, att.fileName).then((path: string) => {
-      promptAction.showToast({ message: `已下载：${path}` });
+      Toast.show(this.getUIContext(), `已下载：${path}`);
     }).catch((e: object) => {
       const message = e instanceof Error ? e.message : '下载失败';
-      promptAction.showToast({ message });
+      Toast.show(this.getUIContext(), message);
     });
   }
 
@@ -86,7 +86,7 @@ struct NoticeDetailPage {
                 Row({ space: 8 }) {
                   Pill({ text: this.notice!.category })
                   if (this.notice!.isRead) {
-                    Pill({ text: '已读', color: '#7BB07B', bg: '#E8F8E8' })
+                    Pill({ text: '已读', color: ElysiaTheme.SUCCESS, bg: '#E8F8E8' })
                   }
                 }
                 Text(this.notice!.title)

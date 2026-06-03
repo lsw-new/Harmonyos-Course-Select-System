@@ -1,5 +1,4 @@
 // 系统设置 · Settings
-import promptAction from '@ohos.promptAction';
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
@@ -8,6 +7,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { Toast } from '../common/widgets/Feedback';
 
 // 字体档位定义
 class FontScaleOption {
@@ -24,6 +24,7 @@ class FontScaleOption {
 @Entry
 @Component
 struct SettingsPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State pushEnabled: boolean = true;
   @State evalReminder: boolean = true;
   @State dndMode: boolean = false;
@@ -59,7 +60,7 @@ struct SettingsPage {
     this.fontScale = key;
     PreferenceStorage.get().putString('fontScale', key);
     this.showFontSheet = false;
-    promptAction.showToast({ message: '字体大小已保存，重新进入页面后全局生效' });
+    Toast.show(this.getUIContext(), '字体大小已保存，重新进入页面后全局生效');
   }
 
   private fontScaleLabel(): string {
@@ -173,10 +174,10 @@ struct SettingsPage {
               })
               this.LinkRow('清除缓存', '12.3 MB', () => {
                 PreferenceStorage.get().putBoolean('cacheCleared', true);
-                promptAction.showToast({ message: '缓存已清除' });
+                Toast.show(this.getUIContext(), '缓存已清除');
               })
               this.LinkRow('检查更新', 'V1.0.0', () => {
-                promptAction.showToast({ message: '已是最新版本' });
+                Toast.show(this.getUIContext(), '已是最新版本');
               })
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
@@ -197,7 +198,7 @@ struct SettingsPage {
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             Text('退出登录')
-              .fontSize(14).fontColor('#D8546B').fontWeight(FontWeight.Medium)
+              .fontSize(14).fontColor(ElysiaTheme.ROSE_ACCENT).fontWeight(FontWeight.Medium)
               .width('100%').textAlign(TextAlign.Center)
               .padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: '#40D8546B' })

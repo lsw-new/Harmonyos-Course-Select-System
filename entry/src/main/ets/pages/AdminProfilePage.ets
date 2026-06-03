@@ -10,6 +10,7 @@ import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { AdminProfile, ApprovalItem } from '../models/Admin';
 import { AdminRepository } from '../repositories/AdminRepository';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
@@ -20,6 +21,7 @@ struct AdminProfilePage {
   @State approvalApproved: number = 0;
   @State approvalRejected: number = 0;
   @State showLogoutConfirm: boolean = false;
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminProfile)) return;
@@ -59,7 +61,7 @@ struct AdminProfilePage {
   }
 
   private onlineStatusColor(s: string): string {
-    if (s === 'online') return '#7BB07B';
+    if (s === 'online') return ElysiaTheme.SUCCESS;
     if (s === 'busy') return '#D8A04A';
     return ElysiaTheme.INK_MUTE;
   }
@@ -193,7 +195,7 @@ struct AdminProfilePage {
 
             // 退出
             Text('退出登录')
-              .fontSize(14).fontColor('#D8546B').fontWeight(FontWeight.Medium)
+              .fontSize(14).fontColor(ElysiaTheme.ROSE_ACCENT).fontWeight(FontWeight.Medium)
               .width('100%').textAlign(TextAlign.Center)
               .padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: '#40D8546B' })
@@ -204,7 +206,7 @@ struct AdminProfilePage {
         }.scrollBar(BarState.Off).layoutWeight(1)
 
         AdminTabBar({ active: 'mine', onTap: (id: string, route: string) => { AppRoute.go(route, { replace: true }); } })
-      }
+      }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       if (this.showLogoutConfirm) {
         Column() {

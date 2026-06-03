@@ -6,7 +6,7 @@ import { SysConfigRepository } from '../repositories/SysConfigRepository';
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 
 const LETTER_PATTERN: RegExp = /[A-Za-z]/;
 const DIGIT_PATTERN: RegExp = /[0-9]/;
@@ -66,7 +66,7 @@ struct AdminPasswordPage {
     this.submitting = true;
     SysConfigRepository.get().changeAdminPassword(this.oldPassword, this.newPassword).then((_res: boolean) => {
       this.submitting = false;
-      promptAction.showToast({ message: '密码修改成功' });
+      Toast.show(this.getUIContext(), '密码修改成功');
       AppRoute.back();
     }).catch((e: object) => {
       this.submitting = false;
@@ -113,7 +113,7 @@ struct AdminPasswordPage {
               ElysiaInput({ placeholder: '确认新密码', value: $confirmPassword, secure: true, leadingIcon: 'unlock' })
 
               if (this.errorMsg.length > 0) {
-                Text(this.errorMsg).fontSize(12).fontColor('#D8546B').margin({ top: 4 })
+                Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT).margin({ top: 4 })
               }
 
               PrimaryButton({ text: this.submitting ? '提交中...' : '确认修改', onTap: () => this.submit() })

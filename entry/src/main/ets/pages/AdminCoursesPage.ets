@@ -8,8 +8,9 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import { SafeTop } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
@@ -33,6 +34,7 @@ struct AdminCoursesPage {
   @State selectedCountText: string = '0';
   @State status: string = 'draft';
   @State pendingDeleteId: string = '';
+  @StorageProp('breakpoint') bp: string = 'sm';
   private categories: string[] = ['全部', 'required', 'elective', 'public', 'practice'];
   private catLabels: string[] = ['全部', '必修', '选修', '公选', '实践'];
   private editCategories: string[] = ['required', 'elective', 'public', 'practice'];
@@ -69,8 +71,8 @@ struct AdminCoursesPage {
   }
 
   private statusColor(s: string): string {
-    if (s === 'open') return '#7BB07B';
-    if (s === 'closed') return '#D8546B';
+    if (s === 'open') return ElysiaTheme.SUCCESS;
+    if (s === 'closed') return ElysiaTheme.ROSE_ACCENT;
     if (s === 'draft') return '#D9B675';
     return ElysiaTheme.INK_MUTE;
   }
@@ -167,7 +169,7 @@ struct AdminCoursesPage {
     const action = this.editingId.length > 0 ? repo.updateCourse(this.editingId, payload) : repo.createCourse(payload);
     action.then(() => {
       this.submitting = false;
-      promptAction.showToast({ message: this.editingId.length > 0 ? '课程已更新' : '课程已新增' });
+      Toast.show(this.getUIContext(), this.editingId.length > 0 ? '课程已更新' : '课程已新增');
       this.cancelEdit();
       this.loadData();
     }).catch((e: object) => {
@@ -194,7 +196,7 @@ struct AdminCoursesPage {
     AdminRepository.get().deleteCourse(c.id).then(() => {
       this.submitting = false;
       this.pendingDeleteId = '';
-      promptAction.showToast({ message: '课程已删除' });
+      Toast.show(this.getUIContext(), '课程已删除');
       if (this.editingId === c.id) {
         this.cancelEdit();
       }
@@ -203,7 +205,7 @@ struct AdminCoursesPage {
       this.submitting = false;
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '删除失败';
       this.formError = msg;
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 
@@ -309,7 +311,7 @@ struct AdminCoursesPage {
               }.width('100%').alignItems(HorizontalAlign.Start)
 
               if (this.formError.length > 0) {
-                Text(this.formError).fontSize(12).fontColor('#D8546B')
+                Text(this.formError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
               }
 
               Row({ space: 10 }) {
@@ -320,7 +322,7 @@ struct AdminCoursesPage {
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
           }.height(430).padding({ left: 16, right: 16, top: 10 }).scrollBar(BarState.Off)
         } else if (this.formError.length > 0) {
-          Text(this.formError).fontSize(12).fontColor('#D8546B')
+          Text(this.formError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
             .padding({ left: 16, right: 16, top: 8 })
         }
 
@@ -342,11 +344,11 @@ struct AdminCoursesPage {
                   Text(`${c.code} · ${c.teacher} · ${c.credit} 学分 · ${c.timeText}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
                   Row() {
                     Column().height(6).width(`${Math.min(c.selectedCount / c.capacity * 100, 100)}%`)
-                      .backgroundColor(c.selectedCount >= c.capacity ? '#D8546B' : ElysiaTheme.ROSE_500).borderRadius(3)
+                      .backgroundColor(c.selectedCount >= c.capacity ? ElysiaTheme.ROSE_ACCENT : ElysiaTheme.ROSE_500).borderRadius(3)
                   }.width('100%').height(6).backgroundColor('#FFE9F1').borderRadius(3)
                   Row() {
                     if (this.pendingDeleteId === c.id) {
-                      Text(`确认删除「${c.name}」`).fontSize(11).fontColor('#D8546B').layoutWeight(1)
+                      Text(`确认删除「${c.name}」`).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
                       Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
                         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                         .backgroundColor('#F5F2F4').borderRadius(999)
@@ -354,7 +356,7 @@ struct AdminCoursesPage {
                         .onClick(() => { this.cancelDelete(); })
                       Text('确认删除').fontSize(12).fontColor(Color.White)
                         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-                        .backgroundColor('#D8546B').borderRadius(999)
+                        .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
                         .onClick(() => { this.deleteCourse(c); })
                     } else {
                       Text(`${c.selectedCount}/${c.capacity}`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
@@ -363,7 +365,7 @@ struct AdminCoursesPage {
                         .backgroundColor('#FFE9F1').borderRadius(999)
                         .margin({ right: 12 })
                         .onClick(() => { this.openEdit(c); })
-                      Text('删除').fontSize(12).fontColor('#D8546B')
+                      Text('删除').fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
                         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                         .backgroundColor('#FFF0F3').borderRadius(999)
                         .onClick(() => { this.requestDelete(c); })
@@ -377,7 +379,7 @@ struct AdminCoursesPage {
         }
 
         AdminTabBar({ active: 'courses', onTap: (id: string, route: string) => { AppRoute.go(route, { replace: true }); } })
-      }
+      }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

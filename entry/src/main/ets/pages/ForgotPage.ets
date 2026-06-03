@@ -12,6 +12,7 @@ import { SafeTop } from '../common/widgets/SafeArea';
 @Entry
 @Component
 struct ForgotPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State sid: string = '';
   @State email: string = '';
   @State code: string = '';
@@ -153,7 +154,7 @@ struct ForgotPage {
               if (this.errorMsg.length > 0) {
                 Text(this.errorMsg)
                   .fontSize(12)
-                  .fontColor('#D8546B')
+                  .fontColor(ElysiaTheme.ROSE_ACCENT)
                   .width('100%')
                   .padding({ left: 4 })
                   .margin({ top: 8 })
@@ -161,7 +162,7 @@ struct ForgotPage {
               if (this.successMsg.length > 0) {
                 Text(this.successMsg)
                   .fontSize(12)
-                  .fontColor('#7BB07B')
+                  .fontColor(ElysiaTheme.SUCCESS)
                   .width('100%')
                   .padding({ left: 4 })
                   .margin({ top: 8 })

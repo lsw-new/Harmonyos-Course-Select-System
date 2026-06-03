@@ -17,6 +17,7 @@ class DocSection {
 @Entry
 @Component
 struct DocPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State docType: string = 'agreement';
 
   aboutToAppear(): void {

@@ -5,7 +5,7 @@ import { AdminRepository } from '../repositories/AdminRepository';
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
@@ -61,7 +61,7 @@ struct AdminNoticePage {
       this.title = '';
       this.content = '';
       this.scopeText = '';
-      promptAction.showToast({ message: '通知已发布' });
+      Toast.show(this.getUIContext(), '通知已发布');
     }).catch((e: object) => {
       this.submitting = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '发布失败';
@@ -143,10 +143,10 @@ struct AdminNoticePage {
             }.width('100%').alignItems(HorizontalAlign.Start)
 
             if (this.errorMsg.length > 0) {
-              Text(this.errorMsg).fontSize(12).fontColor('#D8546B')
+              Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
             }
             if (this.successMsg.length > 0) {
-              Text(this.successMsg).fontSize(12).fontColor('#7BB07B')
+              Text(this.successMsg).fontSize(12).fontColor(ElysiaTheme.SUCCESS)
             }
 
             PrimaryButton({ text: this.submitting ? '发布中...' : '发布通知', onTap: () => this.publish() })

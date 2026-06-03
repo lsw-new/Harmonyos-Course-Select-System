@@ -62,8 +62,8 @@ struct AdminRolePermPage {
   }
 
   private actionColor(action: string): string {
-    if (action === 'delete') return '#D8546B';
-    if (action === 'approve') return '#7BB07B';
+    if (action === 'delete') return ElysiaTheme.ROSE_ACCENT;
+    if (action === 'approve') return ElysiaTheme.SUCCESS;
     if (action === 'publish') return ElysiaTheme.GOLD_700;
     if (action === 'create' || action === 'update') return ElysiaTheme.LAV_500;
     return ElysiaTheme.ROSE_700;

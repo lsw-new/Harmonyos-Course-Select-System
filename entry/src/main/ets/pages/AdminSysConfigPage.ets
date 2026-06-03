@@ -11,7 +11,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 
 // 安全策略开关项（用于驱动 ForEach 渲染）
 class SecurityToggleDef {
@@ -92,10 +92,10 @@ struct AdminSysConfigPage {
     this.flow = next;
     SysConfigRepository.get().updateApprovalFlow(next).then((saved: ApprovalNode[]) => {
       this.flow = saved;
-      promptAction.showToast({ message: enabled ? '已启用节点' : '已停用节点' });
+      Toast.show(this.getUIContext(), enabled ? '已启用节点' : '已停用节点');
     }).catch((e: object) => {
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '更新失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
       this.loadData();
     });
   }
@@ -127,10 +127,10 @@ struct AdminSysConfigPage {
   private toggleSecurity(key: string, value: boolean): void {
     this.policy = this.applyPolicy(key, value);
     SysConfigRepository.get().setSecurityToggle(key, value).then(() => {
-      promptAction.showToast({ message: '安全策略已更新' });
+      Toast.show(this.getUIContext(), '安全策略已更新');
     }).catch((e: object) => {
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '更新失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
       this.loadData();
     });
   }
@@ -191,7 +191,7 @@ struct AdminSysConfigPage {
     const action = id.length > 0 ? repo.updateMsgTemplate(id, payload) : repo.createMsgTemplate(payload);
     action.then(() => {
       this.submitting = false;
-      promptAction.showToast({ message: id.length > 0 ? '模板已更新' : '模板已新增' });
+      Toast.show(this.getUIContext(), id.length > 0 ? '模板已更新' : '模板已新增');
       this.cancelTplEdit();
       this.reloadTemplates();
     }).catch((e: object) => {
@@ -215,7 +215,7 @@ struct AdminSysConfigPage {
     SysConfigRepository.get().deleteMsgTemplate(t.id).then(() => {
       this.submitting = false;
       this.pendingDeleteTplId = '';
-      promptAction.showToast({ message: '模板已删除' });
+      Toast.show(this.getUIContext(), '模板已删除');
       if (this.editingTplId === t.id) {
         this.cancelTplEdit();
       }
@@ -223,7 +223,7 @@ struct AdminSysConfigPage {
     }).catch((e: object) => {
       this.submitting = false;
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '删除失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 
@@ -231,7 +231,7 @@ struct AdminSysConfigPage {
     SysConfigRepository.get().getMsgTemplates().then((list: MsgTemplate[]) => {
       this.templates = list;
     }).catch((e: object) => {
-      promptAction.showToast({ message: e instanceof Error ? e.message : '刷新失败' });
+      Toast.show(this.getUIContext(), e instanceof Error ? e.message : '刷新失败');
     });
   }
 
@@ -287,7 +287,7 @@ struct AdminSysConfigPage {
       ElysiaInput({ placeholder: '渠道，如：站内信/短信/邮件', value: $tplChannel, leadingIcon: 'bell' })
       ElysiaInput({ placeholder: '模板内容', value: $tplContent, leadingIcon: 'file' })
       if (this.tplFormError.length > 0) {
-        Text(this.tplFormError).fontSize(12).fontColor('#D8546B')
+        Text(this.tplFormError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
       }
       Row({ space: 10 }) {
         GhostButton({ text: '取消', onTap: () => this.cancelTplEdit() }).layoutWeight(1)
@@ -307,14 +307,14 @@ struct AdminSysConfigPage {
       Text(t.content).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
       Row() {
         if (this.pendingDeleteTplId === t.id) {
-          Text('确认删除该模板？').fontSize(11).fontColor('#D8546B').layoutWeight(1)
+          Text('确认删除该模板？').fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
           Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#F5F2F4').borderRadius(999).margin({ right: 10 })
             .onClick(() => { this.cancelDeleteTpl(); })
           Text('确认删除').fontSize(12).fontColor(Color.White)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-            .backgroundColor('#D8546B').borderRadius(999)
+            .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
             .onClick(() => { this.deleteTpl(t); })
         } else {
           Blank().layoutWeight(1)
@@ -322,7 +322,7 @@ struct AdminSysConfigPage {
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#FFE9F1').borderRadius(999).margin({ right: 12 })
             .onClick(() => { this.openEditTpl(t); })
-          Text('删除').fontSize(12).fontColor('#D8546B')
+          Text('删除').fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#FFF0F3').borderRadius(999)
             .onClick(() => { this.requestDeleteTpl(t); })

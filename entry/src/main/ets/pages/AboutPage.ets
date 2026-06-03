@@ -20,6 +20,7 @@ class CreditItem {
 @Entry
 @Component
 struct AboutPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   private credits: CreditItem[] = [
     new CreditItem('info', '版本', 'V1.0.0 (build 20260529)'),
     new CreditItem('star', '出品', '景德镇艺术职业大学教务处'),

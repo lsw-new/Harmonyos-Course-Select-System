@@ -8,7 +8,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { PracticeRepository } from '../repositories/PracticeRepository';
 import { PracticeProjectDetail, PracticeCategory } from '../models/PracticeModels';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 function categoryLabel(c: PracticeCategory): string {
@@ -86,18 +86,18 @@ struct PracticeDetailPage {
       return;
     }
     if (current.slotsTaken >= current.slotsTotal) {
-      promptAction.showToast({ message: '该项目名额已满' });
+      Toast.show(this.getUIContext(), '该项目名额已满');
       return;
     }
     this.submitting = true;
     PracticeRepository.get().signUp(current.id).then(() => {
       this.submitting = false;
-      promptAction.showToast({ message: '报名成功' });
+      Toast.show(this.getUIContext(), '报名成功');
       this.loadData();
     }).catch((e: object) => {
       this.submitting = false;
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '报名失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 
@@ -113,12 +113,12 @@ struct PracticeDetailPage {
     this.confirmingCancel = false;
     PracticeRepository.get().cancelSignUp(current.id).then(() => {
       this.submitting = false;
-      promptAction.showToast({ message: '已取消报名' });
+      Toast.show(this.getUIContext(), '已取消报名');
       this.loadData();
     }).catch((e: object) => {
       this.submitting = false;
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '取消失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 

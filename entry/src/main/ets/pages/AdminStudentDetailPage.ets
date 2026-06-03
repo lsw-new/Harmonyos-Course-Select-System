@@ -8,7 +8,7 @@ import { AppIcon } from '../common/widgets/AppIcon';
 import { StudentAdminRepository } from '../repositories/StudentAdminRepository';
 import { StudentDetail, StudentStatus } from '../models/StudentDetailModels';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 @Entry
@@ -62,9 +62,9 @@ struct AdminStudentDetailPage {
   }
 
   private statusColor(s: string): string {
-    if (s === 'active') return '#7BB07B';
+    if (s === 'active') return ElysiaTheme.SUCCESS;
     if (s === 'graduating') return '#D9B675';
-    if (s === 'suspended') return '#D8546B';
+    if (s === 'suspended') return ElysiaTheme.ROSE_ACCENT;
     return ElysiaTheme.INK_MUTE;
   }
 
@@ -78,12 +78,12 @@ struct AdminStudentDetailPage {
       this.hasDetail = true;
       this.submitting = false;
       this.pendingStatus = '';
-      promptAction.showToast({ message: successTip });
+      Toast.show(this.getUIContext(), successTip);
     }).catch((e: object) => {
       this.submitting = false;
       this.pendingStatus = '';
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '操作失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 

@@ -12,6 +12,7 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 @Entry
 @Component
 struct PasswordPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State oldPassword: string = '';
   @State newPassword: string = '';
   @State confirmPassword: string = '';
@@ -35,9 +36,9 @@ struct PasswordPage {
 
   private getStrengthColor(): string {
     const s = ValidatorUtils.passwordStrength(this.newPassword);
-    if (s === 'weak') return '#D8546B';
+    if (s === 'weak') return ElysiaTheme.ROSE_ACCENT;
     if (s === 'medium') return '#D9B675';
-    return '#7BB07B';
+    return ElysiaTheme.SUCCESS;
   }
 
   private validate(): boolean {
@@ -124,10 +125,10 @@ struct PasswordPage {
               ElysiaInput({ placeholder: '确认新密码', value: $confirmPassword, secure: true, leadingIcon: 'unlock' })
 
               if (this.errorMsg.length > 0) {
-                Text(this.errorMsg).fontSize(12).fontColor('#D8546B').margin({ top: 4 })
+                Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT).margin({ top: 4 })
               }
               if (this.successMsg.length > 0) {
-                Text(this.successMsg).fontSize(12).fontColor('#7BB07B').margin({ top: 4 })
+                Text(this.successMsg).fontSize(12).fontColor(ElysiaTheme.SUCCESS).margin({ top: 4 })
               }
 
               PrimaryButton({ text: this.submitting ? '提交中...' : '确认修改', onTap: () => this.submit() })

@@ -14,6 +14,7 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 @Entry
 @Component
 struct EditInfoPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State loading: boolean = true;
   @State phone: string = '';
   @State email: string = '';
@@ -165,10 +166,10 @@ struct EditInfoPage {
                   .onChange((v: string) => { this.bio = v; })
 
                 if (this.errorMsg.length > 0) {
-                  Text(this.errorMsg).fontSize(12).fontColor('#D8546B')
+                  Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
                 }
                 if (this.successMsg.length > 0) {
-                  Text(this.successMsg).fontSize(12).fontColor('#7BB07B')
+                  Text(this.successMsg).fontSize(12).fontColor(ElysiaTheme.SUCCESS)
                 }
 
                 PrimaryButton({ text: this.submitting ? '保存中...' : '保存修改', onTap: () => this.submit() })

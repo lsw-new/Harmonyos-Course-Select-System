@@ -43,8 +43,8 @@ struct AdminAuditLogPage {
   }
 
   private actionTypeColor(type: string): string {
-    if (type === '删除') return '#D8546B';
-    if (type === '审批') return '#7BB07B';
+    if (type === '删除') return ElysiaTheme.ROSE_ACCENT;
+    if (type === '审批') return ElysiaTheme.SUCCESS;
     if (type === '发布') return ElysiaTheme.GOLD_700;
     if (type === '编辑') return ElysiaTheme.LAV_500;
     if (type === '登录') return ElysiaTheme.ROSE_700;
@@ -87,7 +87,7 @@ struct AdminAuditLogPage {
         Blank()
         Pill({
           text: log.result === 'success' ? '成功' : '失败',
-          color: log.result === 'success' ? '#7BB07B' : '#D8546B',
+          color: log.result === 'success' ? ElysiaTheme.SUCCESS : ElysiaTheme.ROSE_ACCENT,
           bg: log.result === 'success' ? '#EAF6EA' : '#FFF0F0'
         })
       }.width('100%')

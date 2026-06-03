@@ -11,7 +11,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 
 @Entry
 @Component
@@ -63,7 +63,7 @@ struct AdminSelectionPage {
   }
 
   private statusColor(s: string): string {
-    if (s === 'running') return '#7BB07B';
+    if (s === 'running') return ElysiaTheme.SUCCESS;
     if (s === 'paused') return '#D9B675';
     if (s === 'ended') return ElysiaTheme.INK_MUTE;
     return ElysiaTheme.ROSE_600;
@@ -104,12 +104,12 @@ struct AdminSelectionPage {
     this.submitting = true;
     action.then(() => {
       this.submitting = false;
-      promptAction.showToast({ message: okMessage });
+      Toast.show(this.getUIContext(), okMessage);
       this.load();
     }).catch((e: object) => {
       this.submitting = false;
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '操作失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 
@@ -138,7 +138,7 @@ struct AdminSelectionPage {
     this.formError = '';
     SelectionAdminRepository.get().updateRoundTime(payload).then(() => {
       this.submitting = false;
-      promptAction.showToast({ message: '起止时间已更新' });
+      Toast.show(this.getUIContext(), '起止时间已更新');
       this.cancelEdit();
       this.load();
     }).catch((e: object) => {
@@ -263,7 +263,7 @@ struct AdminSelectionPage {
         this.ActionChip('暂停', ElysiaTheme.GOLD_700, '#FBF1DC', () => { this.pauseRound(r); })
       }
       if (r.status === 'running' || r.status === 'paused') {
-        this.ActionChip('结束', '#D8546B', '#FFF0F3', () => { this.requestEnd(r); })
+        this.ActionChip('结束', ElysiaTheme.ROSE_ACCENT, '#FFF0F3', () => { this.requestEnd(r); })
       }
       if (r.status !== 'ended') {
         this.ActionChip('编辑时间', ElysiaTheme.INK_SOFT, '#F5F2F4', () => { this.openEdit(r); })
@@ -284,7 +284,7 @@ struct AdminSelectionPage {
 
   @Builder EndConfirmRow(r: AdminRound) {
     Row() {
-      Text('结束后不可恢复，确认结束？').fontSize(11).fontColor('#D8546B').layoutWeight(1)
+      Text('结束后不可恢复，确认结束？').fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
       Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
         .backgroundColor('#F5F2F4').borderRadius(999)
@@ -292,7 +292,7 @@ struct AdminSelectionPage {
         .onClick(() => { this.cancelEnd(); })
       Text('确认结束').fontSize(12).fontColor(Color.White)
         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-        .backgroundColor('#D8546B').borderRadius(999)
+        .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
         .onClick(() => { this.confirmEnd(r); })
     }.width('100%').alignItems(VerticalAlign.Center)
   }
@@ -301,7 +301,7 @@ struct AdminSelectionPage {
     Column({ space: 8 }) {
       Row() {
         AppIcon({ name: 'warning', iconSize: 14, mRight: 6 })
-        Text(`${r.conflictCount} 条选课冲突`).fontSize(12).fontColor('#D8546B').layoutWeight(1)
+        Text(`${r.conflictCount} 条选课冲突`).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
         Text(this.expandedConflictId === r.id ? '收起' : '查看明细').fontSize(12).fontColor(ElysiaTheme.ROSE_700)
         AppIcon({ name: this.expandedConflictId === r.id ? 'back' : 'forward', iconSize: 12, mLeft: 4 })
       }.width('100%').alignItems(VerticalAlign.Center)
@@ -319,7 +319,7 @@ struct AdminSelectionPage {
       if (this.conflictLoading) {
         Text('加载冲突明细...').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
       } else if (this.conflictError.length > 0) {
-        Text(this.conflictError).fontSize(11).fontColor('#D8546B')
+        Text(this.conflictError).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
       } else if (this.conflicts.length === 0) {
         Text('暂无冲突明细').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
       } else {
@@ -372,7 +372,7 @@ struct AdminSelectionPage {
         }.width('100%').alignItems(HorizontalAlign.Start)
 
         if (this.formError.length > 0) {
-          Text(this.formError).fontSize(12).fontColor('#D8546B')
+          Text(this.formError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
         }
 
         Row({ space: 10 }) {

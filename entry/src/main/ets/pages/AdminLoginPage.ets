@@ -9,6 +9,8 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { HttpError } from '../common/http/HttpError';
 import { AdminProfile, AdminLoginResult } from '../models/Admin';
+import { Toast } from '../common/widgets/Feedback';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
@@ -20,6 +22,7 @@ struct AdminLoginPage {
   @State errorMsg: string = '';
   @State submitting: boolean = false;
   @State captchaCode: string = '3A7F';
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   private refreshCaptcha(): void {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -99,6 +102,7 @@ struct AdminLoginPage {
                 .fontSize(18).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
                 .letterSpacing(4).padding({ left: 14, right: 14, top: 10, bottom: 10 })
                 .backgroundColor('#FFE9F1').borderRadius(10)
+                .accessibilityText('刷新验证码')
                 .onClick(() => { this.refreshCaptcha(); })
             }.width('100%')
 
@@ -110,7 +114,7 @@ struct AdminLoginPage {
             }.width('100%').alignItems(VerticalAlign.Center)
 
             if (this.errorMsg.length > 0) {
-              Text(this.errorMsg).fontSize(12).fontColor('#D8546B')
+              Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
             }
 
             PrimaryButton({ text: this.submitting ? '登录中...' : '进入控制台', onTap: () => this.login() })
@@ -124,7 +128,7 @@ struct AdminLoginPage {
             SafeBottom()
           }.padding({ left: 24, right: 24 })
         }.scrollBar(BarState.Off).layoutWeight(1)
-      }
+      }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

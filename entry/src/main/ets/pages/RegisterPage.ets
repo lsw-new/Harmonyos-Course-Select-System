@@ -11,6 +11,7 @@ import { SafeTop } from '../common/widgets/SafeArea';
 @Entry
 @Component
 struct RegisterPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State sid: string = '';
   @State name: string = '';
   @State email: string = '';
@@ -167,7 +168,7 @@ struct RegisterPage {
             if (this.errorMsg.length > 0) {
               Text(this.errorMsg)
                 .fontSize(12)
-                .fontColor('#D8546B')
+                .fontColor(ElysiaTheme.ROSE_ACCENT)
                 .width('100%')
                 .padding({ left: 4 })
                 .margin({ top: 6 })
@@ -175,7 +176,7 @@ struct RegisterPage {
             if (this.successMsg.length > 0) {
               Text(this.successMsg)
                 .fontSize(12)
-                .fontColor('#7BB07B')
+                .fontColor(ElysiaTheme.SUCCESS)
                 .width('100%')
                 .padding({ left: 4 })
                 .margin({ top: 6 })

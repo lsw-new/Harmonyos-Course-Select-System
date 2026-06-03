@@ -9,7 +9,7 @@ import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateVie
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 
 const BAR_LABELS: string[] = ['5 星', '4 星', '3 星', '2 星', '1 星'];
@@ -61,7 +61,7 @@ struct AdminEvalPage {
   }
 
   private templateStatusColor(s: string): string {
-    return s === 'enabled' ? '#7BB07B' : ElysiaTheme.INK_MUTE;
+    return s === 'enabled' ? ElysiaTheme.SUCCESS : ElysiaTheme.INK_MUTE;
   }
 
   private resetForm(): void {
@@ -132,7 +132,7 @@ struct AdminEvalPage {
     const action = this.editingId.length > 0 ? repo.updateTemplate(this.editingId, payload) : repo.createTemplate(payload);
     action.then(() => {
       this.submitting = false;
-      promptAction.showToast({ message: this.editingId.length > 0 ? '问卷已更新' : '问卷已新增' });
+      Toast.show(this.getUIContext(), this.editingId.length > 0 ? '问卷已更新' : '问卷已新增');
       this.cancelEdit();
       this.loadTemplates();
     }).catch((e: object) => {
@@ -146,7 +146,7 @@ struct AdminEvalPage {
       this.templates = list;
     }).catch((e: object) => {
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 
@@ -169,7 +169,7 @@ struct AdminEvalPage {
     EvalAdminRepository.get().deleteTemplate(t.id).then(() => {
       this.submitting = false;
       this.pendingDeleteId = '';
-      promptAction.showToast({ message: '问卷已删除' });
+      Toast.show(this.getUIContext(), '问卷已删除');
       if (this.editingId === t.id) {
         this.cancelEdit();
       }
@@ -177,7 +177,7 @@ struct AdminEvalPage {
     }).catch((e: object) => {
       this.submitting = false;
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '删除失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 
@@ -204,11 +204,11 @@ struct AdminEvalPage {
         };
         this.stats = next;
       }
-      promptAction.showToast({ message: open ? '评教期已开放' : '评教期已关闭' });
+      Toast.show(this.getUIContext(), open ? '评教期已开放' : '评教期已关闭');
     }).catch((e: object) => {
       this.periodSubmitting = false;
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '操作失败';
-      promptAction.showToast({ message: msg });
+      Toast.show(this.getUIContext(), msg);
     });
   }
 
@@ -292,7 +292,7 @@ struct AdminEvalPage {
         }.alignItems(HorizontalAlign.Start).layoutWeight(1)
         Pill({
           text: this.stats!.periodOpen ? '进行中' : '已关闭',
-          color: this.stats!.periodOpen ? '#7BB07B' : ElysiaTheme.INK_MUTE,
+          color: this.stats!.periodOpen ? ElysiaTheme.SUCCESS : ElysiaTheme.INK_MUTE,
           bg: '#FFF6FA'
         })
       }.width('100%').alignItems(VerticalAlign.Center)
@@ -324,7 +324,7 @@ struct AdminEvalPage {
           .onClick(() => { this.setPeriod(true); })
         Text(this.stats!.periodOpen ? '关闭评教' : '已关闭')
           .fontSize(13).fontWeight(FontWeight.Bold)
-          .fontColor(this.stats!.periodOpen ? '#D8546B' : ElysiaTheme.INK_MUTE)
+          .fontColor(this.stats!.periodOpen ? ElysiaTheme.ROSE_ACCENT : ElysiaTheme.INK_MUTE)
           .textAlign(TextAlign.Center)
           .padding({ top: 10, bottom: 10 })
           .layoutWeight(1)
@@ -391,14 +391,14 @@ struct AdminEvalPage {
             }
             Row() {
               if (this.pendingDeleteId === t.id) {
-                Text(`确认删除「${t.name}」`).fontSize(11).fontColor('#D8546B').layoutWeight(1)
+                Text(`确认删除「${t.name}」`).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
                 Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .backgroundColor('#F5F2F4').borderRadius(999).margin({ right: 10 })
                   .onClick(() => { this.cancelDelete(); })
                 Text('确认删除').fontSize(12).fontColor(Color.White)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-                  .backgroundColor('#D8546B').borderRadius(999)
+                  .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
                   .onClick(() => { this.deleteTemplate(t); })
               } else {
                 Text(`${t.questionCount} 题`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
@@ -406,7 +406,7 @@ struct AdminEvalPage {
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .backgroundColor('#FFE9F1').borderRadius(999).margin({ right: 12 })
                   .onClick(() => { this.openEdit(t); })
-                Text('删除').fontSize(12).fontColor('#D8546B')
+                Text('删除').fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .backgroundColor('#FFF0F3').borderRadius(999)
                   .onClick(() => { this.requestDelete(t); })
@@ -453,7 +453,7 @@ struct AdminEvalPage {
       }.width('100%').alignItems(HorizontalAlign.Start)
 
       if (this.formError.length > 0) {
-        Text(this.formError).fontSize(12).fontColor('#D8546B')
+        Text(this.formError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
       }
 
       Row({ space: 10 }) {

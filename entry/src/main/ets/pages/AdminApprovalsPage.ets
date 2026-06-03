@@ -9,8 +9,9 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 
 @Entry
 @Component
@@ -26,6 +27,7 @@ struct AdminApprovalsPage {
   @State submitting: boolean = false;
   @State errorMsg: string = '';
   @State successMsg: string = '';
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   private statuses: string[] = ['全部', 'pending', 'approved', 'rejected', 'withdrawn'];
   private statusLabels: string[] = ['全部', '待审', '通过', '驳回', '撤回'];
@@ -72,7 +74,7 @@ struct AdminApprovalsPage {
     AdminRepository.get().approve(this.activeId, this.comment).then(() => {
       this.submitting = false;
       this.successMsg = '已通过';
-      promptAction.showToast({ message: '已通过' });
+      Toast.show(this.getUIContext(), '已通过');
       this.activeId = '';
       this.loadList();
     }).catch((e: object) => {
@@ -87,7 +89,7 @@ struct AdminApprovalsPage {
     AdminRepository.get().rejectApproval(this.activeId, this.comment).then(() => {
       this.submitting = false;
       this.successMsg = '已驳回';
-      promptAction.showToast({ message: '已驳回' });
+      Toast.show(this.getUIContext(), '已驳回');
       this.activeId = '';
       this.loadList();
     }).catch((e: object) => {
@@ -98,8 +100,8 @@ struct AdminApprovalsPage {
 
   private statusColor(s: string): string {
     if (s === 'pending') return '#D9B675';
-    if (s === 'approved') return '#7BB07B';
-    if (s === 'rejected') return '#D8546B';
+    if (s === 'approved') return ElysiaTheme.SUCCESS;
+    if (s === 'rejected') return ElysiaTheme.ROSE_ACCENT;
     return ElysiaTheme.INK_MUTE;
   }
 
@@ -150,7 +152,7 @@ struct AdminApprovalsPage {
                     Column() {
                       Row({ space: 6 }) {
                         Pill({ text: a.type, color: ElysiaTheme.ROSE_700, bg: '#FFE9F1' })
-                        if (a.isUrgent) { Pill({ text: '紧急', color: '#D8546B', bg: '#FFF0F0' }) }
+                        if (a.isUrgent) { Pill({ text: '紧急', color: ElysiaTheme.ROSE_ACCENT, bg: '#FFF0F0' }) }
                       }
                       Text(a.title).fontSize(14).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                       Text(`${a.applicantName} · ${a.submittedAt}`).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
@@ -212,7 +214,7 @@ struct AdminApprovalsPage {
                       .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                       .onChange((v: string) => { this.comment = v; })
                     if (this.errorMsg.length > 0) {
-                      Text(this.errorMsg).fontSize(12).fontColor('#D8546B')
+                      Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
                     }
                     Row({ space: 12 }) {
                       GhostButton({ text: '驳回', onTap: () => this.doReject() })
@@ -227,7 +229,7 @@ struct AdminApprovalsPage {
             }.scrollBar(BarState.Off).layoutWeight(1)
           }
         }
-      }
+      }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
 }

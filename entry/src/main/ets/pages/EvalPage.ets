@@ -7,6 +7,7 @@ import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { EvaluationRepository } from '../repositories/EvaluationRepository';
 import {
   EvaluationTask, EvaluationQuestionnaire, EvaluationQuestion,
@@ -26,6 +27,7 @@ class QAnswer {
 @Entry
 @Component
 struct EvalPage {
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State tasks: EvaluationTask[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
@@ -263,6 +265,7 @@ struct EvalPage {
         })
       }
       .width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       if (this.sheetOpen) {
         this.QuestionnaireSheet()
@@ -346,6 +349,7 @@ struct EvalPage {
           Button({ type: ButtonType.Circle }) { AppIcon({ name: 'close', iconSize: 16 }) }
             .width(32).height(32).backgroundColor(ElysiaTheme.glassSoft())
             .border({ width: 1, color: ElysiaTheme.hairline() })
+            .accessibilityText('关闭')
             .onClick(() => this.closeSheet())
         }.width('100%').padding({ left: 18, right: 18, top: 16, bottom: 10 })
 
@@ -364,7 +368,7 @@ struct EvalPage {
               }, (q: EvaluationQuestion) => q.id)
 
               if (this.qError.length > 0) {
-                Text(this.qError).fontSize(12).fontColor('#D8546B').width('100%')
+                Text(this.qError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT).width('100%')
               }
 
               Button(this.submitting ? '提交中...' : '提交评教')
@@ -391,7 +395,7 @@ struct EvalPage {
     Column() {
       Row() {
         if (q.required) {
-          Text('*').fontSize(13).fontColor('#D8546B').margin({ right: 4 })
+          Text('*').fontSize(13).fontColor(ElysiaTheme.ROSE_ACCENT).margin({ right: 4 })
         }
         Text(q.title).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
       }.width('100%')

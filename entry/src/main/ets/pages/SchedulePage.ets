@@ -10,7 +10,7 @@ import { StudentTabBar } from '../common/widgets/TabBars';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { ScheduleItem } from '../models/Course';
 import { ScheduleImportService, DEFAULT_TERM } from '../common/services/ScheduleImportService';
-import promptAction from '@ohos.promptAction';
+import { Toast } from '../common/widgets/Feedback';
 import common from '@ohos.app.ability.common';
 
 function generateWeekNumbers(): number[] {
@@ -80,19 +80,19 @@ struct SchedulePage {
       .then((n: number) => {
         this.importing = false;
         this.currentWeek = 1;
-        promptAction.showToast({ message: `${okPrefix} · 共 ${n} 节` });
+        Toast.show(this.getUIContext(), `${okPrefix} · 共 ${n} 节`);
         this.loadSchedule();
       })
       .catch((e: object) => {
         this.importing = false;
-        promptAction.showToast({ message: e instanceof Error ? e.message : '导入失败' });
+        Toast.show(this.getUIContext(), e instanceof Error ? e.message : '导入失败');
       });
   }
 
   private restoreSample(): void {
     this.showImportSheet = false;
     CourseRepository.get().clearImportedSchedule().then(() => {
-      promptAction.showToast({ message: '已恢复示例课表' });
+      Toast.show(this.getUIContext(), '已恢复示例课表');
       this.loadSchedule();
     });
   }
@@ -183,12 +183,14 @@ struct SchedulePage {
               .border({ width: 1, color: ElysiaTheme.hairline() })
               .margin({ right: 6 })
               .enabled(!this.importing)
+              .accessibilityText('导入课表')
               .onClick(() => { this.showImportSheet = true; })
 
             Button({ type: ButtonType.Circle }) { AppIcon({ name: 'back', iconSize: 16 }) }
               .width(34).height(34)
               .backgroundColor(ElysiaTheme.glassSoft())
               .border({ width: 1, color: ElysiaTheme.hairline() })
+              .accessibilityText('上一周')
               .onClick(() => {
                 if (this.currentWeek > 1) {
                   this.currentWeek--;
@@ -200,6 +202,7 @@ struct SchedulePage {
               .backgroundColor(ElysiaTheme.glassSoft())
               .border({ width: 1, color: ElysiaTheme.hairline() })
               .margin({ left: 6 })
+              .accessibilityText('下一周')
               .onClick(() => {
                 if (this.currentWeek < 18) {
                   this.currentWeek++;
