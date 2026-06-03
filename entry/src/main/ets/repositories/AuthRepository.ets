@@ -81,10 +81,11 @@ export class AuthRepository extends BaseRepository {
     return this.delay<boolean>(true);
   }
 
-  async sendSms(phone: string): Promise<boolean> {
-    if (!/^1[3-9]\d{9}$/.test(phone)) {
-      return this.reject('手机号格式不正确');
+  async sendEmailCode(email: string): Promise<boolean> {
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+      return this.reject('邮箱格式不正确');
     }
+    // mock 阶段固定验证码 '123456'；接入邮件服务后在此发送邮件
     return this.delay<boolean>(true);
   }
 

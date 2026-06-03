@@ -13,7 +13,7 @@ import { SafeTop } from '../common/widgets/SafeArea';
 struct RegisterPage {
   @State sid: string = '';
   @State name: string = '';
-  @State phone: string = '';
+  @State email: string = '';
   @State code: string = '';
   @State pwd: string = '';
   @State pwd2: string = '';
@@ -21,33 +21,33 @@ struct RegisterPage {
   @State errorMsg: string = '';
   @State successMsg: string = '';
   @State submitting: boolean = false;
-  @State smsCountdown: number = 0;
+  @State codeCountdown: number = 0;
 
   private countdownTimer: number = -1;
 
   private startCountdown(): void {
-    this.smsCountdown = 60;
+    this.codeCountdown = 60;
     this.countdownTimer = setInterval(() => {
-      this.smsCountdown -= 1;
-      if (this.smsCountdown <= 0) {
+      this.codeCountdown -= 1;
+      if (this.codeCountdown <= 0) {
         clearInterval(this.countdownTimer);
         this.countdownTimer = -1;
-        this.smsCountdown = 0;
+        this.codeCountdown = 0;
       }
     }, 1000);
   }
 
-  private sendSms(): void {
-    if (this.smsCountdown > 0) {
+  private sendEmailCode(): void {
+    if (this.codeCountdown > 0) {
       return;
     }
-    const r = ValidatorUtils.phone(this.phone);
+    const r = ValidatorUtils.email(this.email);
     if (!r.ok) {
-      this.errorMsg = r.message ?? '手机号格式不正确';
+      this.errorMsg = r.message ?? '邮箱格式不正确';
       return;
     }
     this.errorMsg = '';
-    AuthRepository.get().sendSms(this.phone).then((_res: boolean) => {
+    AuthRepository.get().sendEmailCode(this.email).then((_res: boolean) => {
       this.startCountdown();
     }).catch((e: object) => {
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '发送失败';
@@ -62,7 +62,7 @@ struct RegisterPage {
     if (!r1.ok) { this.errorMsg = r1.message ?? ''; return; }
     const r2 = ValidatorUtils.required(this.name, '姓名');
     if (!r2.ok) { this.errorMsg = r2.message ?? ''; return; }
-    const r3 = ValidatorUtils.phone(this.phone);
+    const r3 = ValidatorUtils.email(this.email);
     if (!r3.ok) { this.errorMsg = r3.message ?? ''; return; }
     const r4 = ValidatorUtils.required(this.code, '验证码');
     if (!r4.ok) { this.errorMsg = r4.message ?? ''; return; }
@@ -79,8 +79,8 @@ struct RegisterPage {
     AuthRepository.get().register({
       studentId: this.sid,
       name: this.name,
-      phone: this.phone,
-      smsCode: this.code,
+      email: this.email,
+      emailCode: this.code,
       password: this.pwd,
       confirmPassword: this.pwd2,
       agreed: this.agreed
@@ -130,17 +130,17 @@ struct RegisterPage {
             Column({ space: 10 }) {
               ElysiaInput({ placeholder: '学号', value: $sid })
               ElysiaInput({ placeholder: '姓名', value: $name })
-              ElysiaInput({ placeholder: '手机号 / +86 13800138000', value: $phone })
+              ElysiaInput({ placeholder: '校园邮箱 / name@example.com', value: $email })
               Row({ space: 8 }) {
                 Column() { ElysiaInput({ placeholder: '6 位验证码', value: $code }) }.layoutWeight(1)
-                Button(this.smsCountdown > 0 ? `${this.smsCountdown}s` : '获取')
+                Button(this.codeCountdown > 0 ? `${this.codeCountdown}s` : '获取')
                   .height(46).fontSize(11)
                   .backgroundColor(ElysiaTheme.glass())
-                  .fontColor(this.smsCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
+                  .fontColor(this.codeCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
                   .border({ width: 1, color: ElysiaTheme.hairline() })
                   .borderRadius(14)
                   .padding({ left: 14, right: 14 })
-                  .onClick(() => { this.sendSms(); })
+                  .onClick(() => { this.sendEmailCode(); })
               }
               ElysiaInput({ placeholder: '初始密码', value: $pwd, secure: true })
               ElysiaInput({ placeholder: '确认密码', value: $pwd2, secure: true })

@@ -13,54 +13,43 @@ import { SafeTop } from '../common/widgets/SafeArea';
 @Component
 struct ForgotPage {
   @State sid: string = '';
-  @State phone: string = '';
+  @State email: string = '';
   @State code: string = '';
   @State newPwd: string = '';
-  @State method: number = 0; // 0 phone, 1 email
   @State errorMsg: string = '';
   @State successMsg: string = '';
   @State submitting: boolean = false;
-  @State smsCountdown: number = 0;
+  @State codeCountdown: number = 0;
 
   private countdownTimer: number = -1;
 
   private startCountdown(): void {
-    this.smsCountdown = 60;
+    this.codeCountdown = 60;
     this.countdownTimer = setInterval(() => {
-      this.smsCountdown -= 1;
-      if (this.smsCountdown <= 0) {
+      this.codeCountdown -= 1;
+      if (this.codeCountdown <= 0) {
         clearInterval(this.countdownTimer);
         this.countdownTimer = -1;
-        this.smsCountdown = 0;
+        this.codeCountdown = 0;
       }
     }, 1000);
   }
 
   private sendCode(): void {
-    if (this.smsCountdown > 0) {
+    if (this.codeCountdown > 0) {
       return;
     }
-    if (this.method === 0) {
-      const r = ValidatorUtils.phone(this.phone);
-      if (!r.ok) {
-        this.errorMsg = r.message ?? '手机号格式不正确';
-        return;
-      }
-      this.errorMsg = '';
-      AuthRepository.get().sendSms(this.phone).then((_res: boolean) => {
-        this.startCountdown();
-      }).catch((e: object) => {
-        this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '发送失败';
-      });
-    } else {
-      const r = ValidatorUtils.email(this.phone);
-      if (!r.ok) {
-        this.errorMsg = r.message ?? '邮箱格式不正确';
-        return;
-      }
-      this.errorMsg = '';
-      this.startCountdown();
+    const r = ValidatorUtils.email(this.email);
+    if (!r.ok) {
+      this.errorMsg = r.message ?? '邮箱格式不正确';
+      return;
     }
+    this.errorMsg = '';
+    AuthRepository.get().sendEmailCode(this.email).then((_res: boolean) => {
+      this.startCountdown();
+    }).catch((e: object) => {
+      this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '发送失败';
+    });
   }
 
   private doReset(): void {
@@ -69,13 +58,8 @@ struct ForgotPage {
     }
     const r1 = ValidatorUtils.required(this.sid, '学号');
     if (!r1.ok) { this.errorMsg = r1.message ?? ''; return; }
-    if (this.method === 0) {
-      const r2 = ValidatorUtils.phone(this.phone);
-      if (!r2.ok) { this.errorMsg = r2.message ?? ''; return; }
-    } else {
-      const r2 = ValidatorUtils.email(this.phone);
-      if (!r2.ok) { this.errorMsg = r2.message ?? ''; return; }
-    }
+    const r2 = ValidatorUtils.email(this.email);
+    if (!r2.ok) { this.errorMsg = r2.message ?? ''; return; }
     const r3 = ValidatorUtils.required(this.code, '验证码');
     if (!r3.ok) { this.errorMsg = r3.message ?? ''; return; }
     const r4 = ValidatorUtils.password(this.newPwd);
@@ -84,10 +68,10 @@ struct ForgotPage {
     this.submitting = true;
     AuthRepository.get().resetPassword({
       account: this.sid,
-      contact: this.phone,
+      contact: this.email,
       verifyCode: this.code,
       newPassword: this.newPwd,
-      method: this.method === 0 ? 'phone' : 'email'
+      method: 'email'
     }).then((_res: boolean) => {
       this.submitting = false;
       this.successMsg = '密码重置成功，请登录';
@@ -149,47 +133,15 @@ struct ForgotPage {
             .padding({ top: 20 })
 
             Column() {
-              Row({ space: 8 }) {
-                Button('手机验证')
-                  .height(36)
-                  .layoutWeight(1)
-                  .fontSize(12)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(this.method === 0 ? Color.White : ElysiaTheme.ROSE_700)
-                  .backgroundColor(this.method === 0 ? '' : '#00FFFFFF')
-                  .linearGradient(this.method === 0 ? {
-                    angle: 135,
-                    colors: [['#FF9FBE', 0], [ElysiaTheme.ROSE_500, 1]]
-                  } : { angle: 0, colors: [['#00FFFFFF', 0]] })
-                  .border({ width: this.method === 0 ? 0 : 1, color: ElysiaTheme.hairline() })
-                  .borderRadius(12)
-                  .onClick(() => { this.method = 0; })
-                Button('校园邮箱')
-                  .height(36)
-                  .layoutWeight(1)
-                  .fontSize(12)
-                  .fontColor(this.method === 1 ? Color.White : ElysiaTheme.ROSE_700)
-                  .backgroundColor(this.method === 1 ? '' : '#00FFFFFF')
-                  .linearGradient(this.method === 1 ? {
-                    angle: 135,
-                    colors: [['#FF9FBE', 0], [ElysiaTheme.ROSE_500, 1]]
-                  } : { angle: 0, colors: [['#00FFFFFF', 0]] })
-                  .border({ width: this.method === 1 ? 0 : 1, color: ElysiaTheme.hairline() })
-                  .borderRadius(12)
-                  .onClick(() => { this.method = 1; })
-              }
-              .width('100%')
-              .margin({ bottom: 12 })
-
               Column({ space: 10 }) {
                 ElysiaInput({ placeholder: '学号', value: $sid })
-                ElysiaInput({ placeholder: this.method === 0 ? '绑定手机号' : '校园邮箱', value: $phone })
+                ElysiaInput({ placeholder: '校园邮箱', value: $email })
                 Row({ space: 8 }) {
                   Column() { ElysiaInput({ placeholder: '6 位验证码', value: $code }) }.layoutWeight(1)
-                  Button(this.smsCountdown > 0 ? `${this.smsCountdown}s` : '获取验证码')
+                  Button(this.codeCountdown > 0 ? `${this.codeCountdown}s` : '获取验证码')
                     .height(46).fontSize(11)
                     .backgroundColor(ElysiaTheme.glass())
-                    .fontColor(this.smsCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
+                    .fontColor(this.codeCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
                     .border({ width: 1, color: ElysiaTheme.hairline() })
                     .borderRadius(14)
                     .padding({ left: 12, right: 12 })

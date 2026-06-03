@@ -27,8 +27,8 @@ export interface LoginRequest {
 export interface RegisterRequest {
   studentId: string;
   name: string;
-  phone: string;
-  smsCode: string;
+  email: string;
+  emailCode: string;
   password: string;
   confirmPassword: string;
   agreed: boolean;
