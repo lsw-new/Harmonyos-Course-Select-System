@@ -32,6 +32,59 @@
     {
       "name": "common_back",
       "value": "返回"
+    },
+    {
+      "name": "common_school",
+      "value": "景德镇艺术职业大学"
+    },
+    {
+      "name": "common_student_id",
+      "value": "学号"
+    },
+    {
+      "name": "common_password",
+      "value": "密码"
+    },
+
+    {
+      "name": "login_hello",
+      "value": "你好，"
+    },
+    {
+      "name": "login_welcome",
+      "value": "欢迎回到 · 教学管理学生端"
+    },
+    {
+      "name": "login_divider",
+      "value": "登录"
+    },
+    {
+      "name": "login_remember",
+      "value": "记住我"
+    },
+    {
+      "name": "login_forgot",
+      "value": "忘记密码？"
+    },
+    {
+      "name": "login_submitting",
+      "value": "登录中..."
+    },
+    {
+      "name": "login_submit",
+      "value": "登 录 · ENTER"
+    },
+    {
+      "name": "login_register",
+      "value": "注册新账号"
+    },
+    {
+      "name": "login_admin",
+      "value": "管理员登录"
+    },
+    {
+      "name": "login_slogan",
+      "value": "— 敢问芳名？ —"
     }
   ]
 }

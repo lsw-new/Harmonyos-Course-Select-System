@@ -84,19 +84,19 @@ struct LoginPage {
           // Monogram + 欢迎语
           Column() {
             Monogram({ iconSize: 72 })
-            Text('你好，')
+            Text($r('app.string.login_hello'))
               .fontSize(32)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700)
               .fontFamily(ElysiaTheme.FONT_DISPLAY)
               .margin({ top: 18 })
-            Text('景德镇艺术职业大学')
+            Text($r('app.string.common_school'))
               .fontSize(32)
               .fontStyle(FontStyle.Italic)
               .fontColor(ElysiaTheme.ROSE_700)
               .fontFamily(ElysiaTheme.FONT_DISPLAY)
               .margin({ top: -4 })
-            Text('欢迎回到 · 教学管理学生端')
+            Text($r('app.string.login_welcome'))
               .fontSize(11)
               .fontColor(ElysiaTheme.INK_SOFT)
               .letterSpacing(4)
@@ -107,17 +107,17 @@ struct LoginPage {
           .margin({ top: 24 })
 
           // 分隔
-          RoseDivider({ label: '登录' })
+          RoseDivider({ label: $r('app.string.login_divider') })
 
           // 表单
           Column({ space: 12 }) {
             ElysiaInput({
-              placeholder: '学号',
+              placeholder: $r('app.string.common_student_id'),
               value: $studentId,
               leadingIcon: 'mine'
             })
             ElysiaInput({
-              placeholder: '密码',
+              placeholder: $r('app.string.common_password'),
               value: $password,
               secure: true,
               leadingIcon: 'lock'
@@ -130,14 +130,15 @@ struct LoginPage {
                   .width(14).height(14)
                   .selectedColor(ElysiaTheme.ROSE_500)
                   .onChange((v: boolean) => { this.remember = v; })
-                Text('  记住我')
+                Text($r('app.string.login_remember'))
                   .fontSize(11)
                   .fontColor(ElysiaTheme.INK_SOFT)
+                  .margin({ left: 4 })
               }
 
               Blank().layoutWeight(1)
 
-              Text('忘记密码？')
+              Text($r('app.string.login_forgot'))
                 .fontSize(11)
                 .fontStyle(FontStyle.Italic)
                 .fontColor(ElysiaTheme.ROSE_700)
@@ -162,17 +163,17 @@ struct LoginPage {
           // 登录按钮
           Column({ space: 10 }) {
             PrimaryButton({
-              text: this.submitting ? '登录中...' : '登 录 · ENTER',
+              text: this.submitting ? $r('app.string.login_submitting') : $r('app.string.login_submit'),
               onTap: () => { this.doLogin(); }
             })
             GhostButton({
-              text: '注册新账号',
+              text: $r('app.string.login_register'),
               onTap: () => {
                 AppRoute.go(Routes.Register);
               }
             })
             GhostButton({
-              text: '管理员登录',
+              text: $r('app.string.login_admin'),
               onTap: () => {
                 AppRoute.go(Routes.AdminLogin);
               }
@@ -182,7 +183,7 @@ struct LoginPage {
           .margin({ top: 22 })
 
           // 底部 slogan
-          Text('— 敢问芳名？ —')
+          Text($r('app.string.login_slogan'))
             .fontSize(10)
             .fontColor(ElysiaTheme.INK_MUTE)
             .letterSpacing(2)
