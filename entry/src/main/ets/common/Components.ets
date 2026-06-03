@@ -66,8 +66,8 @@ export struct Monogram {
 // 顶栏（含返回 + 中间标题）
 @Component
 export struct TopBar {
-  @Prop title: string = '';
-  @Prop subtitle: string = '';
+  @Prop title: ResourceStr = '';
+  @Prop subtitle: ResourceStr = '';
   @Prop showBack: boolean = true;
   onBack?: () => void;
 
@@ -80,7 +80,7 @@ export struct TopBar {
         .width(44).height(44)
         .backgroundColor(ElysiaTheme.glassSoft())
         .border({ width: 1, color: ElysiaTheme.hairline() })
-        .accessibilityText('返回')
+        .accessibilityText($r('app.string.common_back'))
         .onClick(() => { if (this.onBack) this.onBack(); })
       } else {
         Blank().width(44)
@@ -112,7 +112,7 @@ export struct TopBar {
 // 玫瑰分隔线
 @Component
 export struct RoseDivider {
-  @Prop label: string = '';
+  @Prop label: ResourceStr = '';
   build() {
     Row() {
       Divider()
@@ -145,7 +145,7 @@ export struct RoseDivider {
 // 主按钮
 @Component
 export struct PrimaryButton {
-  @Prop text: string = '';
+  @Prop text: ResourceStr = '';
   onTap?: () => void;
   build() {
     Button(this.text)
@@ -168,7 +168,7 @@ export struct PrimaryButton {
 // 副按钮
 @Component
 export struct GhostButton {
-  @Prop text: string = '';
+  @Prop text: ResourceStr = '';
   onTap?: () => void;
   build() {
     Button(this.text)
@@ -187,7 +187,7 @@ export struct GhostButton {
 // 输入框
 @Component
 export struct ElysiaInput {
-  @Prop placeholder: string = '';
+  @Prop placeholder: ResourceStr = '';
   @Link value: string;
   @Prop secure: boolean = false;
   @Prop leadingIcon: string = '';
@@ -237,7 +237,7 @@ export struct GlowCard {
 // 标签 pill
 @Component
 export struct Pill {
-  @Prop text: string = '';
+  @Prop text: ResourceStr = '';
   @Prop bg: string = '';
   @Prop color: string = '';
 

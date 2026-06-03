@@ -11,6 +11,27 @@
     {
       "name": "EntryAbility_label",
       "value": "教学管理"
+    },
+
+    {
+      "name": "common_loading",
+      "value": "加载中..."
+    },
+    {
+      "name": "common_empty",
+      "value": "暂无数据"
+    },
+    {
+      "name": "common_load_failed",
+      "value": "加载失败"
+    },
+    {
+      "name": "common_reload",
+      "value": "重新加载"
+    },
+    {
+      "name": "common_back",
+      "value": "返回"
     }
   ]
 }

@@ -6,7 +6,7 @@ import { AppIcon } from './AppIcon';
 
 @Component
 export struct LoadingState {
-  @Prop tip: string = '加载中...';
+  @Prop tip: ResourceStr = $r('app.string.common_loading');
 
   build() {
     Column() {
@@ -28,7 +28,7 @@ export struct LoadingState {
 @Component
 export struct EmptyState {
   @Prop icon: string = 'petal';
-  @Prop title: string = '暂无数据';
+  @Prop title: ResourceStr = $r('app.string.common_empty');
   @Prop hint: string = '';
 
   build() {
@@ -54,7 +54,7 @@ export struct EmptyState {
 
 @Component
 export struct ErrorState {
-  @Prop message: string = '加载失败';
+  @Prop message: ResourceStr = $r('app.string.common_load_failed');
   onRetry?: () => void;
 
   build() {
@@ -65,7 +65,7 @@ export struct ErrorState {
         .fontColor(ElysiaTheme.INK_SOFT)
         .margin({ top: AppSpacing.md })
         .textAlign(TextAlign.Center)
-      Button('重新加载')
+      Button($r('app.string.common_reload'))
         .fontSize(AppFontSize.body)
         .fontColor(ElysiaTheme.ROSE_700)
         .backgroundColor(ElysiaTheme.glass())
