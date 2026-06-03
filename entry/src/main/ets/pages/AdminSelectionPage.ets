@@ -177,14 +177,14 @@ struct AdminSelectionPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '选课轮次', subtitle: '选 课 轮 次', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: $r('app.string.adminselection_title'), subtitle: $r('app.string.adminselection_subtitle'), onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {
           LoadingState({})
         } else if (this.error.length > 0) {
           ErrorState({ message: this.error, onRetry: () => { this.load(); } })
         } else if (this.rounds.length === 0) {
-          EmptyState({ title: '暂无选课轮次' })
+          EmptyState({ title: $r('app.string.adminselection_empty') })
         } else {
           Scroll() {
             Column({ space: 12 }) {
@@ -230,7 +230,7 @@ struct AdminSelectionPage {
         this.MiniStat('冲突', String(r.conflictCount))
       }.width('100%')
 
-      RoseDivider({ label: '操作' })
+      RoseDivider({ label: $r('app.string.adminselection_ops') })
 
       // 操作区：根据状态切换二次确认 / 普通按钮
       if (this.pendingEndId === r.id) {
@@ -262,7 +262,7 @@ struct AdminSelectionPage {
         this.ActionChip('编辑时间', ElysiaTheme.INK_SOFT, '#F5F2F4', () => { this.openEdit(r); })
       }
       if (r.status === 'ended') {
-        Text('该轮次已结束').fontSize(11).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
+        Text($r('app.string.adminselection_ended')).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
       }
     }.width('100%').alignItems(VerticalAlign.Center)
   }
@@ -277,13 +277,13 @@ struct AdminSelectionPage {
 
   @Builder EndConfirmRow(r: AdminRound) {
     Row() {
-      Text('结束后不可恢复，确认结束？').fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
-      Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+      Text($r('app.string.adminselection_end_confirm')).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
+      Text($r('app.string.common_cancel')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
         .backgroundColor('#F5F2F4').borderRadius(999)
         .margin({ right: 10 })
         .onClick(() => { this.cancelEnd(); })
-      Text('确认结束').fontSize(12).fontColor(Color.White)
+      Text($r('app.string.adminselection_confirm_end')).fontSize(12).fontColor(Color.White)
         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
         .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
         .onClick(() => { this.confirmEnd(r); })
@@ -295,7 +295,7 @@ struct AdminSelectionPage {
       Row() {
         AppIcon({ name: 'warning', iconSize: 14, mRight: 6 })
         Text(`${r.conflictCount} 条选课冲突`).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
-        Text(this.expandedConflictId === r.id ? '收起' : '查看明细').fontSize(12).fontColor(ElysiaTheme.ROSE_700)
+        Text(this.expandedConflictId === r.id ? $r('app.string.adminselection_collapse') : $r('app.string.adminselection_view_detail')).fontSize(12).fontColor(ElysiaTheme.ROSE_700)
         AppIcon({ name: this.expandedConflictId === r.id ? 'back' : 'forward', iconSize: 12, mLeft: 4 })
       }.width('100%').alignItems(VerticalAlign.Center)
       .padding({ top: 6 })
@@ -310,11 +310,11 @@ struct AdminSelectionPage {
   @Builder ConflictList() {
     Column({ space: 8 }) {
       if (this.conflictLoading) {
-        Text('加载冲突明细...').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+        Text($r('app.string.adminselection_conflict_loading')).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
       } else if (this.conflictError.length > 0) {
         Text(this.conflictError).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
       } else if (this.conflicts.length === 0) {
-        Text('暂无冲突明细').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+        Text($r('app.string.adminselection_no_conflict')).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
       } else {
         ForEach(this.conflicts, (c: RoundConflict) => {
           Column({ space: 4 }) {
@@ -348,20 +348,20 @@ struct AdminSelectionPage {
 
       Column({ space: 12 }) {
         Row() {
-          Text('编辑起止时间').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
+          Text($r('app.string.adminselection_edit_time')).fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
           Pill({ text: this.editingName, color: ElysiaTheme.ROSE_700, bg: '#FFE9F1' })
         }.width('100%')
 
-        Text('格式：2026-05-20 09:00').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+        Text($r('app.string.adminselection_format_hint')).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
 
         Column({ space: 6 }) {
-          Text('开始时间').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
-          ElysiaInput({ placeholder: '开始时间，如 2026-05-20 09:00', value: $startText, leadingIcon: 'calendar' })
+          Text($r('app.string.adminselection_start')).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+          ElysiaInput({ placeholder: $r('app.string.adminselection_start_ph'), value: $startText, leadingIcon: 'calendar' })
         }.width('100%').alignItems(HorizontalAlign.Start)
 
         Column({ space: 6 }) {
-          Text('结束时间').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
-          ElysiaInput({ placeholder: '结束时间，如 2026-05-30 23:59', value: $endText, leadingIcon: 'calendar' })
+          Text($r('app.string.adminselection_end')).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+          ElysiaInput({ placeholder: $r('app.string.adminselection_end_ph'), value: $endText, leadingIcon: 'calendar' })
         }.width('100%').alignItems(HorizontalAlign.Start)
 
         if (this.formError.length > 0) {
@@ -369,8 +369,8 @@ struct AdminSelectionPage {
         }
 
         Row({ space: 10 }) {
-          GhostButton({ text: '取消', onTap: () => { this.cancelEdit(); } }).layoutWeight(1)
-          PrimaryButton({ text: this.submitting ? '保存中...' : '保存', onTap: () => { this.saveTime(); } }).layoutWeight(1)
+          GhostButton({ text: $r('app.string.common_cancel'), onTap: () => { this.cancelEdit(); } }).layoutWeight(1)
+          PrimaryButton({ text: this.submitting ? $r('app.string.common_saving') : $r('app.string.common_save'), onTap: () => { this.saveTime(); } }).layoutWeight(1)
         }
         Blank().height(20)
       }.width('100%').padding(20)

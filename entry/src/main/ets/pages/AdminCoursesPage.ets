@@ -220,16 +220,16 @@ struct AdminCoursesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '课程管理', subtitle: '课 程 管 理', showBack: false })
+        TopBar({ title: $r('app.string.admincourses_title'), subtitle: $r('app.string.admincourses_subtitle'), showBack: false })
 
         Column({ space: 10 }) {
           Row({ space: 10 }) {
-            TextInput({ placeholder: '搜索课程/课号/教师', text: this.query })
+            TextInput({ placeholder: $r('app.string.admincourses_search'), text: this.query })
               .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass())
               .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
               .layoutWeight(1)
               .onChange((v: string) => { this.query = v; this.loadData(); })
-            Text('新增').fontSize(13).fontColor(Color.White).fontWeight(FontWeight.Bold)
+            Text($r('app.string.admincourses_new')).fontSize(13).fontColor(Color.White).fontWeight(FontWeight.Bold)
               .padding({ left: 16, right: 16, top: 10, bottom: 10 })
               .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
               .onClick(() => { this.openCreate(); })
@@ -252,24 +252,24 @@ struct AdminCoursesPage {
         if (this.isEditing) {
           Scroll() {
             Column({ space: 10 }) {
-              Text(this.editingId.length > 0 ? '编辑课程' : '新增课程')
+              Text(this.editingId.length > 0 ? $r('app.string.admincourses_edit') : $r('app.string.admincourses_create'))
                 .fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-              ElysiaInput({ placeholder: '课程代码', value: $code, leadingIcon: 'edit' })
-              ElysiaInput({ placeholder: '课程名称', value: $name, leadingIcon: 'course' })
-              ElysiaInput({ placeholder: '教师', value: $teacher, leadingIcon: 'teacher' })
-              ElysiaInput({ placeholder: '上课时间，如：周一 1-2 节', value: $timeText, leadingIcon: 'time' })
+              ElysiaInput({ placeholder: $r('app.string.admincourses_code'), value: $code, leadingIcon: 'edit' })
+              ElysiaInput({ placeholder: $r('app.string.admincourses_name'), value: $name, leadingIcon: 'course' })
+              ElysiaInput({ placeholder: $r('app.string.admincourses_teacher'), value: $teacher, leadingIcon: 'teacher' })
+              ElysiaInput({ placeholder: $r('app.string.admincourses_time'), value: $timeText, leadingIcon: 'time' })
               Row({ space: 8 }) {
-                TextInput({ placeholder: '学分', text: this.creditText })
+                TextInput({ placeholder: $r('app.string.admincourses_credit'), text: this.creditText })
                   .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass())
                   .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                   .layoutWeight(1)
                   .onChange((v: string) => { this.creditText = v; })
-                TextInput({ placeholder: '容量', text: this.capacityText })
+                TextInput({ placeholder: $r('app.string.admincourses_capacity'), text: this.capacityText })
                   .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass())
                   .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                   .layoutWeight(1)
                   .onChange((v: string) => { this.capacityText = v; })
-                TextInput({ placeholder: '已选', text: this.selectedCountText })
+                TextInput({ placeholder: $r('app.string.admincourses_selected'), text: this.selectedCountText })
                   .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass())
                   .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                   .layoutWeight(1)
@@ -277,7 +277,7 @@ struct AdminCoursesPage {
               }.width('100%')
 
               Column({ space: 6 }) {
-                Text('课程类型').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+                Text($r('app.string.admincourses_field_category')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
                 Row({ space: 8 }) {
                   ForEach(this.editCatLabels, (label: string, idx: number) => {
                     Text(label).fontSize(12)
@@ -291,7 +291,7 @@ struct AdminCoursesPage {
               }.width('100%').alignItems(HorizontalAlign.Start)
 
               Column({ space: 6 }) {
-                Text('课程状态').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+                Text($r('app.string.admincourses_field_status')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
                 Row({ space: 8 }) {
                   ForEach(this.statusLabels, (label: string, idx: number) => {
                     Text(label).fontSize(12)
@@ -309,8 +309,8 @@ struct AdminCoursesPage {
               }
 
               Row({ space: 10 }) {
-                GhostButton({ text: '取消', onTap: () => this.cancelEdit() }).layoutWeight(1)
-                PrimaryButton({ text: this.submitting ? '保存中...' : '保存课程', onTap: () => this.saveCourse() }).layoutWeight(1)
+                GhostButton({ text: $r('app.string.common_cancel'), onTap: () => this.cancelEdit() }).layoutWeight(1)
+                PrimaryButton({ text: this.submitting ? $r('app.string.common_saving') : $r('app.string.admincourses_save'), onTap: () => this.saveCourse() }).layoutWeight(1)
               }
             }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
@@ -325,7 +325,7 @@ struct AdminCoursesPage {
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.courses.length === 0) {
-          EmptyState({ title: '无匹配课程' })
+          EmptyState({ title: $r('app.string.admincourses_empty') })
         } else {
           List() {
             LazyForEach(this.coursesDs, (c: AdminCourseItem) => {
@@ -343,23 +343,23 @@ struct AdminCoursesPage {
                   Row() {
                     if (this.pendingDeleteId === c.id) {
                       Text(`确认删除「${c.name}」`).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
-                      Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+                      Text($r('app.string.common_cancel')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
                         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                         .backgroundColor('#F5F2F4').borderRadius(999)
                         .margin({ right: 10 })
                         .onClick(() => { this.cancelDelete(); })
-                      Text('确认删除').fontSize(12).fontColor(Color.White)
+                      Text($r('app.string.admincourses_confirm_delete')).fontSize(12).fontColor(Color.White)
                         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                         .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
                         .onClick(() => { this.deleteCourse(c); })
                     } else {
                       Text(`${c.selectedCount}/${c.capacity}`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
-                      Text('编辑').fontSize(12).fontColor(ElysiaTheme.ROSE_700)
+                      Text($r('app.string.admincourses_edit_btn')).fontSize(12).fontColor(ElysiaTheme.ROSE_700)
                         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                         .backgroundColor('#FFE9F1').borderRadius(999)
                         .margin({ right: 12 })
                         .onClick(() => { this.openEdit(c); })
-                      Text('删除').fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
+                      Text($r('app.string.admincourses_delete_btn')).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
                         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                         .backgroundColor('#FFF0F3').borderRadius(999)
                         .onClick(() => { this.requestDelete(c); })
