@@ -87,14 +87,14 @@ struct ExamPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '考试安排', subtitle: '考 试 安 排', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.exam_title'), subtitle: $r('app.string.exam_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载考试安排...' })
+          LoadingState({ tip: $r('app.string.exam_loading') })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.exams.length === 0) {
-          EmptyState({ title: '暂无考试安排' })
+          EmptyState({ title: $r('app.string.exam_empty') })
         } else {
           Scroll() {
             Column() {
@@ -105,24 +105,24 @@ struct ExamPage {
                   .fontSize(22).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                 Row({ space: 12 }) {
                   Column() {
-                    Text('日期').fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
+                    Text($r('app.string.exam_label_date')).fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
                     Text(this.heroExam().date)
                       .fontSize(12).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 3 })
                   }
                   Column() {
-                    Text('时间').fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
+                    Text($r('app.string.exam_label_time')).fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
                     Text(`${this.heroExam().startTime}–${this.heroExam().endTime}`)
                       .fontSize(12).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 3 })
                   }
                 }.margin({ top: 14 }).alignItems(VerticalAlign.Top)
                 Row({ space: 12 }) {
                   Column() {
-                    Text('考场').fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
+                    Text($r('app.string.exam_label_room')).fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
                     Text(this.heroExam().classroom)
                       .fontSize(12).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 3 })
                   }
                   Column() {
-                    Text('座位').fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
+                    Text($r('app.string.exam_label_seat')).fontSize(9).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
                     Text(`${this.heroExam().seatNo ?? '—'}`)
                       .fontSize(12).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 3 })
                   }

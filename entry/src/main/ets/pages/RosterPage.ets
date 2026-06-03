@@ -49,10 +49,10 @@ struct RosterPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '学籍信息', subtitle: '学 籍 信 息', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.roster_title'), subtitle: $r('app.string.roster_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载学籍信息...' })
+          LoadingState({ tip: $r('app.string.roster_loading') })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.record !== undefined) {
@@ -61,7 +61,7 @@ struct RosterPage {
               // Profile header card
               Row() {
                 Stack() {
-                  Text('照片').fontSize(9).fontColor(ElysiaTheme.ROSE_700).letterSpacing(2).fontFamily('monospace')
+                  Text($r('app.string.roster_photo')).fontSize(9).fontColor(ElysiaTheme.ROSE_700).letterSpacing(2).fontFamily('monospace')
                 }
                 .width(84).height(108).borderRadius(12).backgroundColor(ElysiaTheme.ROSE_200)
 

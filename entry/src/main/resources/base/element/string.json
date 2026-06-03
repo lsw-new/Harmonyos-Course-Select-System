@@ -197,6 +197,25 @@
     { "name": "feedback_content", "value": "详细描述" },
     { "name": "feedback_contact", "value": "联系方式（选填）" },
     { "name": "feedback_submit", "value": "提交反馈" },
-    { "name": "feedback_empty", "value": "暂无反馈记录" }
+    { "name": "feedback_empty", "value": "暂无反馈记录" },
+
+    { "name": "servicehall_title", "value": "办事大厅" },
+    { "name": "servicehall_subtitle", "value": "办 事 大 厅" },
+    { "name": "servicehall_common", "value": "常 用 服 务" },
+    { "name": "servicehall_footer", "value": "更多线下事务请前往教务处办理" },
+
+    { "name": "exam_title", "value": "考试安排" },
+    { "name": "exam_subtitle", "value": "考 试 安 排" },
+    { "name": "exam_loading", "value": "正在加载考试安排..." },
+    { "name": "exam_empty", "value": "暂无考试安排" },
+    { "name": "exam_label_date", "value": "日期" },
+    { "name": "exam_label_time", "value": "时间" },
+    { "name": "exam_label_room", "value": "考场" },
+    { "name": "exam_label_seat", "value": "座位" },
+
+    { "name": "roster_title", "value": "学籍信息" },
+    { "name": "roster_subtitle", "value": "学 籍 信 息" },
+    { "name": "roster_loading", "value": "正在加载学籍信息..." },
+    { "name": "roster_photo", "value": "照片" }
   ]
 }

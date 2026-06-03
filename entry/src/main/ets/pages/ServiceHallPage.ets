@@ -47,11 +47,11 @@ struct ServiceHallPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '办事大厅', subtitle: '办 事 大 厅', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: $r('app.string.servicehall_title'), subtitle: $r('app.string.servicehall_subtitle'), onBack: () => { AppRoute.back(); } })
 
         Scroll() {
           Column() {
-            RoseDivider({ label: '常 用 服 务' })
+            RoseDivider({ label: $r('app.string.servicehall_common') })
 
             Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
               ForEach(this.tiles, (it: ServiceTile) => {
@@ -61,7 +61,7 @@ struct ServiceHallPage {
             .width('100%')
             .padding({ left: 16, right: 16 })
 
-            Text('更多线下事务请前往教务处办理')
+            Text($r('app.string.servicehall_footer'))
               .fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
               .width('100%').textAlign(TextAlign.Center).margin({ top: 16 })
 
