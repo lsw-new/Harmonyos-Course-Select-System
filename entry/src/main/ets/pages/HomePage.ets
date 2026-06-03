@@ -9,6 +9,7 @@ import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { HomeSummary, QuickEntry, DownloadFile, RecentLogin, TermInfo } from '../models/Home';
@@ -27,6 +28,7 @@ struct HomePage {
   @State profile?: UserProfile = undefined;
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  @StorageProp('breakpoint') bp: string = 'sm';
   @State query: string = '';
   @State searchActive: boolean = false;
   @State courseHits: ScheduleItem[] = [];
@@ -190,6 +192,7 @@ struct HomePage {
         })
       }
       .width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%').height('100%')
   }

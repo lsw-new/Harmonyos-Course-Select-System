@@ -5,6 +5,7 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { GradeRecord, GradeSummary } from '../models/Academic';
@@ -17,6 +18,7 @@ struct GradesPage {
   @State summary?: GradeSummary = undefined;
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   // '全部' must come first; remaining terms are the EXACT strings in mockGrades
   private terms: string[] = ['全部', '2025-2026-1', '2025-2026-2'];
@@ -178,6 +180,7 @@ struct GradesPage {
         })
       }
       .width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%').height('100%')
   }

@@ -11,6 +11,7 @@ import { CourseRepository } from '../repositories/CourseRepository';
 import { ScheduleItem } from '../models/Course';
 import { ScheduleImportService, DEFAULT_TERM } from '../common/services/ScheduleImportService';
 import { Toast } from '../common/widgets/Feedback';
+import { BreakpointManager } from '../common/widgets/Breakpoint';
 import common from '@ohos.app.ability.common';
 
 function generateWeekNumbers(): number[] {
@@ -30,6 +31,7 @@ struct SchedulePage {
   @State errorMsg: string = '';
   @State importing: boolean = false;
   @State showImportSheet: boolean = false;
+  @StorageProp('breakpoint') bp: string = 'sm';
 
   private days: string[] = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -323,6 +325,7 @@ struct SchedulePage {
         })
       }
       .width('100%').height('100%')
+      .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       if (this.showImportSheet) {
         this.ImportSheet()
