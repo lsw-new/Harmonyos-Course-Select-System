@@ -157,7 +157,7 @@ struct SchedulePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '课程表', subtitle: '我 的 课 表', onBack: () => AppRoute.back() })
+        TopBar({ title: '课程表', subtitle: '我 的 课 表', showBack: false })
 
         // 周次切换
         Column() {

@@ -66,7 +66,7 @@ struct GradesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '我的成绩', subtitle: '我 的 成 绩', onBack: () => AppRoute.back() })
+        TopBar({ title: '我的成绩', subtitle: '我 的 成 绩', showBack: false })
 
         // 学期切换 tabs
         Scroll() {
