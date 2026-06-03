@@ -6,7 +6,9 @@ import { StudentAdminRepository } from '../repositories/StudentAdminRepository';
 import { StudentAdminItem } from '../models/Admin';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
-import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
+import { EmptyState, ErrorState } from '../common/widgets/StateViews';
+import { SkeletonList } from '../common/widgets/Skeleton';
+import { ArrayDataSource } from '../common/widgets/DataSource';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
@@ -21,6 +23,7 @@ struct AdminStudentsPage {
   @State activeCollege: string = '全部';
   @StorageProp('breakpoint') bp: string = 'sm';
   private colleges: string[] = ['全部', '电子信息工程学院', '陶瓷艺术学院', '设计艺术学院', '美术学院', '音乐舞蹈学院'];
+  private studentsDs: ArrayDataSource<StudentAdminItem> = new ArrayDataSource<StudentAdminItem>();
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminStudents)) return;
@@ -33,6 +36,7 @@ struct AdminStudentsPage {
     this.errorMsg = '';
     StudentAdminRepository.get().getStudents(this.query, this.activeCollege).then((list: StudentAdminItem[]) => {
       this.students = list;
+      this.studentsDs.setData(list);
       this.loading = false;
     }).catch((e: object) => {
       this.errorMsg = e instanceof Error ? e.message : '加载失败';
@@ -99,14 +103,14 @@ struct AdminStudentsPage {
         }.padding({ left: 16, right: 16 })
 
         if (this.loading) {
-          LoadingState({})
+          SkeletonList({ count: 6 })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.students.length === 0) {
           EmptyState({ title: '无匹配学生' })
         } else {
           List() {
-            ForEach(this.students, (s: StudentAdminItem) => {
+            LazyForEach(this.studentsDs, (s: StudentAdminItem) => {
               ListItem() {
                 Row() {
                   Column() {
@@ -121,7 +125,7 @@ struct AdminStudentsPage {
                 .onClick(() => { this.openDetail(s); })
               }.margin({ bottom: 8 })
             }, (s: StudentAdminItem) => s.studentId)
-          }.layoutWeight(1).padding({ left: 16, right: 16, top: 10 })
+          }.layoutWeight(1).cachedCount(6).padding({ left: 16, right: 16, top: 10 })
         }
 
         AdminTabBar({ active: 'students', onTap: (id: string, route: string) => { AppRoute.go(route, { replace: true }); } })

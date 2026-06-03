@@ -3,7 +3,9 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
-import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
+import { EmptyState, ErrorState } from '../common/widgets/StateViews';
+import { SkeletonList } from '../common/widgets/Skeleton';
+import { ArrayDataSource } from '../common/widgets/DataSource';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { HttpError } from '../common/http/HttpError';
@@ -22,6 +24,7 @@ struct AdminAuditLogPage {
   @StorageProp('safeBottom') safeBottom: number = 0;
 
   private filters: string[] = ['全部'].concat(AUDIT_ACTION_TYPES);
+  private logsDs: ArrayDataSource<AuditLogEntry> = new ArrayDataSource<AuditLogEntry>();
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminAuditLog)) return;
@@ -35,6 +38,7 @@ struct AdminAuditLogPage {
     const filter = this.activeType;
     AccessControlRepository.get().getAuditLogs(filter).then((list: AuditLogEntry[]) => {
       this.logs = list;
+      this.logsDs.setData(list);
       this.loading = false;
     }).catch((e: object) => {
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
@@ -133,19 +137,19 @@ struct AdminAuditLogPage {
         this.FilterChips()
 
         if (this.loading) {
-          LoadingState({})
+          SkeletonList({ count: 6 })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadLogs() })
         } else if (this.logs.length === 0) {
           EmptyState({ icon: 'file', title: '暂无操作日志', hint: '该筛选条件下没有记录' })
         } else {
           List() {
-            ForEach(this.logs, (log: AuditLogEntry) => {
+            LazyForEach(this.logsDs, (log: AuditLogEntry) => {
               ListItem() {
                 this.LogRow(log)
               }.margin({ bottom: 8 })
             }, (log: AuditLogEntry) => `log-${log.id}`)
-          }.layoutWeight(1).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 }).scrollBar(BarState.Off)
+          }.layoutWeight(1).cachedCount(6).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 }).scrollBar(BarState.Off)
         }
       }.width('100%').height('100%')
     }.width('100%').height('100%')

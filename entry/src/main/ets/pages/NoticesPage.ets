@@ -2,7 +2,9 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, RoseIcon } from '../common/Components';
 import { SafeTop } from '../common/widgets/SafeArea';
-import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
+import { ErrorState, EmptyState } from '../common/widgets/StateViews';
+import { SkeletonList } from '../common/widgets/Skeleton';
+import { ArrayDataSource } from '../common/widgets/DataSource';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
@@ -19,6 +21,7 @@ struct NoticesPage {
   @State notices: Notice[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  private noticesDs: ArrayDataSource<Notice> = new ArrayDataSource<Notice>();
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.Notices)) {
@@ -34,6 +37,7 @@ struct NoticesPage {
     const cat = this.activeFilter === 0 ? undefined : CATEGORIES[this.activeFilter];
     CourseRepository.get().getNotices(cat).then((res: Notice[]) => {
       this.notices = res;
+      this.noticesDs.setData(res);
       this.loading = false;
     }).catch((e: object) => {
       this.errorMsg = e instanceof Error ? e.message : '加载失败';
@@ -92,20 +96,21 @@ struct NoticesPage {
 
         Column() {
           if (this.loading) {
-            LoadingState({ tip: '正在加载通知...' })
+            SkeletonList({ count: 5 })
           } else if (this.errorMsg.length > 0) {
             ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
           } else if (this.notices.length === 0) {
             EmptyState({ title: '暂无通知' })
           } else {
             List({ space: 10 }) {
-              ForEach(this.notices, (n: Notice) => {
+              LazyForEach(this.noticesDs, (n: Notice) => {
                 ListItem() {
                   this.NoticeCard(n)
                 }
               }, (n: Notice) => n.id)
             }
             .listDirection(Axis.Vertical)
+            .cachedCount(5)
             .scrollBar(BarState.Off)
             .padding({ left: 16, right: 16 })
             .layoutWeight(1)

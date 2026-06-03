@@ -6,7 +6,9 @@ import { AdminRepository } from '../repositories/AdminRepository';
 import { AdminCourseItem, AdminCourseWritePayload, AdminCourseCategory, AdminCourseStatus } from '../models/Admin';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
-import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
+import { EmptyState, ErrorState } from '../common/widgets/StateViews';
+import { SkeletonList } from '../common/widgets/Skeleton';
+import { ArrayDataSource } from '../common/widgets/DataSource';
 import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop } from '../common/widgets/SafeArea';
@@ -21,6 +23,7 @@ struct AdminCoursesPage {
   @State formError: string = '';
   @State query: string = '';
   @State courses: AdminCourseItem[] = [];
+  private coursesDs: ArrayDataSource<AdminCourseItem> = new ArrayDataSource<AdminCourseItem>();
   @State activeCategory: string = '全部';
   @State isEditing: boolean = false;
   @State editingId: string = '';
@@ -56,6 +59,7 @@ struct AdminCoursesPage {
     const cat = this.activeCategory === '全部' ? undefined : this.activeCategory;
     AdminRepository.get().getCourses(this.query, cat).then((list: AdminCourseItem[]) => {
       this.courses = list;
+      this.coursesDs.setData(list);
       this.loading = false;
     }).catch((e: object) => {
       this.errorMsg = e instanceof Error ? e.message : '加载失败';
@@ -327,14 +331,14 @@ struct AdminCoursesPage {
         }
 
         if (this.loading) {
-          LoadingState({})
+          SkeletonList({ count: 6 })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.courses.length === 0) {
           EmptyState({ title: '无匹配课程' })
         } else {
           List() {
-            ForEach(this.courses, (c: AdminCourseItem) => {
+            LazyForEach(this.coursesDs, (c: AdminCourseItem) => {
               ListItem() {
                 Column({ space: 8 }) {
                   Row() {
@@ -375,7 +379,7 @@ struct AdminCoursesPage {
                 .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
               }.margin({ bottom: 8 })
             }, (c: AdminCourseItem) => c.id)
-          }.layoutWeight(1).padding({ left: 16, right: 16, top: 10 })
+          }.layoutWeight(1).cachedCount(6).padding({ left: 16, right: 16, top: 10 })
         }
 
         AdminTabBar({ active: 'courses', onTap: (id: string, route: string) => { AppRoute.go(route, { replace: true }); } })
