@@ -13,6 +13,7 @@ import { SessionStorage } from '../common/storage/SessionStorage';
 import { AssetTokenStore } from '../common/security/AssetTokenStore';
 import { AppConfig } from '../app/AppConfig';
 import { RemoteApi } from '../common/remote/RemoteApi';
+import { HttpError } from '../common/http/HttpError';
 
 export class AuthRepository extends BaseRepository {
   private static _instance?: AuthRepository;
@@ -78,6 +79,13 @@ export class AuthRepository extends BaseRepository {
     if (req.password !== req.confirmPassword) {
       return this.reject('两次密码不一致');
     }
+    // 校验邮箱验证码：走后端真实验证码（成功即被后端消费）。
+    try {
+      await RemoteApi.verifyEmailCode(req.email, req.emailCode);
+    } catch (e) {
+      const msg = (e instanceof HttpError) ? (e as HttpError).message : '验证码校验失败，请检查网络';
+      return this.reject(msg);
+    }
     return this.delay<boolean>(true);
   }
 
@@ -85,20 +93,30 @@ export class AuthRepository extends BaseRepository {
     if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
       return this.reject('邮箱格式不正确');
     }
-    // mock 阶段固定验证码 '123456'；接入邮件服务后在此发送邮件
-    return this.delay<boolean>(true);
+    // 真实发送：由后端 nodemailer + QQ SMTP 发出验证码邮件，验证码保存在后端。
+    // 邮件发送本身必须联网，故此处直连后端，不受 AppConfig.useRemote 开关影响。
+    try {
+      await RemoteApi.sendEmailCode(email);
+      return true;
+    } catch (e) {
+      const msg = (e instanceof HttpError) ? (e as HttpError).message : '验证码发送失败，请检查网络';
+      return this.reject(msg);
+    }
   }
 
   async resetPassword(req: ResetPasswordRequest): Promise<boolean> {
-    // 校验验证码（mock 阶段固定 '123456'，实际联网后替换）
-    if (req.verifyCode !== '123456') {
-      return this.reject('验证码错误');
-    }
-
     // 校验账号是否存在（学生 or 管理员）
     const accountId = req.account.trim();
     if (accountId.length === 0) {
       return this.reject('账号不能为空');
+    }
+
+    // 校验邮箱验证码：走后端真实验证码（成功即被后端消费），不再接受固定码。
+    try {
+      await RemoteApi.verifyEmailCode(req.contact, req.verifyCode);
+    } catch (e) {
+      const msg = (e instanceof HttpError) ? (e as HttpError).message : '验证码校验失败，请检查网络';
+      return this.reject(msg);
     }
 
     // 将新密码真正持久化

@@ -36,6 +36,15 @@ interface LoginBody {
   password: string;
 }
 
+interface EmailCodeBody {
+  email: string;
+}
+
+interface VerifyEmailCodeBody {
+  email: string;
+  code: string;
+}
+
 interface SelectionBody {
   studentId: string;
   courseId: string;
@@ -245,6 +254,18 @@ export class RemoteApi {
   static async login(account: string, password: string): Promise<RemoteLoginResult> {
     const body: LoginBody = { account: account, password: password };
     return apiClient.post<RemoteLoginResult>('/auth/login', body);
+  }
+
+  // 发送邮箱验证码（公开端点，无需登录态）
+  static async sendEmailCode(email: string): Promise<void> {
+    const body: EmailCodeBody = { email: email };
+    await apiClient.post<Object>('/auth/email-code', body);
+  }
+
+  // 校验邮箱验证码（公开端点，成功即被后端消费）
+  static async verifyEmailCode(email: string, code: string): Promise<void> {
+    const body: VerifyEmailCodeBody = { email: email, code: code };
+    await apiClient.post<Object>('/auth/verify-email-code', body);
   }
 
   static async listOpenCourses(): Promise<RemoteCourse[]> {

@@ -7,6 +7,10 @@ const { pool } = require('./db');
 const { ok, fail } = require('./envelope');
 const { verifyPassword } = require('./hash');
 const { signToken, authRequired, adminRequired } = require('./auth');
+const { sendVerificationCode } = require('./email');
+const codeStore = require('./codeStore');
+
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 const app = express();
 app.use(cors());
@@ -81,6 +85,40 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (e) {
     res.status(500).json(fail('登录失败：' + e.message));
   }
+});
+
+// ---- 发送邮箱验证码（公开，无需登录）----
+app.post('/api/auth/email-code', async (req, res) => {
+  const email = ((req.body && req.body.email) || '').trim();
+  if (!EMAIL_RE.test(email)) {
+    return res.status(400).json(fail('邮箱格式不正确'));
+  }
+  const gate = codeStore.canIssue(email);
+  if (!gate.ok) {
+    const wait = Math.ceil(gate.waitMs / 1000);
+    return res.status(429).json(fail(`请求过于频繁，请 ${wait} 秒后再试`));
+  }
+  const code = codeStore.issue(email);
+  try {
+    await sendVerificationCode(email, code);
+    res.json(ok({ sent: true, ttl: 300 }));
+  } catch (e) {
+    res.status(500).json(fail('邮件发送失败：' + e.message));
+  }
+});
+
+// ---- 校验邮箱验证码（公开，无需登录；成功即消费）----
+app.post('/api/auth/verify-email-code', (req, res) => {
+  const email = ((req.body && req.body.email) || '').trim();
+  const code = ((req.body && req.body.code) || '').trim();
+  if (!EMAIL_RE.test(email) || !code) {
+    return res.status(400).json(fail('邮箱或验证码不能为空'));
+  }
+  const result = codeStore.verify(email, code);
+  if (!result.ok) {
+    return res.status(400).json(fail(result.reason));
+  }
+  res.json(ok({ valid: true }));
 });
 
 // ---- 课程列表（可选 ?status=open）----
