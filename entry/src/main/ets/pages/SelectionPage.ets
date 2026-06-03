@@ -2,12 +2,14 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
-import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
+import { ErrorState, EmptyState } from '../common/widgets/StateViews';
+import { SkeletonList } from '../common/widgets/Skeleton';
+import { ArrayDataSource } from '../common/widgets/DataSource';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { SelectionCourse, SelectionRoundInfo } from '../models/Course';
-import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { SafeTop } from '../common/widgets/SafeArea';
 
 const CATEGORIES: string[] = ['全部', '必修', '选修', '公选'];
 
@@ -27,6 +29,8 @@ struct SelectionPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State actionError: string = '';
+  @StorageProp('safeBottom') safeBottom: number = 0;
+  private coursesDs: ArrayDataSource<SelectionCourse> = new ArrayDataSource<SelectionCourse>();
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.Selection)) {
@@ -48,6 +52,7 @@ struct SelectionPage {
       .then((res: [SelectionRoundInfo, SelectionCourse[]]) => {
         this.round = res[0];
         this.courses = res[1];
+        this.coursesDs.setData(res[1]);
         this.loading = false;
       })
       .catch((e: object) => {
@@ -61,6 +66,7 @@ struct SelectionPage {
     CourseRepository.get().getSelectionCourses(this.query, this.category)
       .then((res: SelectionCourse[]) => {
         this.courses = res;
+        this.coursesDs.setData(res);
       })
       .catch((e: object) => {
         this.actionError = e instanceof Error ? e.message : '操作失败';
@@ -90,12 +96,13 @@ struct SelectionPage {
         TopBar({ title: '选课中心', subtitle: '选 课 中 心', onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({ tip: '正在加载选课信息...' })
+          SkeletonList({ count: 5 })
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else {
-          Scroll() {
-            Column() {
+          List() {
+            ListItem() {
+              Column() {
               // Hero 卡片
               if (this.round !== undefined) {
                 Column() {
@@ -187,14 +194,17 @@ struct SelectionPage {
                   .backgroundColor('#FFEBEE').borderRadius(10)
                   .margin({ bottom: 10 })
               }
+              }
+            }
 
-              // 课程列表
-              if (this.courses.length === 0) {
+            if (this.courses.length === 0) {
+              ListItem() {
                 EmptyState({ icon: 'petal', title: '没有找到相关课程' })
-              } else {
-                Column({ space: 10 }) {
-                  ForEach(this.courses, (c: SelectionCourse) => {
-                    Row() {
+              }
+            } else {
+              LazyForEach(this.coursesDs, (c: SelectionCourse) => {
+                ListItem() {
+                  Row() {
                       Column() {
                         Row() {
                           Text(c.course.name).fontSize(13).fontWeight(FontWeight.Bold)
@@ -269,15 +279,14 @@ struct SelectionPage {
                     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
                     .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
-                  }, (c: SelectionCourse) => c.course.id)
-                }
-                SafeBottom()
-              }
+                  }.margin({ bottom: 10 })
+                }, (c: SelectionCourse) => c.course.id)
             }
-            .padding({ left: 16, right: 16 })
           }
-          .scrollBar(BarState.Off)
           .layoutWeight(1)
+          .cachedCount(6)
+          .padding({ left: 16, right: 16, bottom: this.safeBottom + 16 })
+          .scrollBar(BarState.Off)
         }
       }
     }
