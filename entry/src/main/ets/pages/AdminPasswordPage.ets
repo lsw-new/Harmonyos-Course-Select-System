@@ -83,32 +83,32 @@ struct AdminPasswordPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '修改密码', subtitle: '修 改 密 码', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.common_change_pwd'), subtitle: $r('app.string.password_subtitle'), onBack: () => AppRoute.back() })
 
         Scroll() {
           Column() {
             Column() {
-              Pill({ text: '账户安全' })
-              Text('修改管理员密码')
+              Pill({ text: $r('app.string.password_security') })
+              Text($r('app.string.adminpassword_heading'))
                 .fontSize(18).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 10 })
-              Text('新密码至少 8 位，且包含字母与数字')
+              Text($r('app.string.adminpassword_hint'))
                 .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 4 })
             }
             .width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(22)
             .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.LAV_200, 1]] })
 
-            RoseDivider({ label: '表单' })
+            RoseDivider({ label: $r('app.string.common_form') })
 
             Column({ space: 14 }) {
-              ElysiaInput({ placeholder: '原密码', value: $oldPassword, secure: true, leadingIcon: 'lock' })
-              ElysiaInput({ placeholder: '新密码', value: $newPassword, secure: true, leadingIcon: 'unlock' })
-              ElysiaInput({ placeholder: '确认新密码', value: $confirmPassword, secure: true, leadingIcon: 'unlock' })
+              ElysiaInput({ placeholder: $r('app.string.password_old'), value: $oldPassword, secure: true, leadingIcon: 'lock' })
+              ElysiaInput({ placeholder: $r('app.string.password_new'), value: $newPassword, secure: true, leadingIcon: 'unlock' })
+              ElysiaInput({ placeholder: $r('app.string.password_confirm'), value: $confirmPassword, secure: true, leadingIcon: 'unlock' })
 
               if (this.errorMsg.length > 0) {
                 Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT).margin({ top: 4 })
               }
 
-              PrimaryButton({ text: this.submitting ? '提交中...' : '确认修改', onTap: () => this.submit() })
+              PrimaryButton({ text: this.submitting ? $r('app.string.common_submitting') : $r('app.string.password_submit'), onTap: () => this.submit() })
             }
             .width('100%').padding(18).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })

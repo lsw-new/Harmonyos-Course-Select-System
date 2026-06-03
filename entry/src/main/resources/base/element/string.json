@@ -275,6 +275,25 @@
     { "name": "practicedetail_cancel_confirm", "value": "确认取消报名？" },
     { "name": "practicedetail_cancel_hint", "value": "取消后名额将释放，如需再次参与请重新报名。" },
     { "name": "practicedetail_reconsider", "value": "再想想" },
-    { "name": "practicedetail_confirm_cancel", "value": "确认取消" }
+    { "name": "practicedetail_confirm_cancel", "value": "确认取消" },
+
+    { "name": "adminpassword_heading", "value": "修改管理员密码" },
+    { "name": "adminpassword_hint", "value": "新密码至少 8 位，且包含字母与数字" },
+
+    { "name": "adminprofile_title", "value": "管理中心" },
+    { "name": "adminprofile_subtitle", "value": "管 理 员 中 心" },
+    { "name": "adminprofile_default_name", "value": "管理员" },
+    { "name": "adminprofile_sec_system", "value": "系统管理" },
+    { "name": "adminprofile_sec_pref", "value": "偏好" },
+    { "name": "adminprofile_logout_confirm", "value": "确认退出？" },
+    { "name": "adminprofile_logout_hint", "value": "退出后需重新登录管理控制台" },
+
+    { "name": "admindash_title", "value": "管理仪表盘" },
+    { "name": "admindash_subtitle", "value": "管 理 仪 表 盘" },
+    { "name": "admindash_modules", "value": "管理功能" },
+    { "name": "admindash_trend", "value": "选课趋势" },
+    { "name": "admindash_dist", "value": "课程类型分布" },
+    { "name": "admindash_pending", "value": "待办审批" },
+    { "name": "admindash_urgent", "value": "紧急" }
   ]
 }

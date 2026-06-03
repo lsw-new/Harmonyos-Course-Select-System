@@ -85,7 +85,7 @@ struct AdminDashboardPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '管理仪表盘', subtitle: '管 理 仪 表 盘', showBack: false })
+        TopBar({ title: $r('app.string.admindash_title'), subtitle: $r('app.string.admindash_subtitle'), showBack: false })
 
         if (this.loading) {
           LoadingState({})
@@ -113,7 +113,7 @@ struct AdminDashboardPage {
 
               // 管理功能入口
               Column() {
-                Text('管理功能').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 }).width('100%')
+                Text($r('app.string.admindash_modules')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 }).width('100%')
                 Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
                   ForEach(this.modules, (m: AdminModule) => {
                     this.ModuleCard(m)
@@ -124,7 +124,7 @@ struct AdminDashboardPage {
 
               // 选课趋势
               Column() {
-                Text('选课趋势').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 })
+                Text($r('app.string.admindash_trend')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 })
                 Row({ space: 4 }) {
                   ForEach(this.dashboard!.selectionTrend, (p: TrendPoint) => {
                     Column() {
@@ -138,7 +138,7 @@ struct AdminDashboardPage {
 
               // 课程类型分布
               Column() {
-                Text('课程类型分布').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 })
+                Text($r('app.string.admindash_dist')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 })
                 ForEach(this.dashboard!.courseTypeDistribution, (item: DistributionItem) => {
                   Row() {
                     Column().width(12).height(12).backgroundColor(item.color ?? ElysiaTheme.ROSE_500).borderRadius(3)
@@ -152,8 +152,8 @@ struct AdminDashboardPage {
               // 待办审批
               Column() {
                 Row() {
-                  Text('待办审批').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
-                  Text('查看全部 ›').fontSize(11).fontColor(ElysiaTheme.ROSE_500)
+                  Text($r('app.string.admindash_pending')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
+                  Text($r('app.string.home_view_all')).fontSize(11).fontColor(ElysiaTheme.ROSE_500)
                     .onClick(() => { AppRoute.go(Routes.AdminApprovals); })
                 }.width('100%').margin({ bottom: 8 })
                 ForEach(this.dashboard!.pendingApprovals, (a: ApprovalItem) => {
@@ -162,7 +162,7 @@ struct AdminDashboardPage {
                       Text(a.title).fontSize(13).fontColor(ElysiaTheme.INK)
                       Text(`${a.applicantName} · ${a.submittedAt}`).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
                     }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-                    if (a.isUrgent) { Pill({ text: '紧急', color: ElysiaTheme.ROSE_ACCENT, bg: '#FFF0F0' }) }
+                    if (a.isUrgent) { Pill({ text: $r('app.string.admindash_urgent'), color: ElysiaTheme.ROSE_ACCENT, bg: '#FFF0F0' }) }
                   }.width('100%').padding({ top: 8, bottom: 8 })
                   .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
                   .onClick(() => AppRoute.go(Routes.AdminApprovals))

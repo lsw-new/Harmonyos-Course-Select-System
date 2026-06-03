@@ -102,14 +102,14 @@ struct AdminProfilePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '管理中心', subtitle: '管 理 员 中 心', showBack: false })
+        TopBar({ title: $r('app.string.adminprofile_title'), subtitle: $r('app.string.adminprofile_subtitle'), showBack: false })
 
         Scroll() {
           Column({ space: 14 }) {
             // 头像卡片
             Column({ space: 6 }) {
               Monogram({ iconSize: 56 })
-              Text(this.profile !== null ? this.profile.name : '管理员')
+              Text(this.profile !== null ? this.profile.name : $r('app.string.adminprofile_default_name'))
                 .fontSize(18).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).margin({ top: 8 })
               Text(this.profile !== null
                 ? `${this.profile.department} · ${this.profile.roleName}`
@@ -139,7 +139,7 @@ struct AdminProfilePage {
 
             // 系统管理
             Column() {
-              Text('系统管理').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              Text($r('app.string.adminprofile_sec_system')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.EntryRow('students', '角色管理', '', () => {
                 AppRoute.go(Routes.AdminRolePerm);
               })
@@ -169,7 +169,7 @@ struct AdminProfilePage {
 
             // 偏好
             Column() {
-              Text('偏好').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              Text($r('app.string.adminprofile_sec_pref')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.ToggleRow('bell', '消息推送', this.pushEnabled, (v: boolean) => {
                 this.pushEnabled = v;
                 PreferenceStorage.get().putBoolean('push', v);
@@ -184,7 +184,7 @@ struct AdminProfilePage {
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
             // 退出
-            Text('退出登录')
+            Text($r('app.string.account_logout'))
               .fontSize(14).fontColor(ElysiaTheme.ROSE_ACCENT).fontWeight(FontWeight.Medium)
               .width('100%').textAlign(TextAlign.Center)
               .padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
@@ -201,14 +201,14 @@ struct AdminProfilePage {
       if (this.showLogoutConfirm) {
         Column() {
           Column({ space: 14 }) {
-            Text('确认退出？').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-            Text('退出后需重新登录管理控制台').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+            Text($r('app.string.adminprofile_logout_confirm')).fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text($r('app.string.adminprofile_logout_hint')).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
             Row({ space: 12 }) {
-              Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
+              Text($r('app.string.common_cancel')).fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(999)
                 .onClick(() => { this.showLogoutConfirm = false; })
-              Text('退出').fontSize(14).fontColor(ElysiaTheme.SURFACE).fontWeight(FontWeight.Bold)
+              Text($r('app.string.mine_logout')).fontSize(14).fontColor(ElysiaTheme.SURFACE).fontWeight(FontWeight.Bold)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
                 .onClick(() => { this.logout(); })
