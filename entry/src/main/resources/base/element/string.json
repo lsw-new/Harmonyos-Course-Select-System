@@ -415,6 +415,24 @@
     { "name": "adminapprovals_comment_ph", "value": "审批意见（必填）" },
     { "name": "adminapprovals_reject", "value": "驳回" },
     { "name": "adminapprovals_processing", "value": "处理中..." },
-    { "name": "adminapprovals_approve", "value": "同意通过" }
+    { "name": "adminapprovals_approve", "value": "同意通过" },
+
+    { "name": "admincalendar_title", "value": "校历管理" },
+    { "name": "admincalendar_subtitle", "value": "校 历 管 理" },
+    { "name": "admincalendar_events", "value": "校历事件" },
+    { "name": "admincalendar_add", "value": "新增" },
+    { "name": "admincalendar_empty", "value": "暂无校历事件" },
+    { "name": "admincalendar_new_event", "value": "新增校历事件" },
+    { "name": "admincalendar_ph_date", "value": "日期，如：2026-02-23" },
+    { "name": "admincalendar_ph_title", "value": "事件标题" },
+    { "name": "admincalendar_event_type", "value": "事件类型" },
+    { "name": "admincalendar_confirm_delete", "value": "确认删除" },
+    { "name": "admincalendar_delete_btn", "value": "删除" },
+
+    { "name": "adminauditlog_title", "value": "操作日志" },
+    { "name": "adminauditlog_subtitle", "value": "操 作 日 志" },
+    { "name": "adminauditlog_empty", "value": "暂无操作日志" },
+    { "name": "adminauditlog_success", "value": "成功" },
+    { "name": "adminauditlog_fail", "value": "失败" }
   ]
 }

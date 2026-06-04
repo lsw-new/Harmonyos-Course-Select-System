@@ -130,13 +130,13 @@ struct AdminCalendarPage {
   EditorPanel() {
     Scroll() {
       Column({ space: 10 }) {
-        Text('新增校历事件')
+        Text($r('app.string.admincalendar_new_event'))
           .fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-        ElysiaInput({ placeholder: '日期，如：2026-02-23', value: $date, leadingIcon: 'calendar' })
-        ElysiaInput({ placeholder: '事件标题', value: $title, leadingIcon: 'edit' })
+        ElysiaInput({ placeholder: $r('app.string.admincalendar_ph_date'), value: $date, leadingIcon: 'calendar' })
+        ElysiaInput({ placeholder: $r('app.string.admincalendar_ph_title'), value: $title, leadingIcon: 'edit' })
 
         Column({ space: 6 }) {
-          Text('事件类型').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+          Text($r('app.string.admincalendar_event_type')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
           Row({ space: 8 }) {
             ForEach(this.typeLabels, (label: string, idx: number) => {
               Text(label).fontSize(12)
@@ -154,8 +154,8 @@ struct AdminCalendarPage {
         }
 
         Row({ space: 10 }) {
-          GhostButton({ text: '取消', onTap: () => this.cancelEdit() }).layoutWeight(1)
-          PrimaryButton({ text: this.submitting ? '保存中...' : '保存', onTap: () => this.saveEvent() }).layoutWeight(1)
+          GhostButton({ text: $r('app.string.common_cancel'), onTap: () => this.cancelEdit() }).layoutWeight(1)
+          PrimaryButton({ text: this.submitting ? $r('app.string.common_saving') : $r('app.string.common_save'), onTap: () => this.saveEvent() }).layoutWeight(1)
         }
       }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
       .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
@@ -173,17 +173,17 @@ struct AdminCalendarPage {
       Row() {
         if (this.pendingDeleteId === item.id) {
           Text(`确认删除「${item.title}」`).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
-          Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+          Text($r('app.string.common_cancel')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#F5F2F4').borderRadius(999).margin({ right: 10 })
             .onClick(() => { this.cancelDelete(); })
-          Text('确认删除').fontSize(12).fontColor(Color.White)
+          Text($r('app.string.admincalendar_confirm_delete')).fontSize(12).fontColor(Color.White)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
             .onClick(() => { this.deleteEvent(item); })
         } else {
           Blank().layoutWeight(1)
-          Text('删除').fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
+          Text($r('app.string.admincalendar_delete_btn')).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#FFF0F3').borderRadius(999)
             .onClick(() => { this.requestDelete(item); })
@@ -201,11 +201,11 @@ struct AdminCalendarPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '校历管理', subtitle: '校 历 管 理', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.admincalendar_title'), subtitle: $r('app.string.admincalendar_subtitle'), onBack: () => AppRoute.back() })
 
         Row() {
-          Text('校历事件').fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
-          Text('新增').fontSize(13).fontColor(Color.White).fontWeight(FontWeight.Bold)
+          Text($r('app.string.admincalendar_events')).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
+          Text($r('app.string.admincalendar_add')).fontSize(13).fontColor(Color.White).fontWeight(FontWeight.Bold)
             .padding({ left: 16, right: 16, top: 10, bottom: 10 })
             .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
             .onClick(() => { this.openCreate(); })
@@ -220,7 +220,7 @@ struct AdminCalendarPage {
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
         } else if (this.events.length === 0) {
-          EmptyState({ title: '暂无校历事件', hint: '点击右上角新增' })
+          EmptyState({ title: $r('app.string.admincalendar_empty'), hint: '点击右上角新增' })
         } else {
           List() {
             ForEach(this.events, (item: CalendarEvent) => {

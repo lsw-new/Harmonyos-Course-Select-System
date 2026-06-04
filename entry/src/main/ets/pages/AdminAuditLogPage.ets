@@ -91,7 +91,7 @@ struct AdminAuditLogPage {
         Pill({ text: log.actionType, color: this.actionTypeColor(log.actionType), bg: this.actionTypeBg(log.actionType) })
         Blank()
         Pill({
-          text: log.result === 'success' ? '成功' : '失败',
+          text: log.result === 'success' ? $r('app.string.adminauditlog_success') : $r('app.string.adminauditlog_fail'),
           color: log.result === 'success' ? ElysiaTheme.SUCCESS : ElysiaTheme.ROSE_ACCENT,
           bg: log.result === 'success' ? '#EAF6EA' : '#FFF0F0'
         })
@@ -124,7 +124,7 @@ struct AdminAuditLogPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '操作日志', subtitle: '操 作 日 志', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: $r('app.string.adminauditlog_title'), subtitle: $r('app.string.adminauditlog_subtitle'), onBack: () => { AppRoute.back(); } })
 
         this.FilterChips()
 
@@ -133,7 +133,7 @@ struct AdminAuditLogPage {
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadLogs() })
         } else if (this.logs.length === 0) {
-          EmptyState({ icon: 'file', title: '暂无操作日志', hint: '该筛选条件下没有记录' })
+          EmptyState({ icon: 'file', title: $r('app.string.adminauditlog_empty'), hint: '该筛选条件下没有记录' })
         } else {
           List() {
             LazyForEach(this.logsDs, (log: AuditLogEntry) => {
