@@ -94,6 +94,7 @@ struct PracticeDetailPage {
     PracticeRepository.get().signUp(current.id).then(() => {
       this.submitting = false;
       Toast.show(this.getUIContext(), '报名成功');
+      AppStorage.setOrCreate('practice.refreshTick', Date.now());
       this.loadData();
     }).catch((e: object) => {
       this.submitting = false;
@@ -115,6 +116,7 @@ struct PracticeDetailPage {
     PracticeRepository.get().cancelSignUp(current.id).then(() => {
       this.submitting = false;
       Toast.show(this.getUIContext(), '已取消报名');
+      AppStorage.setOrCreate('practice.refreshTick', Date.now());
       this.loadData();
     }).catch((e: object) => {
       this.submitting = false;

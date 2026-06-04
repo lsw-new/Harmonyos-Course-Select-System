@@ -60,6 +60,8 @@ struct PracticeSignupPage {
     PracticeRepository.get().signUp(this.detail!.id).then(() => {
       this.submitting = false;
       Toast.show(this.getUIContext(), '报名成功');
+      // 通知实践列表/我的实践重新拉取，保持名额与按钮状态同步
+      AppStorage.setOrCreate('practice.refreshTick', Date.now());
       AppRoute.back();
     }).catch((e: object) => {
       this.submitting = false;

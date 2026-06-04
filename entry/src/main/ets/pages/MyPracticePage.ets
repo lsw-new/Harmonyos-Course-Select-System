@@ -30,11 +30,17 @@ struct MyPracticePage {
   @State errorMsg: string = '';
   @State projects: PracticeProject[] = [];
   @StorageProp('breakpoint') bp: string = 'sm';
+  // 报名状态变更信号：详情页取消/报名后回写，本页据此刷新，避免显示已取消的项目
+  @StorageProp('practice.refreshTick') @Watch('onPracticeRefresh') practiceTick: number = 0;
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.MyPractice)) {
       return;
     }
+    this.loadMine();
+  }
+
+  private loadMine(): void {
     PracticeRepository.get().getProjects().then((all: PracticeProject[]) => {
       this.projects = all.filter((p: PracticeProject) => p.signedUp);
       this.loading = false;
@@ -42,6 +48,10 @@ struct MyPracticePage {
       this.loading = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
     });
+  }
+
+  onPracticeRefresh(): void {
+    this.loadMine();
   }
 
   build() {

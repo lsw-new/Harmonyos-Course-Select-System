@@ -47,6 +47,15 @@ struct PracticePage {
   @State actionError: string = '';
   @State busyId: string = '';
   @StorageProp('breakpoint') bp: string = 'sm';
+  // 报名状态变更信号：详情页/报名页提交后回写，本页据此重新拉取，保持列表与详情同步
+  @StorageProp('practice.refreshTick') @Watch('onPracticeRefresh') practiceTick: number = 0;
+
+  onPracticeRefresh(): void {
+    // 首屏加载完成后才响应跨页变更，避免初始化期间空刷
+    if (!this.loading) {
+      this.reloadProjects();
+    }
+  }
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.Practice)) {
@@ -188,7 +197,8 @@ struct PracticePage {
               Column({ space: 10 }) {
                 ForEach(this.projects, (project: PracticeProject) => {
                   this.ProjectCard(project)
-                }, (project: PracticeProject) => project.id)
+                  // key 编码报名状态与名额：报名/取消后字段变化即触发卡片重建，避免 ForEach 复用旧卡导致按钮/名额不刷新
+                }, (project: PracticeProject) => `${project.id}-${project.signedUp ? 1 : 0}-${project.slotsTaken}/${project.slotsTotal}`)
               }
               .margin({ bottom: 20 })
               SafeBottom()
