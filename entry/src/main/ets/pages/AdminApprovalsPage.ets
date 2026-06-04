@@ -112,7 +112,7 @@ struct AdminApprovalsPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '审批中心', subtitle: '审 批 中 心', showBack: this.activeId.length > 0,
+        TopBar({ title: $r('app.string.adminapprovals_title'), subtitle: $r('app.string.adminapprovals_subtitle'), showBack: this.activeId.length > 0,
           onBack: () => { this.activeId = ''; } })
 
         if (this.activeId.length === 0) {
@@ -133,7 +133,7 @@ struct AdminApprovalsPage {
           if (this.loading) {
             LoadingState({})
           } else if (this.approvals.length === 0) {
-            EmptyState({ title: '暂无审批' })
+            EmptyState({ title: $r('app.string.adminapprovals_empty') })
           } else {
             List() {
               ForEach(this.approvals, (a: ApprovalItem) => {
@@ -142,7 +142,7 @@ struct AdminApprovalsPage {
                     Column() {
                       Row({ space: 6 }) {
                         Pill({ text: a.type, color: ElysiaTheme.ROSE_700, bg: '#FFE9F1' })
-                        if (a.isUrgent) { Pill({ text: '紧急', color: ElysiaTheme.ROSE_ACCENT, bg: '#FFF0F0' }) }
+                        if (a.isUrgent) { Pill({ text: $r('app.string.adminapprovals_urgent'), color: ElysiaTheme.ROSE_ACCENT, bg: '#FFF0F0' }) }
                       }
                       Text(a.title).fontSize(14).fontColor(ElysiaTheme.INK).margin({ top: 6 })
                       Text(`${a.applicantName} · ${a.submittedAt}`).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
@@ -176,7 +176,7 @@ struct AdminApprovalsPage {
 
                 // 流程时间线
                 Column() {
-                  Text('审批流程').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
+                  Text($r('app.string.adminapprovals_flow')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
                   ForEach(this.detail!.flow, (node: ApprovalFlowNode) => {
                     Row({ space: 10 }) {
                       Column().width(10).height(10).borderRadius(5)
@@ -199,7 +199,7 @@ struct AdminApprovalsPage {
                 // 审批操作
                 if (this.detail!.status === 'pending') {
                   Column({ space: 10 }) {
-                    TextArea({ placeholder: '审批意见（必填）', text: this.comment })
+                    TextArea({ placeholder: $r('app.string.adminapprovals_comment_ph'), text: this.comment })
                       .height(80).fontSize(13).fontColor(ElysiaTheme.INK)
                       .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
                       .onChange((v: string) => { this.comment = v; })
@@ -207,8 +207,8 @@ struct AdminApprovalsPage {
                       Text(this.errorMsg).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
                     }
                     Row({ space: 12 }) {
-                      GhostButton({ text: '驳回', onTap: () => this.doReject() })
-                      PrimaryButton({ text: this.submitting ? '处理中...' : '同意通过', onTap: () => this.doApprove() })
+                      GhostButton({ text: $r('app.string.adminapprovals_reject'), onTap: () => this.doReject() })
+                      PrimaryButton({ text: this.submitting ? $r('app.string.adminapprovals_processing') : $r('app.string.adminapprovals_approve'), onTap: () => this.doApprove() })
                     }.width('100%')
                   }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
                   .border({ width: 1, color: ElysiaTheme.hairlineSoft() })

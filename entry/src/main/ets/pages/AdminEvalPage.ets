@@ -253,7 +253,7 @@ struct AdminEvalPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '评教管理', subtitle: '评 教 管 理', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.admineval_title'), subtitle: $r('app.string.admineval_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})
@@ -263,7 +263,7 @@ struct AdminEvalPage {
           Scroll() {
             Column({ space: 14 }) {
               this.PeriodCard()
-              RoseDivider({ label: '分布' })
+              RoseDivider({ label: $r('app.string.admineval_divider_dist') })
               this.DistributionCard()
               this.TemplatesCard()
               SafeBottom()
@@ -281,11 +281,11 @@ struct AdminEvalPage {
     Column({ space: 10 }) {
       Row() {
         Column() {
-          Text('当前评教期').fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+          Text($r('app.string.admineval_current_period')).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
           Text(this.stats!.term).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
         }.alignItems(HorizontalAlign.Start).layoutWeight(1)
         Pill({
-          text: this.stats!.periodOpen ? '进行中' : '已关闭',
+          text: this.stats!.periodOpen ? $r('app.string.admineval_ongoing') : $r('app.string.admineval_closed'),
           color: this.stats!.periodOpen ? ElysiaTheme.SUCCESS : ElysiaTheme.INK_MUTE,
           bg: '#FFF6FA'
         })
@@ -294,20 +294,20 @@ struct AdminEvalPage {
       Row({ space: 0 }) {
         Column() {
           Text(`${this.stats!.participationRate.toFixed(1)}%`).fontSize(20).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_500)
-          Text('参与率').fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
+          Text($r('app.string.admineval_participation')).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
         }.layoutWeight(1).alignItems(HorizontalAlign.Center)
         Column() {
           Text(`${this.stats!.completionRate.toFixed(1)}%`).fontSize(20).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.LAV_500)
-          Text('完成率').fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
+          Text($r('app.string.admineval_completion')).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
         }.layoutWeight(1).alignItems(HorizontalAlign.Center)
         Column() {
           Text(this.stats!.averageScore.toFixed(2)).fontSize(20).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.GOLD_500)
-          Text('平均分').fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
+          Text($r('app.string.admineval_avg_score')).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
         }.layoutWeight(1).alignItems(HorizontalAlign.Center)
       }.width('100%').margin({ top: 4 })
 
       Row({ space: 10 }) {
-        Text(this.stats!.periodOpen ? '保持开放' : '开放评教')
+        Text(this.stats!.periodOpen ? $r('app.string.admineval_keep_open') : $r('app.string.admineval_open_eval'))
           .fontSize(13).fontWeight(FontWeight.Bold)
           .fontColor(this.stats!.periodOpen ? ElysiaTheme.INK_MUTE : Color.White)
           .textAlign(TextAlign.Center)
@@ -316,7 +316,7 @@ struct AdminEvalPage {
           .backgroundColor(this.stats!.periodOpen ? '#F5F2F4' : ElysiaTheme.ROSE_500)
           .borderRadius(999)
           .onClick(() => { this.setPeriod(true); })
-        Text(this.stats!.periodOpen ? '关闭评教' : '已关闭')
+        Text(this.stats!.periodOpen ? $r('app.string.admineval_close_eval') : $r('app.string.admineval_closed'))
           .fontSize(13).fontWeight(FontWeight.Bold)
           .fontColor(this.stats!.periodOpen ? ElysiaTheme.ROSE_ACCENT : ElysiaTheme.INK_MUTE)
           .textAlign(TextAlign.Center)
@@ -335,7 +335,7 @@ struct AdminEvalPage {
   @Builder DistributionCard() {
     Column() {
       Row() {
-        Text('评分分布').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
+        Text($r('app.string.admineval_rating_dist')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
         Text(`共 ${this.totalRatings(this.stats!.ratingDistribution)} 份`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
       }.width('100%').margin({ bottom: 10 })
 
@@ -360,8 +360,8 @@ struct AdminEvalPage {
   @Builder TemplatesCard() {
     Column() {
       Row() {
-        Text('问卷模板').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
-        Text(this.isEditing ? '收起' : '新增').fontSize(12).fontColor(Color.White).fontWeight(FontWeight.Bold)
+        Text($r('app.string.admineval_templates')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
+        Text(this.isEditing ? $r('app.string.admineval_collapse') : $r('app.string.admineval_add')).fontSize(12).fontColor(Color.White).fontWeight(FontWeight.Bold)
           .padding({ left: 14, right: 14, top: 6, bottom: 6 })
           .backgroundColor(this.isEditing ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_500).borderRadius(999)
           .onClick(() => { if (this.isEditing) { this.cancelEdit(); } else { this.openCreate(); } })
@@ -372,7 +372,7 @@ struct AdminEvalPage {
       }
 
       if (this.templates.length === 0) {
-        EmptyState({ title: '暂无问卷模板', hint: '点击右上角新增' })
+        EmptyState({ title: $r('app.string.admineval_empty'), hint: '点击右上角新增' })
       } else {
         ForEach(this.templates, (t: QuestionnaireTemplate) => {
           Column({ space: 6 }) {
@@ -386,21 +386,21 @@ struct AdminEvalPage {
             Row() {
               if (this.pendingDeleteId === t.id) {
                 Text(`确认删除「${t.name}」`).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
-                Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+                Text($r('app.string.common_cancel')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .backgroundColor('#F5F2F4').borderRadius(999).margin({ right: 10 })
                   .onClick(() => { this.cancelDelete(); })
-                Text('确认删除').fontSize(12).fontColor(Color.White)
+                Text($r('app.string.admineval_confirm_delete')).fontSize(12).fontColor(Color.White)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
                   .onClick(() => { this.deleteTemplate(t); })
               } else {
                 Text(`${t.questionCount} 题`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
-                Text('编辑').fontSize(12).fontColor(ElysiaTheme.ROSE_700)
+                Text($r('app.string.admineval_edit_btn')).fontSize(12).fontColor(ElysiaTheme.ROSE_700)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .backgroundColor('#FFE9F1').borderRadius(999).margin({ right: 12 })
                   .onClick(() => { this.openEdit(t); })
-                Text('删除').fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
+                Text($r('app.string.admineval_delete_btn')).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .backgroundColor('#FFF0F3').borderRadius(999)
                   .onClick(() => { this.requestDelete(t); })
@@ -418,12 +418,12 @@ struct AdminEvalPage {
   // 新增/编辑表单
   @Builder EditorForm() {
     Column({ space: 10 }) {
-      Text(this.editingId.length > 0 ? '编辑问卷' : '新增问卷')
+      Text(this.editingId.length > 0 ? $r('app.string.admineval_edit_tpl') : $r('app.string.admineval_add_tpl'))
         .fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-      ElysiaInput({ placeholder: '问卷名称', value: $name, leadingIcon: 'evaluation' })
-      ElysiaInput({ placeholder: '问卷描述（选填）', value: $description, leadingIcon: 'file' })
+      ElysiaInput({ placeholder: $r('app.string.admineval_ph_name'), value: $name, leadingIcon: 'evaluation' })
+      ElysiaInput({ placeholder: $r('app.string.admineval_ph_desc'), value: $description, leadingIcon: 'file' })
       Row({ space: 8 }) {
-        Text('题目数量').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+        Text($r('app.string.admineval_question_count')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
         TextInput({ placeholder: '1-50', text: this.questionCountText })
           .type(InputType.Number)
           .height(40).fontSize(13).backgroundColor(ElysiaTheme.glass())
@@ -433,7 +433,7 @@ struct AdminEvalPage {
       }.width('100%').alignItems(VerticalAlign.Center)
 
       Column({ space: 6 }) {
-        Text('问卷状态').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+        Text($r('app.string.admineval_tpl_status')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
         Row({ space: 8 }) {
           ForEach(this.statusLabels, (label: string, idx: number) => {
             Text(label).fontSize(12)
@@ -451,8 +451,8 @@ struct AdminEvalPage {
       }
 
       Row({ space: 10 }) {
-        GhostButton({ text: '取消', onTap: () => this.cancelEdit() }).layoutWeight(1)
-        PrimaryButton({ text: this.submitting ? '保存中...' : '保存问卷', onTap: () => this.saveTemplate() }).layoutWeight(1)
+        GhostButton({ text: $r('app.string.common_cancel'), onTap: () => this.cancelEdit() }).layoutWeight(1)
+        PrimaryButton({ text: this.submitting ? $r('app.string.common_saving') : $r('app.string.admineval_save_tpl'), onTap: () => this.saveTemplate() }).layoutWeight(1)
       }
     }.width('100%').padding(14).margin({ bottom: 10 })
     .backgroundColor('#FFFDFE').borderRadius(16)
