@@ -46,6 +46,8 @@ struct SelectionConfirmPage {
     CourseRepository.get().selectCourse(this.course!.id).then(() => {
       this.submitting = false;
       Toast.show(this.getUIContext(), '选课成功');
+      // 通知选课中心重新拉取，保证返回后已选学分/按钮状态同步
+      AppStorage.setOrCreate('selection.refreshTick', Date.now());
       AppRoute.back();
     }).catch((e: object) => {
       this.submitting = false;

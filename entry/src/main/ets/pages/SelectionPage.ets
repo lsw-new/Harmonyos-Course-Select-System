@@ -31,7 +31,15 @@ struct SelectionPage {
   @State actionError: string = '';
   @StorageProp('safeBottom') safeBottom: number = 0;
   @StorageProp('breakpoint') bp: string = 'sm';
+  // 选课变更信号：确认页选课成功后回写，本页据此重新拉取，保证返回后学分/按钮同步
+  @StorageProp('selection.refreshTick') @Watch('onSelectionRefresh') selectionTick: number = 0;
   private coursesDs: ArrayDataSource<SelectionCourse> = new ArrayDataSource<SelectionCourse>();
+
+  onSelectionRefresh(): void {
+    if (!this.loading) {
+      this.reloadCourses();
+    }
+  }
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.Selection)) {
@@ -64,10 +72,16 @@ struct SelectionPage {
 
   private reloadCourses(): void {
     this.actionError = '';
-    CourseRepository.get().getSelectionCourses(this.query, this.category)
-      .then((res: SelectionCourse[]) => {
-        this.courses = res;
-        this.coursesDs.setData(res);
+    const repo = CourseRepository.get();
+    // 同时刷新轮次（已选学分/进度）与课程列表，确保选课/退选后顶部学分与按钮状态同步
+    Promise.all([
+      repo.getSelectionRound(),
+      repo.getSelectionCourses(this.query, this.category)
+    ])
+      .then((res: [SelectionRoundInfo, SelectionCourse[]]) => {
+        this.round = res[0];
+        this.courses = res[1];
+        this.coursesDs.setData(res[1]);
       })
       .catch((e: object) => {
         this.actionError = e instanceof Error ? e.message : '操作失败';
@@ -280,7 +294,8 @@ struct SelectionPage {
                     .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
                   }.margin({ bottom: 10 })
-                }, (c: SelectionCourse) => c.course.id)
+                  // key 编码选课状态与容量：选课/退选后状态变化即重建行，避免复用旧行导致按钮不刷新
+                }, (c: SelectionCourse) => `${c.course.id}-${c.status}-${c.course.selectedCount ?? 0}`)
             }
           }
           .layoutWeight(1)

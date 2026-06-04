@@ -357,8 +357,65 @@ export class CourseRepository extends BaseRepository {
     return this.importedSchedule.length > 0;
   }
 
+  // 节次 → 上课/下课时间（与导入课表口径一致；索引 0 占位，节次从 1 起）
+  private sectionStartTime(section: number): string {
+    const t: string[] = ['', '08:00', '08:55', '10:00', '10:55', '14:00', '14:55', '16:00', '16:55', '19:00', '19:55', '21:00', '21:55'];
+    return (section >= 1 && section < t.length) ? t[section] : '';
+  }
+
+  private sectionEndTime(section: number): string {
+    const t: string[] = ['', '08:45', '09:35', '10:45', '11:35', '14:45', '15:35', '16:45', '17:35', '19:45', '20:35', '21:45', '22:35'];
+    return (section >= 1 && section < t.length) ? t[section] : '';
+  }
+
+  // 已选课程 → 课表行：仅转换含有效星期/节次/周次的课程（集中实践等无排课信息的跳过）
+  private selectedCourseToScheduleItem(c: Course): ScheduleItem | undefined {
+    if (c.weekday < 1 || c.weekday > 7 || c.periodStart < 1 || c.periodEnd < c.periodStart) {
+      return undefined;
+    }
+    const weeks = this.parseCourseWeeks(c.weeks);
+    if (weeks.length === 0) {
+      return undefined;
+    }
+    const item: ScheduleItem = {
+      id: 'sel-' + c.id,
+      term: '2025-2026-2',
+      type: 'normal',
+      courseId: c.id,
+      courseName: c.name,
+      teacher: c.teacher,
+      weekday: c.weekday,
+      periodStart: c.periodStart,
+      periodEnd: c.periodEnd,
+      startTime: this.sectionStartTime(c.periodStart),
+      endTime: this.sectionEndTime(c.periodEnd),
+      classroom: c.classroom,
+      campus: c.campus,
+      weeks: weeks,
+      weekText: c.weeks,
+      courseType: c.category
+    };
+    return item;
+  }
+
+  // 已选课程对应的课表行（并入「我的课表」）
+  private async getSelectedScheduleItems(): Promise<ScheduleItem[]> {
+    const mine = await this.getMySelectedCourses();
+    const out: ScheduleItem[] = [];
+    for (let i = 0; i < mine.length; i++) {
+      const item = this.selectedCourseToScheduleItem(mine[i].course);
+      if (item !== undefined) {
+        out.push(item);
+      }
+    }
+    return out;
+  }
+
   async getSchedule(term?: string, week?: number): Promise<ScheduleItem[]> {
-    let items = await this.getActiveSchedule();
+    const active = await this.getActiveSchedule();
+    // 已选课程并入课表，并置于前面：与导入课表同格冲突时优先显示学生本次已选课程
+    const selected = await this.getSelectedScheduleItems();
+    let items: ScheduleItem[] = selected.concat(active);
     if (term) {
       items = items.filter((s) => s.term === term);
     }
