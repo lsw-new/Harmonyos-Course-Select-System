@@ -77,17 +77,17 @@ struct AdminNoticePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '发布通知', subtitle: '发 布 通 知', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.adminnotice_title'), subtitle: $r('app.string.adminnotice_subtitle'), onBack: () => AppRoute.back() })
 
         Scroll() {
           Column({ space: 14 }) {
             ElysiaInput({
-              placeholder: '通知标题',
+              placeholder: $r('app.string.adminnotice_field_title'),
               value: $title,
               leadingIcon: 'edit'
             })
 
-            TextArea({ placeholder: '通知正文', text: this.content })
+            TextArea({ placeholder: $r('app.string.adminnotice_content'), text: this.content })
               .height(160).fontSize(13).fontColor(ElysiaTheme.INK)
               .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
               .onChange((v: string) => {
@@ -95,11 +95,11 @@ struct AdminNoticePage {
                 if (this.successMsg.length > 0) { this.successMsg = ''; }
               })
 
-            ElysiaInput({ placeholder: '发布单位', value: $publisher, leadingIcon: 'public' })
+            ElysiaInput({ placeholder: $r('app.string.adminnotice_publisher'), value: $publisher, leadingIcon: 'public' })
 
             // 紧急程度
             Column({ space: 6 }) {
-              Text('紧急程度').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+              Text($r('app.string.adminnotice_urgency')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
               Row({ space: 8 }) {
                 ForEach(this.urgencyLabels, (label: string, idx: number) => {
                   Text(label).fontSize(12)
@@ -114,7 +114,7 @@ struct AdminNoticePage {
 
             // 接收对象
             Column({ space: 6 }) {
-              Text('接收对象').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+              Text($r('app.string.adminnotice_receiver')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
               Row({ space: 8 }) {
                 ForEach(this.receiverLabels, (label: string, idx: number) => {
                   Text(label).fontSize(12)
@@ -127,7 +127,7 @@ struct AdminNoticePage {
               }
               if (this.receiverType === 'custom') {
                 ElysiaInput({
-                  placeholder: '输入接收范围，逗号分隔（如：计科2101、计科2102）',
+                  placeholder: $r('app.string.adminnotice_scope_ph'),
                   value: $scopeText,
                   leadingIcon: 'public'
                 })
@@ -141,7 +141,7 @@ struct AdminNoticePage {
               Text(this.successMsg).fontSize(12).fontColor(ElysiaTheme.SUCCESS)
             }
 
-            PrimaryButton({ text: this.submitting ? '发布中...' : '发布通知', onTap: () => this.publish() })
+            PrimaryButton({ text: this.submitting ? $r('app.string.adminnotice_publishing') : $r('app.string.adminnotice_publish'), onTap: () => this.publish() })
 
             SafeBottom()
           }.padding({ left: 16, right: 16 })
@@ -153,14 +153,14 @@ struct AdminNoticePage {
       if (this.showConfirm) {
         Column() {
           Column({ space: 14 }) {
-            Text('确认发布？').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-            Text('通知将发送给所选接收对象').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+            Text($r('app.string.adminnotice_confirm')).fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text($r('app.string.adminnotice_confirm_hint')).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
             Row({ space: 12 }) {
-              Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
+              Text($r('app.string.common_cancel')).fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor('#E0FFFFFF').borderRadius(999)
                 .onClick(() => { this.showConfirm = false; })
-              Text('确认发布').fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
+              Text($r('app.string.adminnotice_confirm_btn')).fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Bold)
                 .padding({ left: 24, right: 24, top: 10, bottom: 10 })
                 .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
                 .onClick(() => { this.confirmPublish(); })

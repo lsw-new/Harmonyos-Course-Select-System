@@ -156,7 +156,7 @@ struct AdminGradesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '成绩管理', subtitle: '成 绩 管 理', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.admingrades_title'), subtitle: $r('app.string.admingrades_subtitle'), onBack: () => AppRoute.back() })
 
         Scroll() {
           Row({ space: 8 }) {
@@ -176,7 +176,7 @@ struct AdminGradesPage {
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => { this.loadData(); } })
         } else if (this.items.length === 0) {
-          EmptyState({ title: '暂无成绩记录' })
+          EmptyState({ title: $r('app.string.admingrades_empty') })
         } else {
           if (this.formErrorMsg.length > 0) {
             Text(this.formErrorMsg).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
@@ -204,7 +204,7 @@ struct AdminGradesPage {
                   Row() {
                     Text(`录入 ${item.inputProgress}% · ${item.updatedAt}`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
                     if (this.canInput(item)) {
-                      Text(this.editingId === item.id ? '收起录入' : '录入成绩').fontSize(11).fontColor(ElysiaTheme.ROSE_700)
+                      Text(this.editingId === item.id ? $r('app.string.admingrades_collapse_input') : $r('app.string.admingrades_input_grade')).fontSize(11).fontColor(ElysiaTheme.ROSE_700)
                         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
                         .backgroundColor('#FFE9F1')
                         .borderRadius(999)
@@ -217,13 +217,13 @@ struct AdminGradesPage {
                         })
                     }
                     if (item.status === 'pendingAudit') {
-                      Text('驳回').fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
+                      Text($r('app.string.admingrades_reject')).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
                         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
                         .backgroundColor('#FFF0F0')
                         .borderRadius(999)
                         .margin({ left: 6 })
                         .onClick(() => { this.beginReject(item.id); })
-                      Text('审核通过').fontSize(11).fontColor(Color.White)
+                      Text($r('app.string.admingrades_approve')).fontSize(11).fontColor(Color.White)
                         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
                         .backgroundColor(this.approvingId === item.id ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_500)
                         .borderRadius(999)
@@ -235,7 +235,7 @@ struct AdminGradesPage {
 
                   if (this.editingId === item.id) {
                     Column({ space: 8 }) {
-                      TextInput({ placeholder: '录入进度 0-100，100 后提交审核', text: this.progressText })
+                      TextInput({ placeholder: $r('app.string.admingrades_progress_ph'), text: this.progressText })
                         .type(InputType.Number)
                         .height(38)
                         .fontSize(12)
@@ -245,12 +245,12 @@ struct AdminGradesPage {
                         .borderRadius(12)
                         .onChange((v: string) => { this.progressText = v; })
                       Row({ space: 8 }) {
-                        Text('取消').fontSize(11).fontColor(ElysiaTheme.ROSE_700)
+                        Text($r('app.string.common_cancel')).fontSize(11).fontColor(ElysiaTheme.ROSE_700)
                           .padding({ left: 12, right: 12, top: 5, bottom: 5 })
                           .backgroundColor('#FFE9F1')
                           .borderRadius(999)
                           .onClick(() => { this.cancelInput(); })
-                        Text(this.submittingId === item.id ? '保存中...' : '保存录入').fontSize(11).fontColor(Color.White)
+                        Text(this.submittingId === item.id ? $r('app.string.common_saving') : $r('app.string.admingrades_save_input')).fontSize(11).fontColor(Color.White)
                           .padding({ left: 12, right: 12, top: 5, bottom: 5 })
                           .backgroundColor(this.submittingId === item.id ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_500)
                           .borderRadius(999)
@@ -262,8 +262,8 @@ struct AdminGradesPage {
 
                   if (this.rejectingId === item.id) {
                     Column({ space: 8 }) {
-                      Text('请填写驳回理由，确认后该记录将标记为"已驳回/需重录"。').fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
-                      TextArea({ placeholder: '驳回理由（1-120 字，不能换行）', text: this.rejectReason })
+                      Text($r('app.string.admingrades_reject_note')).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+                      TextArea({ placeholder: $r('app.string.admingrades_reject_ph'), text: this.rejectReason })
                         .height(70)
                         .fontSize(12)
                         .fontColor(ElysiaTheme.INK)
@@ -272,12 +272,12 @@ struct AdminGradesPage {
                         .borderRadius(12)
                         .onChange((v: string) => { this.rejectReason = v; })
                       Row({ space: 8 }) {
-                        Text('取消').fontSize(11).fontColor(ElysiaTheme.ROSE_700)
+                        Text($r('app.string.common_cancel')).fontSize(11).fontColor(ElysiaTheme.ROSE_700)
                           .padding({ left: 12, right: 12, top: 5, bottom: 5 })
                           .backgroundColor('#FFE9F1')
                           .borderRadius(999)
                           .onClick(() => { this.cancelReject(); })
-                        Text(this.submittingId === item.id ? '驳回中...' : '确认驳回').fontSize(11).fontColor(Color.White)
+                        Text(this.submittingId === item.id ? $r('app.string.admingrades_rejecting') : $r('app.string.admingrades_confirm_reject')).fontSize(11).fontColor(Color.White)
                           .padding({ left: 12, right: 12, top: 5, bottom: 5 })
                           .backgroundColor(this.submittingId === item.id ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_ACCENT)
                           .borderRadius(999)

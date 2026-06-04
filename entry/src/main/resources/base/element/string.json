@@ -349,6 +349,34 @@
     { "name": "adminselection_start", "value": "开始时间" },
     { "name": "adminselection_start_ph", "value": "开始时间，如 2026-05-20 09:00" },
     { "name": "adminselection_end", "value": "结束时间" },
-    { "name": "adminselection_end_ph", "value": "结束时间，如 2026-05-30 23:59" }
+    { "name": "adminselection_end_ph", "value": "结束时间，如 2026-05-30 23:59" },
+
+    { "name": "admingrades_title", "value": "成绩管理" },
+    { "name": "admingrades_subtitle", "value": "成 绩 管 理" },
+    { "name": "admingrades_empty", "value": "暂无成绩记录" },
+    { "name": "admingrades_collapse_input", "value": "收起录入" },
+    { "name": "admingrades_input_grade", "value": "录入成绩" },
+    { "name": "admingrades_reject", "value": "驳回" },
+    { "name": "admingrades_approve", "value": "审核通过" },
+    { "name": "admingrades_progress_ph", "value": "录入进度 0-100，100 后提交审核" },
+    { "name": "admingrades_save_input", "value": "保存录入" },
+    { "name": "admingrades_reject_note", "value": "请填写驳回理由，确认后该记录将标记为“已驳回/需重录”。" },
+    { "name": "admingrades_reject_ph", "value": "驳回理由（1-120 字，不能换行）" },
+    { "name": "admingrades_rejecting", "value": "驳回中..." },
+    { "name": "admingrades_confirm_reject", "value": "确认驳回" },
+
+    { "name": "adminnotice_title", "value": "发布通知" },
+    { "name": "adminnotice_subtitle", "value": "发 布 通 知" },
+    { "name": "adminnotice_field_title", "value": "通知标题" },
+    { "name": "adminnotice_content", "value": "通知正文" },
+    { "name": "adminnotice_publisher", "value": "发布单位" },
+    { "name": "adminnotice_urgency", "value": "紧急程度" },
+    { "name": "adminnotice_receiver", "value": "接收对象" },
+    { "name": "adminnotice_scope_ph", "value": "输入接收范围，逗号分隔（如：计科2101、计科2102）" },
+    { "name": "adminnotice_publishing", "value": "发布中..." },
+    { "name": "adminnotice_publish", "value": "发布通知" },
+    { "name": "adminnotice_confirm", "value": "确认发布？" },
+    { "name": "adminnotice_confirm_hint", "value": "通知将发送给所选接收对象" },
+    { "name": "adminnotice_confirm_btn", "value": "确认发布" }
   ]
 }
