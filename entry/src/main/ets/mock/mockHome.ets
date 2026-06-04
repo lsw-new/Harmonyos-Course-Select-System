@@ -1,4 +1,5 @@
 import { HomeSummary, QuickEntry, DownloadFile, RecentLogin, TermInfo } from '../models/Home';
+import { ScheduleItem } from '../models/Course';
 import { mockSchedule } from './mockCourses';
 import { mockNotices } from './mockNotices';
 
@@ -32,9 +33,40 @@ const recentLogin: RecentLogin = {
   region: '景德镇 · 茶苑校区'
 };
 
+// 今日星期：用真实日期 MM/DD 在本周日期表中定位（与首页“今日”高亮口径一致）；
+// 超出本周范围时回退 JS 星期（周日记为 7）。
+function resolveTodayWeekday(t: TermInfo): number {
+  const now = new Date();
+  const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+  const dd = now.getDate().toString().padStart(2, '0');
+  const idx = t.weekDates.indexOf(`${mm}/${dd}`);
+  if (idx >= 0) {
+    return idx + 1;
+  }
+  const js = now.getDay();
+  return js === 0 ? 7 : js;
+}
+
+// 今日课程：按 当前教学周 + 今日星期 + 课程周次有效 筛选，且同一时段只保留一门，
+// 避免出现相互冲突的多门课程（如不同教学周却同一时段的课叠加显示）。
+function resolveTodayCourses(t: TermInfo): ScheduleItem[] {
+  const weekday = resolveTodayWeekday(t);
+  const valid = mockSchedule.filter((s) => s.weekday === weekday && s.weeks.indexOf(t.weekIndex) >= 0);
+  const seenSlots: string[] = [];
+  const result: ScheduleItem[] = [];
+  valid.forEach((s) => {
+    const slot = `${s.periodStart}-${s.periodEnd}`;
+    if (seenSlots.indexOf(slot) < 0) {
+      seenSlots.push(slot);
+      result.push(s);
+    }
+  });
+  return result;
+}
+
 export const mockHomeSummary: HomeSummary = {
   term,
-  todayCourses: mockSchedule.filter((s) => s.weekday === 3),
+  todayCourses: resolveTodayCourses(term),
   noticeSummary: mockNotices.slice(0, 3),
   quickEntries,
   files,
