@@ -6,6 +6,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "migrate": "node migrate.js",
     "seed": "node seed.js"
   },
   "engines": {
