@@ -57,7 +57,7 @@ struct NoticesPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: $r('app.string.notices_title'), subtitle: $r('app.string.notices_subtitle') })
+        TopBar({ title: $r('app.string.notices_title'), subtitle: $r('app.string.notices_subtitle'), onBack: () => AppRoute.back() })
 
         Scroll() {
           Row({ space: 6 }) {

@@ -7,7 +7,9 @@ import { HomeSummary } from '../models/Home';
 import { LeaveRequest, FeedbackItem, PracticeEntry, LeaveType, FeedbackCategory, FeedbackState, ApprovalState } from '../models/Misc';
 import { mockStudentProfile } from '../mock/mockUser';
 import { mockHomeSummary } from '../mock/mockHome';
+import { mockNotices } from '../mock/mockNotices';
 import { mockLeaveRequests, mockFeedback, mockPracticeEntries } from '../mock/mockMisc';
+import { NoticeStore } from '../common/services/NoticeStore';
 import { AppDatabase } from '../common/storage/AppDatabase';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
@@ -262,7 +264,12 @@ export class ProfileRepository extends BaseRepository {
   }
 
   async getHomeSummary(): Promise<HomeSummary> {
-    return this.delayCopy<HomeSummary>(mockHomeSummary);
+    const summary = await this.delayCopy<HomeSummary>(mockHomeSummary);
+    // 未读角标与通知摘要改为按通知仓储动态计算，反映已读状态（避免静态快照不刷新）
+    const notices = await NoticeStore.list(mockNotices);
+    summary.unreadNoticeCount = notices.filter((n) => !n.isRead).length;
+    summary.noticeSummary = notices.slice(0, 3);
+    return summary;
   }
 
   private remoteToLeave(l: RemoteLeave): LeaveRequest {

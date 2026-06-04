@@ -40,11 +40,20 @@ struct NoticeDetailPage {
     CourseRepository.get().getNoticeDetail(id).then((n: Notice) => {
       this.notice = n;
       this.loading = false;
-      CourseRepository.get().markNoticeRead(id);
+      CourseRepository.get().markNoticeRead(id).then(() => {
+        this.refreshUnreadBadge();
+      });
     }).catch((e: object) => {
       this.loading = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
     });
+  }
+
+  // 标记已读后重算未读数并回写 AppStorage，驱动首页角标跨页响应式刷新
+  private refreshUnreadBadge(): void {
+    CourseRepository.get().getNotices().then((all: Notice[]) => {
+      AppStorage.setOrCreate('home.unreadNotice', all.filter((n: Notice) => !n.isRead).length);
+    }).catch(() => { });
   }
 
   private downloadAttachment(att: NoticeAttachment): void {

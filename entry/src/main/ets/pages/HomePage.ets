@@ -28,6 +28,8 @@ struct HomePage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @StorageProp('breakpoint') bp: string = 'sm';
+  // 未读通知角标走 AppStorage，跨页响应式刷新：阅读通知后由详情页回写，无需重载首页
+  @StorageProp('home.unreadNotice') unreadBadge: number = 0;
   @State query: string = '';
   @State searchActive: boolean = false;
   @State courseHits: ScheduleItem[] = [];
@@ -57,6 +59,8 @@ struct HomePage {
         this.summary = sum;
         this.profile = res[1];
         this.loading = false;
+        // 用最新未读数刷新响应式角标
+        AppStorage.setOrCreate('home.unreadNotice', sum.unreadNoticeCount);
         // 先用首页摘要兜底，保证输入即可搜索；随后再拉取完整语料扩大检索范围。
         this.allCourses = sum.todayCourses;
         this.allNotices = sum.noticeSummary;
@@ -151,7 +155,7 @@ struct HomePage {
           } else if (this.summary !== undefined && this.profile !== undefined) {
             Scroll() {
               Column() {
-                this.WelcomeBlock(this.profile!, this.summary!.unreadNoticeCount)
+                this.WelcomeBlock(this.profile!, this.unreadBadge)
                 if (this.searchActive) {
                   this.SearchResults()
                 } else {
