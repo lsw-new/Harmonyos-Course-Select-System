@@ -174,6 +174,7 @@ struct ExamPage {
                   .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
                   .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                   .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
+                  .onClick(() => { const p: Record<string, Object> = { 'id': e.id }; AppRoute.go(Routes.ExamDetail, { params: p }); })
                 }, (e: ExamArrangement) => e.id)
               }
               .margin({ top: 14 })

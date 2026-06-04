@@ -258,6 +258,7 @@ struct GradesPage {
     .borderRadius(22)
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     .shadow({ radius: 16, color: '#1FD85487', offsetX: 0, offsetY: 4 })
+    .onClick(() => { const p: Record<string, Object> = { 'id': g.id }; AppRoute.go(Routes.GradeDetail, { params: p }); })
   }
 
   @Builder Mini(k: string, v: string) {

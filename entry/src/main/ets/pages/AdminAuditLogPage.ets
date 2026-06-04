@@ -140,6 +140,7 @@ struct AdminAuditLogPage {
               ListItem() {
                 this.LogRow(log)
               }.margin({ bottom: 8 })
+              .onClick(() => { const p: Record<string, Object> = { 'id': log.id }; AppRoute.go(Routes.AuditLogDetail, { params: p }); })
             }, (log: AuditLogEntry) => `log-${log.id}`)
           }.layoutWeight(1).cachedCount(6).padding({ left: 16, right: 16, top: 10, bottom: this.safeBottom + 24 }).scrollBar(BarState.Off)
         }

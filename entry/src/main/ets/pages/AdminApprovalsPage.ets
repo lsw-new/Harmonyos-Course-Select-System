@@ -150,7 +150,7 @@ struct AdminApprovalsPage {
                     AppIcon({ name: 'forward', iconSize: 16 })
                   }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
                   .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
-                  .onClick(() => { this.openDetail(a.id); })
+                  .onClick(() => { const p: Record<string, Object> = { 'id': a.id }; AppRoute.go(Routes.AdminApprovalDetail, { params: p }); })
                 }.margin({ bottom: 8 })
               }, (a: ApprovalItem) => a.id)
             }.layoutWeight(1).padding({ left: 16, right: 16, top: 10 })

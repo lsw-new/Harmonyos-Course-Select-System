@@ -367,6 +367,7 @@ struct AdminCoursesPage {
                   }.width('100%').alignItems(VerticalAlign.Center)
                 }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
                 .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+                .onClick(() => { const p: Record<string, Object> = { 'id': c.id }; AppRoute.go(Routes.AdminCourseDetail, { params: p }); })
               }.margin({ bottom: 8 })
             }, (c: AdminCourseItem) => c.id)
           }.layoutWeight(1).cachedCount(6).padding({ left: 16, right: 16, top: 10 })

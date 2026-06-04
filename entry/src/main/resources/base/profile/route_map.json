@@ -209,6 +209,86 @@
                           "name":  "pages/TodayPage",
                           "pageSourceFile":  "src/main/ets/pages/TodayPage.ets",
                           "buildFunction":  "TodayPageBuilder"
+                      },
+                      {
+                          "name":  "pages/SelectionResultPage",
+                          "pageSourceFile":  "src/main/ets/pages/SelectionResultPage.ets",
+                          "buildFunction":  "SelectionResultPageBuilder"
+                      },
+                      {
+                          "name":  "pages/SelectionConfirmPage",
+                          "pageSourceFile":  "src/main/ets/pages/SelectionConfirmPage.ets",
+                          "buildFunction":  "SelectionConfirmPageBuilder"
+                      },
+                      {
+                          "name":  "pages/GradeDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/GradeDetailPage.ets",
+                          "buildFunction":  "GradeDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/GradeAppealPage",
+                          "pageSourceFile":  "src/main/ets/pages/GradeAppealPage.ets",
+                          "buildFunction":  "GradeAppealPageBuilder"
+                      },
+                      {
+                          "name":  "pages/ExamDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/ExamDetailPage.ets",
+                          "buildFunction":  "ExamDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/LeaveDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/LeaveDetailPage.ets",
+                          "buildFunction":  "LeaveDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/FeedbackDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/FeedbackDetailPage.ets",
+                          "buildFunction":  "FeedbackDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/PracticeSignupPage",
+                          "pageSourceFile":  "src/main/ets/pages/PracticeSignupPage.ets",
+                          "buildFunction":  "PracticeSignupPageBuilder"
+                      },
+                      {
+                          "name":  "pages/MyPracticePage",
+                          "pageSourceFile":  "src/main/ets/pages/MyPracticePage.ets",
+                          "buildFunction":  "MyPracticePageBuilder"
+                      },
+                      {
+                          "name":  "pages/MessageCenterPage",
+                          "pageSourceFile":  "src/main/ets/pages/MessageCenterPage.ets",
+                          "buildFunction":  "MessageCenterPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AttachmentPreviewPage",
+                          "pageSourceFile":  "src/main/ets/pages/AttachmentPreviewPage.ets",
+                          "buildFunction":  "AttachmentPreviewPageBuilder"
+                      },
+                      {
+                          "name":  "pages/NoPermissionPage",
+                          "pageSourceFile":  "src/main/ets/pages/NoPermissionPage.ets",
+                          "buildFunction":  "NoPermissionPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminApprovalDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminApprovalDetailPage.ets",
+                          "buildFunction":  "AdminApprovalDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminCourseDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminCourseDetailPage.ets",
+                          "buildFunction":  "AdminCourseDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/ImportResultPage",
+                          "pageSourceFile":  "src/main/ets/pages/ImportResultPage.ets",
+                          "buildFunction":  "ImportResultPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AuditLogDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/AuditLogDetailPage.ets",
+                          "buildFunction":  "AuditLogDetailPageBuilder"
                       }
                   ]
 }

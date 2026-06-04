@@ -3,7 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, RoseDivider } from '../common/Components';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { Notice, NoticeAttachment } from '../models/Notice';
-import { AppRoute, Routes } from '../app/AppRoute';
+import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
@@ -115,6 +115,11 @@ struct NoticeDetailPage {
                         .onClick(() => this.downloadAttachment(att))
                     }.width('100%').padding(12).backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(12)
                     .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+                    .onClick(() => {
+                      const p: Record<string, Object> = { 'name': att.fileName };
+                      const opts: NavigateOptions = { params: p };
+                      AppRoute.go(Routes.AttachmentPreview, opts);
+                    })
                   }, (att: NoticeAttachment) => att.id)
                 }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
                 .border({ width: 1, color: ElysiaTheme.hairlineSoft() })

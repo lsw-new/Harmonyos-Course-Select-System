@@ -5,7 +5,7 @@ import { ProfileRepository } from '../repositories/ProfileRepository';
 import { LeaveRequest } from '../models/Misc';
 import { HttpError } from '../common/http/HttpError';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
-import { AppRoute, Routes } from '../app/AppRoute';
+import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
@@ -172,6 +172,11 @@ struct LeavePage {
                     Pill({ text: this.stateLabel(item.state), color: this.stateColor(item.state), bg: '#FFF6FA' })
                   }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)
                   .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+                  .onClick(() => {
+                    const p: Record<string, Object> = { 'id': item.id };
+                    const opts: NavigateOptions = { params: p };
+                    AppRoute.go(Routes.LeaveDetail, opts);
+                  })
                 }, (item: LeaveRequest) => item.id)
               }
             }

@@ -216,6 +216,14 @@ struct SelectionPage {
                           }
                         }.margin({ top: 6 })
                       }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+                      .onClick(() => {
+                        const p: Record<string, Object> = { 'id': c.course.id };
+                        if (c.status === 'available') {
+                          AppRoute.go(Routes.SelectionConfirm, { params: p });
+                        } else {
+                          AppRoute.go(Routes.CourseDetail, { params: p });
+                        }
+                      })
 
                       if (c.status === 'available') {
                         Button($r('app.string.selection_btn_select'))

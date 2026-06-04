@@ -49,6 +49,24 @@ export class Routes {
   static readonly AdminSysConfig = 'pages/AdminSysConfigPage';
   static readonly AdminPassword = 'pages/AdminPasswordPage';
   static readonly AdminStudentDetail = 'pages/AdminStudentDetailPage';
+
+  // 补充详情 / 二级页面（UI 包融入）
+  static readonly SelectionResult = 'pages/SelectionResultPage';
+  static readonly SelectionConfirm = 'pages/SelectionConfirmPage';
+  static readonly GradeDetail = 'pages/GradeDetailPage';
+  static readonly GradeAppeal = 'pages/GradeAppealPage';
+  static readonly ExamDetail = 'pages/ExamDetailPage';
+  static readonly LeaveDetail = 'pages/LeaveDetailPage';
+  static readonly FeedbackDetail = 'pages/FeedbackDetailPage';
+  static readonly PracticeSignup = 'pages/PracticeSignupPage';
+  static readonly MyPractice = 'pages/MyPracticePage';
+  static readonly MessageCenter = 'pages/MessageCenterPage';
+  static readonly AttachmentPreview = 'pages/AttachmentPreviewPage';
+  static readonly NoPermission = 'pages/NoPermissionPage';
+  static readonly AdminApprovalDetail = 'pages/AdminApprovalDetailPage';
+  static readonly AdminCourseDetail = 'pages/AdminCourseDetailPage';
+  static readonly ImportResult = 'pages/ImportResultPage';
+  static readonly AuditLogDetail = 'pages/AuditLogDetailPage';
 }
 
 const STUDENT_ROUTES: string[] = [
@@ -57,7 +75,9 @@ const STUDENT_ROUTES: string[] = [
   Routes.Grades, Routes.Exam, Routes.Roster,
   Routes.Eval, Routes.Leave, Routes.Feedback, Routes.Practice,
   Routes.Mine, Routes.Account, Routes.EditInfo, Routes.Password, Routes.Settings,
-  Routes.ServiceHall, Routes.PracticeDetail
+  Routes.ServiceHall, Routes.PracticeDetail,
+  Routes.SelectionResult, Routes.SelectionConfirm, Routes.GradeDetail, Routes.GradeAppeal, Routes.ExamDetail,
+  Routes.LeaveDetail, Routes.FeedbackDetail, Routes.PracticeSignup, Routes.MyPractice, Routes.MessageCenter
 ];
 
 const ADMIN_ROUTES: string[] = [
@@ -65,12 +85,14 @@ const ADMIN_ROUTES: string[] = [
   Routes.AdminSelection, Routes.AdminGrades, Routes.AdminNotice,
   Routes.AdminEval, Routes.AdminApprovals, Routes.AdminProfile,
   Routes.AdminRolePerm, Routes.AdminAuditLog, Routes.AdminCalendar,
-  Routes.AdminSysConfig, Routes.AdminPassword, Routes.AdminStudentDetail
+  Routes.AdminSysConfig, Routes.AdminPassword, Routes.AdminStudentDetail,
+  Routes.AdminApprovalDetail, Routes.AdminCourseDetail, Routes.ImportResult, Routes.AuditLogDetail
 ];
 
 const PUBLIC_ROUTES: string[] = [
   Routes.Login, Routes.Register, Routes.Forgot, Routes.AdminLogin,
-  Routes.About, Routes.Doc
+  Routes.About, Routes.Doc,
+  Routes.AttachmentPreview, Routes.NoPermission
 ];
 
 // 空参数占位（ArkTS 严格模式禁裸字面量，统一用此具名常量）。

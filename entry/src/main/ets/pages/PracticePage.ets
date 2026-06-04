@@ -148,7 +148,24 @@ struct PracticePage {
         }
         .scrollable(ScrollDirection.Horizontal)
         .scrollBar(BarState.Off)
-        .margin({ top: 6, bottom: 8 })
+        .margin({ top: 6, bottom: 4 })
+
+        // 「我的实践」快捷入口
+        Row() {
+          Blank().layoutWeight(1)
+          Button('我的实践')
+            .height(30)
+            .padding({ left: 14, right: 14 })
+            .fontSize(11).fontWeight(FontWeight.Medium)
+            .fontColor(ElysiaTheme.ROSE_700)
+            .backgroundColor(ElysiaTheme.glassSoft())
+            .border({ width: 1, color: ElysiaTheme.hairline() })
+            .borderRadius(999)
+            .onClick(() => { AppRoute.go(Routes.MyPractice); })
+        }
+        .width('100%')
+        .padding({ left: 16, right: 16 })
+        .margin({ bottom: 8 })
 
         if (this.loading) {
           LoadingState({ tip: $r('app.string.practice_loading') })

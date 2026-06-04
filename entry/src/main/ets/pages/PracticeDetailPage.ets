@@ -261,8 +261,11 @@ struct PracticeDetailPage {
         .enabled(false)
     } else {
       PrimaryButton({
-        text: this.submitting ? $r('app.string.common_submitting') : $r('app.string.practice_btn_signup'),
-        onTap: () => this.doSignUp()
+        text: $r('app.string.practice_btn_signup'),
+        onTap: () => {
+          const p: Record<string, Object> = { 'id': d.id };
+          AppRoute.go(Routes.PracticeSignup, { params: p });
+        }
       })
     }
   }

@@ -169,6 +169,17 @@ struct SchedulePage {
 
             Blank().layoutWeight(1)
 
+            Button('我的选课')
+              .height(30)
+              .padding({ left: 10, right: 10 })
+              .fontSize(11).fontWeight(FontWeight.Medium)
+              .fontColor(ElysiaTheme.ROSE_700)
+              .backgroundColor(ElysiaTheme.glassSoft())
+              .border({ width: 1, color: ElysiaTheme.hairline() })
+              .borderRadius(999)
+              .margin({ right: 8 })
+              .onClick(() => { AppRoute.go(Routes.SelectionResult); })
+
             Button({ type: ButtonType.Circle }) { AppIcon({ name: 'download', iconSize: 16 }) }
               .width(34).height(34)
               .backgroundColor(ElysiaTheme.glassSoft())

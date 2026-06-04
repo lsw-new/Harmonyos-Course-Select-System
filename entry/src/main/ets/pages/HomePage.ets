@@ -216,6 +216,12 @@ struct HomePage {
               .margin({ top: -4, right: -4 })
           }
         }
+        Button({ type: ButtonType.Circle }) { AppIcon({ name: 'chat', iconSize: 16 }) }
+          .width(34).height(34).backgroundColor(ElysiaTheme.glassSoft())
+          .border({ width: 1, color: ElysiaTheme.hairline() })
+          .accessibilityText('消息中心')
+          .margin({ left: 8 })
+          .onClick(() => AppRoute.go(Routes.MessageCenter))
       }
       .width('100%').padding({ left: 18, right: 18, top: 12 })
 
