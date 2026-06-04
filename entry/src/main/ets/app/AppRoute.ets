@@ -77,7 +77,8 @@ const STUDENT_ROUTES: string[] = [
   Routes.Mine, Routes.Account, Routes.EditInfo, Routes.Password, Routes.Settings,
   Routes.ServiceHall, Routes.PracticeDetail,
   Routes.SelectionResult, Routes.SelectionConfirm, Routes.GradeDetail, Routes.GradeAppeal, Routes.ExamDetail,
-  Routes.LeaveDetail, Routes.FeedbackDetail, Routes.PracticeSignup, Routes.MyPractice, Routes.MessageCenter
+  Routes.LeaveDetail, Routes.FeedbackDetail, Routes.PracticeSignup, Routes.MyPractice, Routes.MessageCenter,
+  Routes.AttachmentPreview
 ];
 
 const ADMIN_ROUTES: string[] = [
@@ -92,7 +93,7 @@ const ADMIN_ROUTES: string[] = [
 const PUBLIC_ROUTES: string[] = [
   Routes.Login, Routes.Register, Routes.Forgot, Routes.AdminLogin,
   Routes.About, Routes.Doc,
-  Routes.AttachmentPreview, Routes.NoPermission
+  Routes.NoPermission
 ];
 
 // 空参数占位（ArkTS 严格模式禁裸字面量，统一用此具名常量）。
