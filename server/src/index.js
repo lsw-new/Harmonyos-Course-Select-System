@@ -48,6 +48,12 @@ const SELECTED_COUNT_JOIN =
   `LEFT JOIN (SELECT course_id, COUNT(*) cnt FROM dtest2.selections WHERE status='selected' GROUP BY course_id) sc
      ON sc.course_id = c.course_id`;
 
+// P0-01 越权防护：当前学生身份一律取自 JWT（登录账号即学号，token.sub=account_id=student_id），
+// 不再信任客户端 query/body 传入的 studentId，杜绝 IDOR 水平越权。
+function currentStudentId(req) {
+  return (req.auth && req.auth.sub) ? String(req.auth.sub) : '';
+}
+
 // ---- 健康检查 ----
 app.get('/health', async (req, res) => {
   try {
@@ -166,7 +172,7 @@ app.get('/api/selection-rounds/active', authRequired, async (req, res) => {
 
 // ---- 我的已选课程 ----
 app.get('/api/selections', authRequired, async (req, res) => {
-  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const studentId = currentStudentId(req);
   if (!studentId) {
     return res.status(400).json(fail('缺少 studentId'));
   }
@@ -188,7 +194,7 @@ app.get('/api/selections', authRequired, async (req, res) => {
 
 // ---- 选课（事务：轮次 / 容量 / 重复 校验）----
 app.post('/api/selections', authRequired, async (req, res) => {
-  const studentId = ((req.body && req.body.studentId) || '').trim();
+  const studentId = currentStudentId(req);
   const courseId = ((req.body && req.body.courseId) || '').trim();
   if (!studentId || !courseId) {
     return res.status(400).json(fail('缺少 studentId 或 courseId'));
@@ -250,7 +256,7 @@ app.post('/api/selections', authRequired, async (req, res) => {
 
 // ---- 退课（软删除 status=dropped）----
 app.delete('/api/selections', authRequired, async (req, res) => {
-  const studentId = ((req.body && req.body.studentId) || '').trim();
+  const studentId = currentStudentId(req);
   const courseId = ((req.body && req.body.courseId) || '').trim();
   if (!studentId || !courseId) {
     return res.status(400).json(fail('缺少 studentId 或 courseId'));
@@ -302,7 +308,7 @@ function mapLeave(row) {
 
 // ---- 成绩（当前学生已发布成绩）----
 app.get('/api/grades', authRequired, async (req, res) => {
-  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const studentId = currentStudentId(req);
   if (!studentId) {
     return res.status(400).json(fail('缺少 studentId'));
   }
@@ -341,7 +347,7 @@ app.get('/api/grades', authRequired, async (req, res) => {
 
 // ---- 通知列表 ----
 app.get('/api/notices', authRequired, async (req, res) => {
-  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const studentId = currentStudentId(req);
   const category = req.query.category ? String(req.query.category) : null;
   try {
     const r = await pool.query(
@@ -361,7 +367,7 @@ app.get('/api/notices', authRequired, async (req, res) => {
 
 // ---- 通知详情 ----
 app.get('/api/notices/:id', authRequired, async (req, res) => {
-  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const studentId = currentStudentId(req);
   try {
     const r = await pool.query(
       `SELECT n.notice_id, n.title, n.publisher, n.summary, n.content, n.category, n.published_at,
@@ -382,7 +388,7 @@ app.get('/api/notices/:id', authRequired, async (req, res) => {
 
 // ---- 通知标记已读 ----
 app.post('/api/notices/:id/read', authRequired, async (req, res) => {
-  const studentId = ((req.body && req.body.studentId) || '').trim();
+  const studentId = currentStudentId(req);
   if (!studentId) {
     return res.status(400).json(fail('缺少 studentId'));
   }
@@ -400,7 +406,7 @@ app.post('/api/notices/:id/read', authRequired, async (req, res) => {
 
 // ---- 我的请假 ----
 app.get('/api/leave', authRequired, async (req, res) => {
-  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const studentId = currentStudentId(req);
   if (!studentId) {
     return res.status(400).json(fail('缺少 studentId'));
   }
@@ -421,7 +427,7 @@ app.get('/api/leave', authRequired, async (req, res) => {
 const LEAVE_TYPES = ['sick', 'personal', 'public', 'other'];
 app.post('/api/leave', authRequired, async (req, res) => {
   const b = req.body || {};
-  const studentId = ((b.studentId) || '').trim();
+  const studentId = currentStudentId(req);
   const type = ((b.type) || '').trim();
   const startDate = ((b.startDate) || '').trim();
   const endDate = ((b.endDate) || '').trim();
@@ -529,7 +535,7 @@ const PRACTICE_SELECT =
 
 // ---- 反馈 ----
 app.get('/api/feedback', authRequired, async (req, res) => {
-  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const studentId = currentStudentId(req);
   if (!studentId) {
     return res.status(400).json(fail('缺少 studentId'));
   }
@@ -548,7 +554,7 @@ app.get('/api/feedback', authRequired, async (req, res) => {
 const FEEDBACK_CATEGORIES = ['bug', 'suggestion', 'service', 'other'];
 app.post('/api/feedback', authRequired, async (req, res) => {
   const b = req.body || {};
-  const studentId = ((b.studentId) || '').trim();
+  const studentId = currentStudentId(req);
   const category = ((b.category) || '').trim();
   const title = ((b.title) || '').trim();
   const content = ((b.content) || '').trim();
@@ -575,7 +581,7 @@ app.post('/api/feedback', authRequired, async (req, res) => {
 
 // ---- 评教任务 ----
 app.get('/api/evaluations', authRequired, async (req, res) => {
-  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const studentId = currentStudentId(req);
   if (!studentId) {
     return res.status(400).json(fail('缺少 studentId'));
   }
@@ -601,7 +607,7 @@ app.get('/api/evaluations', authRequired, async (req, res) => {
 // ---- 评教提交 ----
 app.post('/api/evaluations/:taskId/submit', authRequired, async (req, res) => {
   const b = req.body || {};
-  const studentId = ((b.studentId) || '').trim();
+  const studentId = currentStudentId(req);
   const answers = b.answers;
   const taskId = req.params.taskId;
   if (!studentId) {
@@ -646,7 +652,7 @@ app.post('/api/evaluations/:taskId/submit', authRequired, async (req, res) => {
 
 // ---- 实践项目列表 ----
 app.get('/api/practice', authRequired, async (req, res) => {
-  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const studentId = currentStudentId(req);
   const category = req.query.category ? String(req.query.category) : null;
   try {
     const r = await pool.query(
@@ -661,7 +667,7 @@ app.get('/api/practice', authRequired, async (req, res) => {
 
 // ---- 实践项目详情 ----
 app.get('/api/practice/:id', authRequired, async (req, res) => {
-  const studentId = req.query.studentId ? String(req.query.studentId) : '';
+  const studentId = currentStudentId(req);
   try {
     const r = await pool.query(`${PRACTICE_SELECT} WHERE p.project_id = $2 LIMIT 1`, [studentId, req.params.id]);
     if (r.rowCount === 0) {
@@ -675,7 +681,7 @@ app.get('/api/practice/:id', authRequired, async (req, res) => {
 
 // ---- 实践报名 ----
 app.post('/api/practice/:id/signup', authRequired, async (req, res) => {
-  const studentId = ((req.body && req.body.studentId) || '').trim();
+  const studentId = currentStudentId(req);
   const projectId = req.params.id;
   if (!studentId) {
     return res.status(400).json(fail('缺少 studentId'));
@@ -721,7 +727,7 @@ app.post('/api/practice/:id/signup', authRequired, async (req, res) => {
 
 // ---- 实践取消报名 ----
 app.delete('/api/practice/:id/signup', authRequired, async (req, res) => {
-  const studentId = ((req.body && req.body.studentId) || '').trim();
+  const studentId = currentStudentId(req);
   const projectId = req.params.id;
   if (!studentId) {
     return res.status(400).json(fail('缺少 studentId'));
