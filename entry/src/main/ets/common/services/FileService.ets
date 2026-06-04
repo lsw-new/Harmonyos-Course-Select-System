@@ -4,6 +4,7 @@ import common from '@ohos.app.ability.common';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { rcp } from '@kit.RemoteCommunicationKit';
 import { LocalDataStore } from '../storage/LocalDataStore';
+import { SessionStorage } from '../storage/SessionStorage';
 
 const KEY_DOWNLOAD_HISTORY = 'local.downloadHistory.v1';
 const MOCK_FILE_PREFIX = 'mock://files/';
@@ -23,6 +24,20 @@ export class FileService {
 
   static configure(context: common.UIAbilityContext | common.Context): void {
     FileService.appContext = context;
+  }
+
+  // 按当前登录用户隔离持久化 key（学生优先，回退管理员），避免换账号串数据；均未登录时回退原 base。
+  private static scopedKey(base: string): string {
+    const session = SessionStorage.get();
+    const student = session.getStudent();
+    if (student && student.studentId.length > 0) {
+      return `${base}.${student.studentId}`;
+    }
+    const admin = session.getAdmin();
+    if (admin && admin.adminId.length > 0) {
+      return `${base}.${admin.adminId}`;
+    }
+    return base;
   }
 
   static async pickAvatarImage(): Promise<string> {
@@ -91,7 +106,8 @@ export class FileService {
 
   private static async recordMockDownload(sourceUrl: string, fileName: string): Promise<string> {
     const savedPath = `${MOCK_DOWNLOAD_PREFIX}${encodeURIComponent(fileName)}`;
-    const history = await LocalDataStore.loadArray<DownloadRecord>(KEY_DOWNLOAD_HISTORY, []);
+    const historyKey = FileService.scopedKey(KEY_DOWNLOAD_HISTORY);
+    const history = await LocalDataStore.loadArray<DownloadRecord>(historyKey, []);
     const record: DownloadRecord = {
       id: `dl-${Date.now()}`,
       sourceUrl,
@@ -101,7 +117,7 @@ export class FileService {
       isMock: true
     };
     const next = [record].concat(history);
-    await LocalDataStore.saveArray<DownloadRecord>(KEY_DOWNLOAD_HISTORY, next);
+    await LocalDataStore.saveArray<DownloadRecord>(historyKey, next);
     return savedPath;
   }
 

@@ -24,6 +24,12 @@ export class EvaluationRepository extends BaseRepository {
   private tasks: EvaluationTask[] = JSON.parse(JSON.stringify(mockEvaluationTasks)) as EvaluationTask[];
   private isTasksLoaded: boolean = false;
 
+  // 按当前登录学生隔离持久化 key，避免换账号串数据；未登录时回退原 base。
+  private scopedKey(base: string): string {
+    const s = SessionStorage.get().getStudent();
+    return (s && s.studentId.length > 0) ? `${base}.${s.studentId}` : base;
+  }
+
   private isCleanText(value: string, min: number, max: number): boolean {
     if (typeof value !== 'string') {
       return false;
@@ -96,7 +102,7 @@ export class EvaluationRepository extends BaseRepository {
 
   private async getTaskItems(): Promise<EvaluationTask[]> {
     if (!this.isTasksLoaded) {
-      const stored = await LocalDataStore.loadArray<EvaluationTask>(KEY_EVALUATION_TASKS, mockEvaluationTasks);
+      const stored = await LocalDataStore.loadArray<EvaluationTask>(this.scopedKey(KEY_EVALUATION_TASKS), mockEvaluationTasks);
       const sanitized = this.sanitizeTasks(stored);
       this.tasks = sanitized.length > 0 ? sanitized : JSON.parse(JSON.stringify(mockEvaluationTasks)) as EvaluationTask[];
       this.isTasksLoaded = true;
@@ -108,7 +114,7 @@ export class EvaluationRepository extends BaseRepository {
     const sanitized = this.sanitizeTasks(next);
     this.tasks = sanitized;
     this.isTasksLoaded = true;
-    await LocalDataStore.saveArray<EvaluationTask>(KEY_EVALUATION_TASKS, sanitized);
+    await LocalDataStore.saveArray<EvaluationTask>(this.scopedKey(KEY_EVALUATION_TASKS), sanitized);
   }
 
   private mapEvalCategory(c: string): string {

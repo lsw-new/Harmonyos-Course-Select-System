@@ -35,6 +35,12 @@ export class PracticeRepository extends BaseRepository {
     return CATEGORIES.indexOf(value) >= 0;
   }
 
+  // 按当前登录学生隔离持久化 key，避免换账号串数据；未登录时回退原 base。
+  private scopedKey(base: string): string {
+    const s = SessionStorage.get().getStudent();
+    return (s && s.studentId.length > 0) ? `${base}.${s.studentId}` : base;
+  }
+
   // 校验并去重持久化记录，丢弃不指向已知项目的脏数据。
   private sanitizeSignups(items: PracticeSignupRecord[]): string[] {
     const result: string[] = [];
@@ -57,7 +63,7 @@ export class PracticeRepository extends BaseRepository {
 
   private async getSignups(): Promise<string[]> {
     if (!this.isLoaded) {
-      const stored = await LocalDataStore.loadArray<PracticeSignupRecord>(KEY_SIGNUPS, []);
+      const stored = await LocalDataStore.loadArray<PracticeSignupRecord>(this.scopedKey(KEY_SIGNUPS), []);
       this.signups = this.sanitizeSignups(stored);
       this.isLoaded = true;
     }
@@ -67,11 +73,12 @@ export class PracticeRepository extends BaseRepository {
   private async saveSignups(next: string[]): Promise<void> {
     this.signups = next;
     this.isLoaded = true;
+    const signedAt = new Date().toISOString();
     const records: PracticeSignupRecord[] = next.map((id) => {
-      const record: PracticeSignupRecord = { id };
+      const record: PracticeSignupRecord = { id, signedAt };
       return record;
     });
-    await LocalDataStore.saveArray<PracticeSignupRecord>(KEY_SIGNUPS, records);
+    await LocalDataStore.saveArray<PracticeSignupRecord>(this.scopedKey(KEY_SIGNUPS), records);
   }
 
   // 由种子详情 + 报名集合，投影出携带派生状态的详情。

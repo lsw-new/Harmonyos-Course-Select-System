@@ -33,7 +33,8 @@ export interface PracticeProjectDetail {
   requirements: string[];
 }
 
-// 持久化的报名记录：仅存项目 id，避免与种子数据耦合。
+// 持久化的报名记录：存项目 id（signedAt 为可选报名时间戳），避免与种子数据耦合。
 export interface PracticeSignupRecord {
   id: string;
+  signedAt?: string;
 }
