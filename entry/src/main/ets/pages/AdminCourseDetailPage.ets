@@ -110,7 +110,7 @@ struct AdminCourseDetailPage {
                   Text(`${this.course!.selectedCount}/${this.course!.capacity}`)
                     .fontSize(22).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                     .fontColor(ElysiaTheme.ROSE_500).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('容量').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                  Text($r('app.string.admincoursedetail_metric_capacity')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                 }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
@@ -118,7 +118,7 @@ struct AdminCourseDetailPage {
                   Text(this.statusLabel(this.course!.status))
                     .fontSize(18).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                     .fontColor(this.statusColor(this.course!.status)).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('状态').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                  Text($r('app.string.admincoursedetail_metric_status')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                 }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
@@ -126,7 +126,7 @@ struct AdminCourseDetailPage {
                   Text(`${this.course!.credit}`)
                     .fontSize(22).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                     .fontColor('#D9B675').fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('学分').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                  Text($r('app.string.admincoursedetail_metric_credit')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                 }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
               }.width('100%')
@@ -161,8 +161,8 @@ struct AdminCourseDetailPage {
 
               // 操作按钮
               Row({ space: 12 }) {
-                GhostButton({ text: '导出名单', onTap: () => Toast.show(this.getUIContext(), '导出功能敬请期待') })
-                PrimaryButton({ text: '编辑课程', onTap: () => AppRoute.go(Routes.AdminCourses) })
+                GhostButton({ text: $r('app.string.admincoursedetail_export'), onTap: () => Toast.show(this.getUIContext(), '导出功能敬请期待') })
+                PrimaryButton({ text: $r('app.string.admincoursedetail_edit'), onTap: () => AppRoute.go(Routes.AdminCourses) })
               }.width('100%')
 
               SafeBottom()

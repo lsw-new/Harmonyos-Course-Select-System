@@ -117,7 +117,7 @@ struct GradeDetailPage {
 
               // 信息卡
               Column() {
-                Text('成绩信息')
+                Text($r('app.string.gradedetail_section_info'))
                   .fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                 this.InfoRow('课程代码', this.grade!.courseCode)
                 this.InfoRow('教学班', this.grade!.teachingClassNo)
@@ -136,9 +136,9 @@ struct GradeDetailPage {
 
               // 操作按钮
               Row({ space: 12 }) {
-                GhostButton({ text: '返回成绩', onTap: () => AppRoute.back() })
+                GhostButton({ text: $r('app.string.gradedetail_btn_back'), onTap: () => AppRoute.back() })
                 PrimaryButton({
-                  text: '发起成绩申诉',
+                  text: $r('app.string.gradedetail_btn_appeal'),
                   onTap: () => { const p: Record<string, Object> = { 'id': this.grade!.id }; AppRoute.go(Routes.GradeAppeal, { params: p }); }
                 })
               }.width('100%')

@@ -109,7 +109,7 @@ struct PracticeSignupPage {
 
               // 报名信息卡
               Column({ space: 12 }) {
-                Text('项目信息').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).width('100%')
+                Text($r('app.string.practicesignup_info')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).width('100%')
                 this.InfoRow('course', '主办单位', this.detail!.org)
                 this.InfoRow('teacher', '指导老师', this.detail!.mentor)
                 this.InfoRow('location', '实践地点', this.detail!.location)
@@ -121,7 +121,7 @@ struct PracticeSignupPage {
 
               // 项目简介
               Column({ space: 8 }) {
-                Text('项目简介').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).width('100%')
+                Text($r('app.string.practicesignup_desc')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).width('100%')
                 Text(this.detail!.description)
                   .fontSize(12).fontColor(ElysiaTheme.INK_SOFT).lineHeight(20).width('100%')
               }
@@ -131,7 +131,7 @@ struct PracticeSignupPage {
               // 报名要求
               if (this.detail!.requirements.length > 0) {
                 Column({ space: 8 }) {
-                  Text('报名要求').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).width('100%')
+                  Text($r('app.string.practicesignup_req')).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).width('100%')
                   ForEach(this.detail!.requirements, (req: string, idx: number) => {
                     Row() {
                       AppIcon({ name: 'approve', iconSize: 14, mRight: 8, mTop: 2 })
@@ -145,9 +145,9 @@ struct PracticeSignupPage {
 
               // 操作按钮
               Row({ space: 12 }) {
-                GhostButton({ text: '返回详情', onTap: () => AppRoute.back() })
+                GhostButton({ text: $r('app.string.practicesignup_btn_back'), onTap: () => AppRoute.back() })
                 PrimaryButton({
-                  text: this.submitting ? '提交中…' : '确认报名',
+                  text: this.submitting ? $r('app.string.common_submitting_zh') : $r('app.string.practicesignup_btn_confirm'),
                   onTap: () => this.doSignUp()
                 })
               }.width('100%')

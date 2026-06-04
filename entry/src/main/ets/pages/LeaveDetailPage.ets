@@ -130,7 +130,7 @@ struct LeaveDetailPage {
                   Text(this.stateLabel(this.leave!.state))
                     .fontSize(18).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                     .fontColor(this.stateColor(this.leave!.state)).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('状态').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                  Text($r('app.string.leavedetail_metric_state')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                 }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
@@ -138,7 +138,7 @@ struct LeaveDetailPage {
                   Text(this.typeLabel(this.leave!.type))
                     .fontSize(18).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                     .fontColor(ElysiaTheme.ROSE_500).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('类型').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                  Text($r('app.string.leavedetail_metric_type')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                 }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
@@ -146,14 +146,14 @@ struct LeaveDetailPage {
                   Text(`${this.leave!.attachments.length}`)
                     .fontSize(22).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                     .fontColor('#B589FF').fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('附件').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                  Text($r('app.string.leavedetail_metric_attachment')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                 }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
               }.width('100%')
 
               // 申请详情
               Column() {
-                Text('申请内容').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+                Text($r('app.string.leavedetail_section_content')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                 this.InfoRow('假别', this.typeLabel(this.leave!.type))
                 this.InfoRow('开始日期', this.leave!.startDate)
                 this.InfoRow('结束日期', this.leave!.endDate)
@@ -164,7 +164,7 @@ struct LeaveDetailPage {
 
               // 审批进度时间线
               Column({ space: 10 }) {
-                Text('审批进度').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+                Text($r('app.string.leavedetail_section_progress')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                 this.StepItem('申请提交', `${this.leave!.submittedAt} · 已提交`, '完成', true)
                 this.StepItem(
                   '审批处理',
@@ -179,7 +179,7 @@ struct LeaveDetailPage {
               // 审批反馈（若有）
               if (this.leave!.feedback !== undefined && this.leave!.feedback!.length > 0) {
                 Column() {
-                  Text('审批意见').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 6 })
+                  Text($r('app.string.leavedetail_section_feedback')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 6 })
                   Text(this.leave!.feedback!)
                     .fontSize(13).fontColor(ElysiaTheme.INK).lineHeight(20)
                 }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
@@ -189,11 +189,11 @@ struct LeaveDetailPage {
               // 操作按钮
               Row({ space: 12 }) {
                 GhostButton({
-                  text: '撤回申请',
+                  text: $r('app.string.leavedetail_btn_withdraw'),
                   onTap: () => Toast.show(this.getUIContext(), '撤回功能暂未开放')
                 })
                 PrimaryButton({
-                  text: '补充材料',
+                  text: $r('app.string.leavedetail_btn_supplement'),
                   onTap: () => Toast.show(this.getUIContext(), '补充材料功能暂未开放')
                 })
               }.width('100%')

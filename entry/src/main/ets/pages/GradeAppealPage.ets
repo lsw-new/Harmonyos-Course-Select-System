@@ -105,7 +105,7 @@ struct GradeAppealPage {
 
               // 成绩信息摘要
               Column() {
-                Text('申诉课程信息')
+                Text($r('app.string.gradeappeal_section_info'))
                   .fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                 this.InfoRow('课程代码', this.grade!.courseCode)
                 this.InfoRow('教学班', this.grade!.teachingClassNo)
@@ -118,11 +118,11 @@ struct GradeAppealPage {
               // 申诉理由表单
               Column({ space: 8 }) {
                 Row({ space: 6 }) {
-                  Text('复核理由')
+                  Text($r('app.string.gradeappeal_label_reason'))
                     .fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-                  Pill({ text: '必填' })
+                  Pill({ text: $r('app.string.gradeappeal_pill_required') })
                 }
-                TextArea({ text: this.reason, placeholder: '请详细描述您认为成绩有误的原因，如期末卷面分与预估差异、评分标准不明确等……' })
+                TextArea({ text: this.reason, placeholder: $r('app.string.gradeappeal_placeholder_reason') })
                   .height(140)
                   .fontSize(13)
                   .fontColor(ElysiaTheme.INK)
@@ -152,8 +152,8 @@ struct GradeAppealPage {
 
               // 操作按钮
               Row({ space: 12 }) {
-                GhostButton({ text: '保存草稿', onTap: () => this.saveDraft() })
-                PrimaryButton({ text: '提交申诉', onTap: () => this.submitAppeal() })
+                GhostButton({ text: $r('app.string.gradeappeal_btn_save_draft'), onTap: () => this.saveDraft() })
+                PrimaryButton({ text: $r('app.string.gradeappeal_btn_submit'), onTap: () => this.submitAppeal() })
               }.width('100%')
 
               SafeBottom()

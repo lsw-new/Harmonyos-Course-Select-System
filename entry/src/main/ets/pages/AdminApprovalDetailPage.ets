@@ -129,7 +129,7 @@ struct AdminApprovalDetailPage {
                 Row({ space: 8 }) {
                   Pill({ text: this.detail!.type })
                   if (this.detail!.isUrgent) {
-                    Pill({ text: '紧急', color: ElysiaTheme.ROSE_ACCENT, bg: '#FFF0F0' })
+                    Pill({ text: $r('app.string.adminapprovaldetail_urgent'), color: ElysiaTheme.ROSE_ACCENT, bg: '#FFF0F0' })
                   }
                   Pill({ text: this.statusLabel(this.detail!.status), color: this.statusColor(this.detail!.status), bg: ElysiaTheme.SURFACE_GLOW })
                 }
@@ -182,8 +182,8 @@ struct AdminApprovalDetailPage {
               // 处理意见 + 操作按钮（仅待审状态显示）
               if (this.detail!.status === 'pending') {
                 Column({ space: 10 }) {
-                  Text('处理意见').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
-                  TextArea({ placeholder: '请填写处理意见（必填）', text: this.comment })
+                  Text($r('app.string.adminapprovaldetail_comment_label')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+                  TextArea({ placeholder: $r('app.string.adminapprovaldetail_comment_placeholder'), text: this.comment })
                     .height(80).fontSize(13).fontColor(ElysiaTheme.INK)
                     .backgroundColor(ElysiaTheme.glass())
                     .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
@@ -192,8 +192,8 @@ struct AdminApprovalDetailPage {
                     Text(this.actionError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
                   }
                   Row({ space: 12 }) {
-                    GhostButton({ text: '驳回申请', onTap: () => this.doReject() })
-                    PrimaryButton({ text: this.submitting ? '处理中…' : '同意通过', onTap: () => this.doApprove() })
+                    GhostButton({ text: $r('app.string.adminapprovaldetail_reject'), onTap: () => this.doReject() })
+                    PrimaryButton({ text: this.submitting ? $r('app.string.adminapprovaldetail_processing') : $r('app.string.adminapprovaldetail_approve'), onTap: () => this.doApprove() })
                   }.width('100%')
                 }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
                 .border({ width: 1, color: ElysiaTheme.hairlineSoft() })

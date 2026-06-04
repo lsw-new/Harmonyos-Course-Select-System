@@ -44,7 +44,7 @@ struct AttachmentPreviewPage {
               Pill({ text: this.fileType.toUpperCase() })
               Text(this.fileName)
                 .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).lineHeight(26)
-              Text('通知与审批材料查看')
+              Text($r('app.string.attachmentpreview_subtitle'))
                 .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
             }.width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(24)
             .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_100, 0], [ElysiaTheme.LAV_200, 1]] })
@@ -56,7 +56,7 @@ struct AttachmentPreviewPage {
                 Text(this.fileType.toUpperCase())
                   .fontSize(18).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                   .fontColor(ElysiaTheme.ROSE_500).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                Text('格式').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                Text($r('app.string.attachmentpreview_metric_format')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
               }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
               .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
@@ -64,7 +64,7 @@ struct AttachmentPreviewPage {
                 Text('—')
                   .fontSize(22).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                   .fontColor('#B589FF').fontFamily(ElysiaTheme.FONT_DISPLAY)
-                Text('大小').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                Text($r('app.string.attachmentpreview_metric_size')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
               }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
               .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
@@ -72,14 +72,14 @@ struct AttachmentPreviewPage {
                 Text('—')
                   .fontSize(22).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                   .fontColor('#D9B675').fontFamily(ElysiaTheme.FONT_DISPLAY)
-                Text('页数').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                Text($r('app.string.attachmentpreview_metric_pages')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
               }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
               .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
             }.width('100%')
 
             // 文件信息
             Column() {
-              Text('文件信息').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+              Text($r('app.string.attachmentpreview_section_info')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.InfoRow('文件名', this.fileName)
               this.InfoRow('类型', this.fileType)
               this.InfoRow('大小', '—')
@@ -89,13 +89,13 @@ struct AttachmentPreviewPage {
 
             // 预览占位区
             Column() {
-              Text('预览区域').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 })
+              Text($r('app.string.attachmentpreview_section_preview')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 })
               Column() {
                 Text('📄').fontSize(48)
                 Text(this.fileName)
                   .fontSize(13).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 10 })
                   .textAlign(TextAlign.Center).maxLines(2)
-                Text('文件预览仅支持查看，下载后可本地打开')
+                Text($r('app.string.attachmentpreview_preview_hint'))
                   .fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 6 })
                   .textAlign(TextAlign.Center)
               }.width('100%').padding(40).alignItems(HorizontalAlign.Center)
@@ -107,11 +107,11 @@ struct AttachmentPreviewPage {
             // 操作按钮
             Row({ space: 12 }) {
               GhostButton({
-                text: '分享文件',
+                text: $r('app.string.attachmentpreview_btn_share'),
                 onTap: () => Toast.show(this.getUIContext(), '分享功能暂未开放')
               })
               PrimaryButton({
-                text: '下载附件',
+                text: $r('app.string.attachmentpreview_btn_download'),
                 onTap: () => Toast.show(this.getUIContext(), '下载功能暂未开放')
               })
             }.width('100%')

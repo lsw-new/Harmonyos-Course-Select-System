@@ -47,9 +47,9 @@ struct NoPermissionPage {
             // Hero 区：错误说明
             Column({ space: 10 }) {
               Pill({ text: '403', color: ElysiaTheme.ROSE_ACCENT, bg: '#FFE9F1' })
-              Text('403 · 当前角色无法访问该页面')
+              Text($r('app.string.noperm_hero_title'))
                 .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).lineHeight(26)
-              Text('角色不匹配或登录已过期，请重新登录或返回首页')
+              Text($r('app.string.noperm_hero_sub'))
                 .fontSize(12).fontColor(ElysiaTheme.INK_SOFT).lineHeight(18)
             }.width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(24)
             .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_100, 0], [ElysiaTheme.LAV_200, 1]] })
@@ -61,23 +61,23 @@ struct NoPermissionPage {
                 Text('403')
                   .fontSize(22).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                   .fontColor(ElysiaTheme.ROSE_500).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                Text('错误码').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                Text($r('app.string.noperm_metric_errcode')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
               }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
               .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
               Column() {
-                Text('学生')
+                Text($r('app.string.noperm_metric_role'))
                   .fontSize(18).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                   .fontColor('#B589FF').fontFamily(ElysiaTheme.FONT_DISPLAY)
-                Text('角色').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                Text($r('app.string.noperm_label_role')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
               }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
               .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
               Column() {
-                Text('重登')
+                Text($r('app.string.noperm_metric_action'))
                   .fontSize(18).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                   .fontColor('#D9B675').fontFamily(ElysiaTheme.FONT_DISPLAY)
-                Text('建议').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                Text($r('app.string.noperm_label_suggestion')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
               }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
               .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
             }.width('100%')
@@ -92,11 +92,11 @@ struct NoPermissionPage {
             // 操作按钮
             Row({ space: 12 }) {
               GhostButton({
-                text: '返回首页',
+                text: $r('app.string.noperm_btn_back_home'),
                 onTap: () => AppRoute.back()
               })
               PrimaryButton({
-                text: '重新登录',
+                text: $r('app.string.noperm_btn_relogin'),
                 onTap: () => AppRoute.clearTo(Routes.Login)
               })
             }.width('100%')

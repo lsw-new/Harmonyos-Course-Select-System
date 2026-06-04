@@ -130,10 +130,10 @@ struct AuditLogDetailPage {
                     .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_500, 0], [ElysiaTheme.LAV_500, 1]] })
                   Column({ space: 4 }) {
                     Row({ space: 6 }) {
-                      Text('字段级差异').fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-                      Pill({ text: '不适用' })
+                      Text($r('app.string.auditlogdetail_diff_title')).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+                      Pill({ text: $r('app.string.auditlogdetail_diff_na') })
                     }
-                    Text('本条日志无字段级变更前/后记录')
+                    Text($r('app.string.auditlogdetail_diff_hint'))
                       .fontSize(12).fontColor(ElysiaTheme.INK_SOFT).lineHeight(18)
                   }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                 }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
@@ -143,8 +143,8 @@ struct AuditLogDetailPage {
 
               // 操作按钮
               Row({ space: 12 }) {
-                GhostButton({ text: '返回日志', onTap: () => AppRoute.back() })
-                PrimaryButton({ text: '复制日志编号', onTap: () => Toast.show(this.getUIContext(), '已复制') })
+                GhostButton({ text: $r('app.string.auditlogdetail_back'), onTap: () => AppRoute.back() })
+                PrimaryButton({ text: $r('app.string.auditlogdetail_copy_id'), onTap: () => Toast.show(this.getUIContext(), '已复制') })
               }.width('100%')
 
               SafeBottom()

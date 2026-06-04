@@ -110,9 +110,9 @@ struct MessageCenterPage {
             Column({ space: 14 }) {
               // Hero 区
               Column({ space: 6 }) {
-                Text(this.unreadCount() > 0 ? `今日未读 ${this.unreadCount()} 条` : '暂无未读消息')
+                Text(this.unreadCount() > 0 ? `今日未读 ${this.unreadCount()} 条` : $r('app.string.messagecenter_no_unread'))
                   .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).lineHeight(26)
-                Text('通知、公告与系统消息汇总')
+                Text($r('app.string.messagecenter_hero_sub'))
                   .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
               }.width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(24)
               .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_100, 0], [ElysiaTheme.LAV_200, 1]] })
@@ -128,18 +128,18 @@ struct MessageCenterPage {
               // 操作按钮
               Row({ space: 12 }) {
                 GhostButton({
-                  text: '消息设置',
+                  text: $r('app.string.messagecenter_btn_settings'),
                   onTap: () => Toast.show(this.getUIContext(), '消息设置功能暂未开放')
                 })
                 PrimaryButton({
-                  text: '全部标记已读',
+                  text: $r('app.string.messagecenter_btn_mark_all'),
                   onTap: () => Toast.show(this.getUIContext(), '已标记全部为已读')
                 })
               }.width('100%')
 
               // 消息列表
               if (this.notices.length === 0) {
-                EmptyState({ title: '暂无消息' })
+                EmptyState({ title: $r('app.string.messagecenter_empty') })
               } else {
                 Column({ space: 10 }) {
                   ForEach(this.notices, (item: Notice) => {

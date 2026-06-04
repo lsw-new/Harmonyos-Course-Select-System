@@ -96,7 +96,7 @@ struct SelectionResultPage {
               // Hero：轮次信息
               if (this.round !== null) {
                 Column({ space: 10 }) {
-                  Pill({ text: this.round!.inProgress ? '选课进行中' : '选课已结束' })
+                  Pill({ text: this.round!.inProgress ? $r('app.string.selresult_round_active') : $r('app.string.selresult_round_closed') })
                   Text(this.round!.roundName)
                     .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
                     .lineHeight(26)
@@ -117,7 +117,7 @@ struct SelectionResultPage {
 
               // 课程列表
               if (this.courses.length === 0) {
-                EmptyState({ title: '暂无已选课程' })
+                EmptyState({ title: $r('app.string.selresult_empty') })
               } else {
                 Column({ space: 10 }) {
                   ForEach(this.courses, (sc: SelectionCourse) => {
@@ -130,11 +130,11 @@ struct SelectionResultPage {
               if (this.courses.length > 0) {
                 Row({ space: 12 }) {
                   GhostButton({
-                    text: '导出选课单',
+                    text: $r('app.string.selresult_btn_export'),
                     onTap: () => { Toast.show(this.getUIContext(), '导出功能即将上线'); }
                   })
                   PrimaryButton({
-                    text: '查看课程详情',
+                    text: $r('app.string.selresult_btn_detail'),
                     onTap: () => {
                       const first = this.courses[0];
                       const p: Record<string, Object> = { 'id': first.course.id };

@@ -116,9 +116,9 @@ struct SelectionConfirmPage {
 
               // 操作按钮
               Row({ space: 12 }) {
-                GhostButton({ text: '返回修改', onTap: () => AppRoute.back() })
+                GhostButton({ text: $r('app.string.selconfirm_btn_back'), onTap: () => AppRoute.back() })
                 PrimaryButton({
-                  text: this.submitting ? '提交中…' : '确认选课',
+                  text: this.submitting ? $r('app.string.common_submitting_zh') : $r('app.string.selconfirm_btn_confirm'),
                   onTap: () => this.doSelect()
                 })
               }.width('100%')

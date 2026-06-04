@@ -63,8 +63,8 @@ struct MyPracticePage {
             Column({ space: 14 }) {
               // Hero 汇总卡
               Column({ space: 10 }) {
-                Pill({ text: '报名记录' })
-                Text('实践进度中心')
+                Pill({ text: $r('app.string.mypractice_hero_pill') })
+                Text($r('app.string.mypractice_hero_heading'))
                   .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).lineHeight(26)
                 Text(`已报名 ${this.projects.length} 个项目`)
                   .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
@@ -75,7 +75,7 @@ struct MyPracticePage {
 
               // 项目列表
               if (this.projects.length === 0) {
-                EmptyState({ title: '暂无报名记录' })
+                EmptyState({ title: $r('app.string.mypractice_empty') })
               } else {
                 Column({ space: 10 }) {
                   ForEach(this.projects, (project: PracticeProject) => {
@@ -87,11 +87,11 @@ struct MyPracticePage {
               // 底部操作按钮
               Row({ space: 12 }) {
                 GhostButton({
-                  text: '导出证明',
+                  text: $r('app.string.mypractice_btn_export'),
                   onTap: () => { Toast.show(this.getUIContext(), '导出功能即将上线'); }
                 })
                 PrimaryButton({
-                  text: '查看全部记录',
+                  text: $r('app.string.mypractice_btn_all'),
                   onTap: () => { Toast.show(this.getUIContext(), '全部记录功能即将上线'); }
                 })
               }.width('100%')
@@ -121,7 +121,7 @@ struct MyPracticePage {
         Row({ space: 6 }) {
           Pill({ text: categoryLabel(project.category), bg: '#EFE4FF', color: ElysiaTheme.LAV_500 })
           Pill({ text: `${project.credits} 学分`, bg: '#FBE6C2', color: ElysiaTheme.GOLD_700 })
-          Pill({ text: '已报名', bg: '#E6F5EC', color: '#3E8E5E' })
+          Pill({ text: $r('app.string.practice_signed'), bg: '#E6F5EC', color: '#3E8E5E' })
         }
         Text(`已报名 ${project.slotsTaken}/${project.slotsTotal} · ${project.period}`)
           .fontSize(11).fontColor(ElysiaTheme.INK_MUTE)

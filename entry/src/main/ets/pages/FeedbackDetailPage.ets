@@ -128,7 +128,7 @@ struct FeedbackDetailPage {
                   Text(this.stateLabel(this.feedback!.state))
                     .fontSize(15).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                     .fontColor(this.stateColor(this.feedback!.state)).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('状态').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                  Text($r('app.string.feedbackdetail_metric_state')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                 }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
@@ -136,7 +136,7 @@ struct FeedbackDetailPage {
                   Text(this.catLabel(this.feedback!.category))
                     .fontSize(15).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                     .fontColor('#B589FF').fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('类型').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                  Text($r('app.string.feedbackdetail_metric_type')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                 }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
 
@@ -144,14 +144,14 @@ struct FeedbackDetailPage {
                   Text(`${this.feedback!.screenshots.length}`)
                     .fontSize(22).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
                     .fontColor(ElysiaTheme.ROSE_500).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                  Text('截图').fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+                  Text($r('app.string.feedbackdetail_metric_screenshot')).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
                 }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
                 .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
               }.width('100%')
 
               // 反馈详情
               Column() {
-                Text('反馈内容').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+                Text($r('app.string.feedbackdetail_section_content')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                 this.InfoRow('类型', this.catLabel(this.feedback!.category))
                 this.InfoRow('标题', this.feedback!.title)
                 this.InfoRow('联系方式', this.feedback!.contact || '—')
@@ -161,7 +161,7 @@ struct FeedbackDetailPage {
 
               // 反馈正文
               Column() {
-                Text('详细描述').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 6 })
+                Text($r('app.string.feedbackdetail_section_desc')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 6 })
                 Text(this.feedback!.content)
                   .fontSize(13).fontColor(ElysiaTheme.INK).lineHeight(20)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
@@ -169,7 +169,7 @@ struct FeedbackDetailPage {
 
               // 受理进度时间线
               Column({ space: 10 }) {
-                Text('受理进度').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
+                Text($r('app.string.feedbackdetail_section_progress')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                 this.StepItem('反馈提交', `${this.feedback!.submittedAt} · 已提交`, '已提交', true)
                 this.StepItem(
                   '服务台受理',
@@ -188,11 +188,11 @@ struct FeedbackDetailPage {
               // 操作按钮
               Row({ space: 12 }) {
                 GhostButton({
-                  text: '关闭反馈',
+                  text: $r('app.string.feedbackdetail_btn_close'),
                   onTap: () => Toast.show(this.getUIContext(), '关闭反馈功能暂未开放')
                 })
                 PrimaryButton({
-                  text: '追加说明',
+                  text: $r('app.string.feedbackdetail_btn_append'),
                   onTap: () => Toast.show(this.getUIContext(), '追加说明功能暂未开放')
                 })
               }.width('100%')

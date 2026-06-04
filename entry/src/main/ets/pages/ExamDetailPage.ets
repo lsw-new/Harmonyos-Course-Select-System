@@ -117,7 +117,7 @@ struct ExamDetailPage {
 
               // 详细信息卡
               Column() {
-                Text('考试信息')
+                Text($r('app.string.examdetail_section_info'))
                   .fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
                 this.InfoRow('考试日期', this.exam!.date)
                 this.InfoRow('开始时间', this.exam!.startTime)
@@ -133,9 +133,9 @@ struct ExamDetailPage {
               if (this.exam!.notice !== undefined && this.exam!.notice!.length > 0) {
                 Column() {
                   Row({ space: 6 }) {
-                    Text('考试须知')
+                    Text($r('app.string.examdetail_section_notice'))
                       .fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-                    Pill({ text: '重要' })
+                    Pill({ text: $r('app.string.examdetail_pill_important') })
                   }.margin({ bottom: 8 })
                   Text(this.exam!.notice!)
                     .fontSize(13)
@@ -152,8 +152,8 @@ struct ExamDetailPage {
 
               // 操作按钮
               Row({ space: 12 }) {
-                GhostButton({ text: '加入日程', onTap: () => Toast.show(this.getUIContext(), '已加入日程') })
-                PrimaryButton({ text: '查看准考证', onTap: () => Toast.show(this.getUIContext(), '准考证功能即将上线') })
+                GhostButton({ text: $r('app.string.examdetail_btn_add_schedule'), onTap: () => Toast.show(this.getUIContext(), '已加入日程') })
+                PrimaryButton({ text: $r('app.string.examdetail_btn_admission'), onTap: () => Toast.show(this.getUIContext(), '准考证功能即将上线') })
               }.width('100%')
 
               SafeBottom()
