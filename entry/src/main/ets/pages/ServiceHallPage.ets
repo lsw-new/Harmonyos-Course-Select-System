@@ -36,7 +36,9 @@ struct ServiceHallPage {
   ];
 
   aboutToAppear(): void {
-    AppRoute.guard(Routes.ServiceHall);
+    if (!AppRoute.guard(Routes.ServiceHall)) {
+      return;
+    }
   }
 
   build() {

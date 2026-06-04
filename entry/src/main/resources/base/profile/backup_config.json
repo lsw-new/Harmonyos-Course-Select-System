@@ -1,3 +1,10 @@
 {
-  "allowToBackupRestore": true
+  "allowToBackupRestore": true,
+  "fullBackupOnly": false,
+  "excludes": [
+    "/data/storage/el2/base/haps/entry/database/",
+    "/data/storage/el2/base/haps/entry/preferences/",
+    "/data/storage/el2/base/database/",
+    "/data/storage/el2/base/preferences/"
+  ]
 }

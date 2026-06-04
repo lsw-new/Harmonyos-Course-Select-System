@@ -1,5 +1,10 @@
-// Token 安全存储 · 优先用 @kit.AssetStoreKit（TEE/安全硬件级），不可用时降级 PreferenceStorage。
-// Asset Store Kit 在运行期不可用（仿真器/低版本）时由 try/catch 自动回退，不退步于改造前的行为。
+// Token 安全存储 · 优先用 @kit.AssetStoreKit（TEE/安全硬件级），不可用时降级到“进程内内存”兜底。
+// Asset Store Kit 在运行期不可用（仿真器/低版本）时由 try/catch 自动回退。
+// 安全加固（P2-02）：降级路径**不再把长期 token 明文写入 Preferences**，改为仅保存在进程内存中。
+//   - 原因：Preferences 明文落盘会让 token 长期暴露在本地存储里（备份/取证风险）。
+//   - 影响可控：会话 token 的持久化由 SessionStorage 自身的 'session.token' 负责，
+//     AssetTokenStore 仅作为“安全镜像”。降级到内存后，同一进程内的 set/get 仍然一致，
+//     冷启动后的登录态仍由 SessionStorage.restore() 恢复，不依赖本兜底持久化。
 // 说明：Asset Kit 分支按官方文档 Map 式 API 编写并通过构建校验，但本环境无法真机验证其运行路径。
 
 import util from '@ohos.util';
@@ -9,12 +14,17 @@ import { PreferenceStorage } from '../storage/PreferenceStorage';
 // ---- Alias / Key 常量 --------------------------------------------------------
 const ASSET_ALIAS_STUDENT = 'edu_token_student';
 const ASSET_ALIAS_ADMIN = 'edu_token_admin';
+// 旧版本可能把 token 明文写过的 Preferences 键；现仅用于 clear() 时清理历史残留，不再写入。
 const PREF_KEY_STUDENT = 'fallback.token.student';
 const PREF_KEY_ADMIN = 'fallback.token.admin';
 
 // ---- Asset Kit 能力缓存标志 --------------------------------------------------
 // undefined = 尚未检测；true = 可用；false = 不可用
 let assetAvailable: boolean | undefined = undefined;
+
+// ---- 进程内内存兜底 ----------------------------------------------------------
+// Asset Kit 不可用时的降级存储：仅存活于当前进程，不落盘，避免长期明文暴露。
+const memoryFallback: Map<string, string> = new Map();
 
 // ---- 辅助：string <-> bytes --------------------------------------------------
 
@@ -75,7 +85,8 @@ async function assetRemove(alias: string): Promise<void> {
 
 async function secureSet(alias: string, token: string, prefKey: string): Promise<void> {
   if (assetAvailable === false) {
-    await PreferenceStorage.get().putString(prefKey, token);
+    // 降级：仅写进程内存，不落盘（避免长期明文暴露）
+    memoryFallback.set(prefKey, token);
     return;
   }
   try {
@@ -83,15 +94,14 @@ async function secureSet(alias: string, token: string, prefKey: string): Promise
     assetAvailable = true;
   } catch (e) {
     assetAvailable = false;
-    // 降级：写 Preferences（与改造前行为一致）
-    await PreferenceStorage.get().putString(prefKey, token);
+    // 降级：仅写进程内存，不落盘
+    memoryFallback.set(prefKey, token);
   }
 }
 
 async function secureGet(alias: string, prefKey: string): Promise<string | undefined> {
   if (assetAvailable === false) {
-    const val = await PreferenceStorage.get().getString(prefKey, '');
-    return val.length > 0 ? val : undefined;
+    return readFallback(prefKey);
   }
   try {
     const val = await assetGet(alias);
@@ -99,18 +109,28 @@ async function secureGet(alias: string, prefKey: string): Promise<string | undef
     if (val !== undefined && val.length > 0) {
       return val;
     }
-    // Asset 无此条目，从 Preferences 读取（升级迁移场景）
-    const fallback = await PreferenceStorage.get().getString(prefKey, '');
-    return fallback.length > 0 ? fallback : undefined;
+    // Asset 无此条目，从兜底读取（含旧版本明文残留的一次性迁移）
+    return readFallback(prefKey);
   } catch (e) {
     assetAvailable = false;
-    const val = await PreferenceStorage.get().getString(prefKey, '');
-    return val.length > 0 ? val : undefined;
+    return readFallback(prefKey);
   }
 }
 
+// 兜底读取顺序：进程内存优先；其次读旧版本可能残留的 Preferences 明文（只读迁移，不回写）。
+async function readFallback(prefKey: string): Promise<string | undefined> {
+  const mem = memoryFallback.get(prefKey);
+  if (mem !== undefined && mem.length > 0) {
+    return mem;
+  }
+  const legacy = await PreferenceStorage.get().getString(prefKey, '');
+  return legacy.length > 0 ? legacy : undefined;
+}
+
 async function secureRemove(alias: string, prefKey: string): Promise<void> {
-  // Preferences 侧无论如何清除
+  // 进程内存兜底清除
+  memoryFallback.delete(prefKey);
+  // 一并清除旧版本可能残留的 Preferences 明文 token
   await PreferenceStorage.get().remove(prefKey);
   if (assetAvailable === false) {
     return;

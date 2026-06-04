@@ -125,7 +125,8 @@ export default function localUnitTest() {
     it('databaseSchemaDefinesCoreBusinessTables', 0, () => {
       const schemaText = DATABASE_SCHEMA_SQL.join('\n');
       expect(DATABASE_NAME).assertEqual('dtest2_app.db');
-      expect(DATABASE_VERSION).assertEqual(1);
+      expect(DATABASE_VERSION).assertEqual(2);
+      expect(DATABASE_VERSION >= 1).assertTrue();
       expect(schemaText).assertContain('CREATE TABLE IF NOT EXISTS notices');
       expect(schemaText).assertContain('CREATE TABLE IF NOT EXISTS notice_reads');
       expect(schemaText).assertContain('CREATE TABLE IF NOT EXISTS leave_requests');
