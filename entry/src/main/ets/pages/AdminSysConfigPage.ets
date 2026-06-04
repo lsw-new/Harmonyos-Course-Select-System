@@ -253,7 +253,7 @@ struct AdminSysConfigPage {
     this.SectionHeader('approve', '审批流配置', '按顺序启用 / 停用审批节点')
     Column({ space: 0 }) {
       if (this.flow.length === 0) {
-        EmptyState({ title: '暂无审批节点' })
+        EmptyState({ title: $r('app.string.adminsysconfig_empty_flow') })
       } else {
         ForEach(this.flow, (node: ApprovalNode, idx: number) => {
           Row() {
@@ -282,17 +282,17 @@ struct AdminSysConfigPage {
   @Builder
   TplEditorPanel() {
     Column({ space: 10 }) {
-      Text(this.editingTplId.length > 0 ? '编辑模板' : '新增模板')
+      Text(this.editingTplId.length > 0 ? $r('app.string.adminsysconfig_edit_tpl') : $r('app.string.adminsysconfig_add_tpl'))
         .fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-      ElysiaInput({ placeholder: '模板名称', value: $tplName, leadingIcon: 'mail' })
-      ElysiaInput({ placeholder: '渠道，如：站内信/短信/邮件', value: $tplChannel, leadingIcon: 'bell' })
-      ElysiaInput({ placeholder: '模板内容', value: $tplContent, leadingIcon: 'file' })
+      ElysiaInput({ placeholder: $r('app.string.adminsysconfig_ph_name'), value: $tplName, leadingIcon: 'mail' })
+      ElysiaInput({ placeholder: $r('app.string.adminsysconfig_ph_channel'), value: $tplChannel, leadingIcon: 'bell' })
+      ElysiaInput({ placeholder: $r('app.string.adminsysconfig_ph_content'), value: $tplContent, leadingIcon: 'file' })
       if (this.tplFormError.length > 0) {
         Text(this.tplFormError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
       }
       Row({ space: 10 }) {
-        GhostButton({ text: '取消', onTap: () => this.cancelTplEdit() }).layoutWeight(1)
-        PrimaryButton({ text: this.submitting ? '保存中...' : '保存模板', onTap: () => this.saveTpl() }).layoutWeight(1)
+        GhostButton({ text: $r('app.string.common_cancel'), onTap: () => this.cancelTplEdit() }).layoutWeight(1)
+        PrimaryButton({ text: this.submitting ? $r('app.string.common_saving') : $r('app.string.adminsysconfig_save_tpl'), onTap: () => this.saveTpl() }).layoutWeight(1)
       }
     }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(16)
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).margin({ top: 10 })
@@ -308,22 +308,22 @@ struct AdminSysConfigPage {
       Text(t.content).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
       Row() {
         if (this.pendingDeleteTplId === t.id) {
-          Text('确认删除该模板？').fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
-          Text('取消').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+          Text($r('app.string.adminsysconfig_confirm_delete_tpl')).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT).layoutWeight(1)
+          Text($r('app.string.common_cancel')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#F5F2F4').borderRadius(999).margin({ right: 10 })
             .onClick(() => { this.cancelDeleteTpl(); })
-          Text('确认删除').fontSize(12).fontColor(Color.White)
+          Text($r('app.string.adminsysconfig_confirm_delete')).fontSize(12).fontColor(Color.White)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor(ElysiaTheme.ROSE_ACCENT).borderRadius(999)
             .onClick(() => { this.deleteTpl(t); })
         } else {
           Blank().layoutWeight(1)
-          Text('编辑').fontSize(12).fontColor(ElysiaTheme.ROSE_700)
+          Text($r('app.string.adminsysconfig_edit_btn')).fontSize(12).fontColor(ElysiaTheme.ROSE_700)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#FFE9F1').borderRadius(999).margin({ right: 12 })
             .onClick(() => { this.openEditTpl(t); })
-          Text('删除').fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
+          Text($r('app.string.adminsysconfig_delete_btn')).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT)
             .padding({ left: 14, right: 14, top: 8, bottom: 8 })
             .backgroundColor('#FFF0F3').borderRadius(999)
             .onClick(() => { this.requestDeleteTpl(t); })
@@ -337,7 +337,7 @@ struct AdminSysConfigPage {
   MsgTemplateSection() {
     Row() {
       Blank().layoutWeight(1)
-      Text('新增模板').fontSize(12).fontColor(Color.White).fontWeight(FontWeight.Bold)
+      Text($r('app.string.adminsysconfig_add_tpl')).fontSize(12).fontColor(Color.White).fontWeight(FontWeight.Bold)
         .padding({ left: 14, right: 14, top: 8, bottom: 8 })
         .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
         .onClick(() => { this.openCreateTpl(); })
@@ -350,7 +350,7 @@ struct AdminSysConfigPage {
     }
 
     if (this.templates.length === 0) {
-      EmptyState({ title: '暂无消息模板', hint: '点击新增模板' })
+      EmptyState({ title: $r('app.string.adminsysconfig_empty_tpl'), hint: '点击新增模板' })
     } else {
       Column() {
         ForEach(this.templates, (t: MsgTemplate) => {
@@ -397,7 +397,7 @@ struct AdminSysConfigPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '系统配置', subtitle: '系 统 配 置', onBack: () => AppRoute.back() })
+        TopBar({ title: $r('app.string.adminsysconfig_title'), subtitle: $r('app.string.adminsysconfig_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
           LoadingState({})

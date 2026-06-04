@@ -433,6 +433,27 @@
     { "name": "adminauditlog_subtitle", "value": "操 作 日 志" },
     { "name": "adminauditlog_empty", "value": "暂无操作日志" },
     { "name": "adminauditlog_success", "value": "成功" },
-    { "name": "adminauditlog_fail", "value": "失败" }
+    { "name": "adminauditlog_fail", "value": "失败" },
+
+    { "name": "adminroleperm_title", "value": "角色权限" },
+    { "name": "adminroleperm_subtitle", "value": "角 色 权 限" },
+    { "name": "adminroleperm_no_perm", "value": "无权限" },
+    { "name": "adminroleperm_empty_my", "value": "暂无授权" },
+    { "name": "adminroleperm_empty_roles", "value": "暂无角色数据" },
+
+    { "name": "adminsysconfig_title", "value": "系统配置" },
+    { "name": "adminsysconfig_subtitle", "value": "系 统 配 置" },
+    { "name": "adminsysconfig_empty_flow", "value": "暂无审批节点" },
+    { "name": "adminsysconfig_edit_tpl", "value": "编辑模板" },
+    { "name": "adminsysconfig_add_tpl", "value": "新增模板" },
+    { "name": "adminsysconfig_ph_name", "value": "模板名称" },
+    { "name": "adminsysconfig_ph_channel", "value": "渠道，如：站内信/短信/邮件" },
+    { "name": "adminsysconfig_ph_content", "value": "模板内容" },
+    { "name": "adminsysconfig_save_tpl", "value": "保存模板" },
+    { "name": "adminsysconfig_confirm_delete_tpl", "value": "确认删除该模板？" },
+    { "name": "adminsysconfig_confirm_delete", "value": "确认删除" },
+    { "name": "adminsysconfig_edit_btn", "value": "编辑" },
+    { "name": "adminsysconfig_delete_btn", "value": "删除" },
+    { "name": "adminsysconfig_empty_tpl", "value": "暂无消息模板" }
   ]
 }

@@ -165,7 +165,7 @@ struct AdminRolePermPage {
           } else {
             Row() {
               AppIcon({ name: 'close', iconSize: 12, dim: true, mRight: 4 })
-              Text('无权限').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+              Text($r('app.string.adminroleperm_no_perm')).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
             }.layoutWeight(1)
           }
         }.width('100%').padding({ top: 8, bottom: 8 }).alignItems(VerticalAlign.Top)
@@ -215,7 +215,7 @@ struct AdminRolePermPage {
         Column().height(8)
         this.SectionHeader('star', '我的权限', `${this.myPerms.length} 项`)
         if (this.myPerms.length === 0) {
-          EmptyState({ icon: 'lock', title: '暂无授权', hint: '当前账号未分配任何权限' })
+          EmptyState({ icon: 'lock', title: $r('app.string.adminroleperm_empty_my'), hint: '当前账号未分配任何权限' })
         } else {
           ForEach(this.groupByModule(this.myPerms), (group: PermModuleGroup) => {
             this.MyPermGroup(group)
@@ -235,14 +235,14 @@ struct AdminRolePermPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '角色权限', subtitle: '角 色 权 限', onBack: () => { AppRoute.back(); } })
+        TopBar({ title: $r('app.string.adminroleperm_title'), subtitle: $r('app.string.adminroleperm_subtitle'), onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {
           LoadingState({})
         } else if (this.errorMsg.length > 0) {
           ErrorState({ message: this.errorMsg, onRetry: () => this.loadAll() })
         } else if (this.roles.length === 0) {
-          EmptyState({ title: '暂无角色数据' })
+          EmptyState({ title: $r('app.string.adminroleperm_empty_roles') })
         } else {
           this.Body()
         }
