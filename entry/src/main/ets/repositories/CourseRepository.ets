@@ -18,6 +18,8 @@ import { RemoteApi, RemoteCourse, RemoteNotice } from '../common/remote/RemoteAp
 const CREDIT_LIMIT: number = 28; // 学分上限：选课事务据此校验，超出则拒绝
 const KEY_SELECTED_IDS = 'local.selectedCourseIds.v1';
 const KEY_IMPORTED_SCHEDULE = 'local.importedSchedule.v1';
+// 默认教学周：与首页 mockHome term.weekIndex / 课表页默认周一致，用于今日页今天/明天 tab 的周次过滤。
+const DEFAULT_TEACHING_WEEK: number = 14;
 const CONTROL_CHAR_PATTERN: RegExp = new RegExp('[\\u0000-\\u001f\\u007f]');
 
 export class CourseRepository extends BaseRepository {
@@ -58,6 +60,12 @@ export class CourseRepository extends BaseRepository {
   private currentStudentId(): string {
     const student = SessionStorage.get().getStudent();
     return student ? student.studentId : '';
+  }
+
+  // 本地持久化 key 按当前登录学生隔离：base + '.' + studentId；未登录学生回退原 base。
+  private scopedKey(base: string): string {
+    const s = SessionStorage.get().getStudent();
+    return (s && s.studentId.length > 0) ? `${base}.${s.studentId}` : base;
   }
 
   // ============ Track B 远程数据源（AppConfig.useRemote=true 且已登录时启用，读失败回退本地） ============
@@ -140,7 +148,7 @@ export class CourseRepository extends BaseRepository {
       return this.loadMemberIdsFromRdb();
     }
     if (!this.isMemberLoaded) {
-      const stored = await LocalDataStore.loadArray<string>(KEY_SELECTED_IDS, []);
+      const stored = await LocalDataStore.loadArray<string>(this.scopedKey(KEY_SELECTED_IDS), []);
       this.memberIds = stored.filter((id) => typeof id === 'string' && id.length > 0);
       this.isMemberLoaded = true;
     }
@@ -150,7 +158,7 @@ export class CourseRepository extends BaseRepository {
   private async saveMemberIds(ids: string[]): Promise<void> {
     this.memberIds = ids;
     this.isMemberLoaded = true;
-    await LocalDataStore.saveArray<string>(KEY_SELECTED_IDS, ids);
+    await LocalDataStore.saveArray<string>(this.scopedKey(KEY_SELECTED_IDS), ids);
   }
 
   private async loadMemberIdsFromRdb(): Promise<string[]> {
@@ -331,7 +339,7 @@ export class CourseRepository extends BaseRepository {
   // 当前生效课表：有导入课表则用导入，否则回退到内置 mockSchedule。
   private async getActiveSchedule(): Promise<ScheduleItem[]> {
     if (!this.isImportedLoaded) {
-      const stored = await LocalDataStore.loadArray<ScheduleItem>(KEY_IMPORTED_SCHEDULE, []);
+      const stored = await LocalDataStore.loadArray<ScheduleItem>(this.scopedKey(KEY_IMPORTED_SCHEDULE), []);
       this.importedSchedule = stored.filter((s) => this.isValidScheduleItem(s));
       this.isImportedLoaded = true;
     }
@@ -342,14 +350,14 @@ export class CourseRepository extends BaseRepository {
     const valid = items.filter((s) => this.isValidScheduleItem(s));
     this.importedSchedule = valid;
     this.isImportedLoaded = true;
-    await LocalDataStore.saveArray<ScheduleItem>(KEY_IMPORTED_SCHEDULE, valid);
+    await LocalDataStore.saveArray<ScheduleItem>(this.scopedKey(KEY_IMPORTED_SCHEDULE), valid);
     return valid.length;
   }
 
   async clearImportedSchedule(): Promise<void> {
     this.importedSchedule = [];
     this.isImportedLoaded = true;
-    await LocalDataStore.saveArray<ScheduleItem>(KEY_IMPORTED_SCHEDULE, []);
+    await LocalDataStore.saveArray<ScheduleItem>(this.scopedKey(KEY_IMPORTED_SCHEDULE), []);
   }
 
   async hasImportedSchedule(): Promise<boolean> {
@@ -425,8 +433,10 @@ export class CourseRepository extends BaseRepository {
     return this.delayCopy<ScheduleItem[]>(items);
   }
 
-  async getTodayCourses(weekday: number): Promise<ScheduleItem[]> {
-    const all = await this.getActiveSchedule();
+  // 今日/明日课程：走 getSchedule 的合并结果（导入课表 + 已选课程）再按 weekday 过滤，
+  // 与课表页“本周”同源。week 默认用当前教学周，与 getSchedule/课表页默认周一致。
+  async getTodayCourses(weekday: number, week?: number): Promise<ScheduleItem[]> {
+    const all = await this.getSchedule(undefined, week ?? DEFAULT_TEACHING_WEEK);
     const items = all.filter((s) => s.weekday === weekday);
     return this.delayCopy<ScheduleItem[]>(items);
   }

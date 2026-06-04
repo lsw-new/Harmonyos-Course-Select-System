@@ -15,6 +15,10 @@ function toWeekday(jsDay: number): number {
   return jsDay === 0 ? 7 : jsDay;
 }
 
+// 当前教学周：与 CourseRepository 默认周 / 首页 term.weekIndex 一致，
+// 使“今天/明天/本周”三个 tab 取自同一合并课表（导入课表 + 已选课程）。
+const CURRENT_TEACHING_WEEK: number = 14;
+
 @Component
 struct TodayPage {
   @State courses: ScheduleItem[] = [];
@@ -41,11 +45,12 @@ struct TodayPage {
     this.errorMsg = '';
     let promise: Promise<ScheduleItem[]>;
     if (this.activeTab === 0) {
-      promise = CourseRepository.get().getTodayCourses(this.todayWeekday);
+      promise = CourseRepository.get().getTodayCourses(this.todayWeekday, CURRENT_TEACHING_WEEK);
     } else if (this.activeTab === 1) {
-      promise = CourseRepository.get().getTodayCourses(this.tomorrowWeekday);
+      promise = CourseRepository.get().getTodayCourses(this.tomorrowWeekday, CURRENT_TEACHING_WEEK);
     } else {
-      promise = CourseRepository.get().getSchedule(undefined, undefined);
+      // 本周：合并后的整周课表，按当前教学周过滤，与今天/明天 tab 同源同周。
+      promise = CourseRepository.get().getSchedule(undefined, CURRENT_TEACHING_WEEK);
     }
     promise
       .then((res: ScheduleItem[]) => {

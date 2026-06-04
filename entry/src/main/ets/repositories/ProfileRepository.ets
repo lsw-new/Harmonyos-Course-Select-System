@@ -15,6 +15,9 @@ import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppConfig } from '../app/AppConfig';
 import { RemoteApi, RemoteLeave, RemoteFeedback } from '../common/remote/RemoteApi';
+import { CourseRepository } from './CourseRepository';
+import { ScheduleItem } from '../models/Course';
+import { TermInfo } from '../models/Home';
 
 const KEY_LOCAL_LEAVES = 'local.leaveRequests.v1';
 const KEY_LOCAL_FEEDBACK = 'local.feedback.v1';
@@ -68,7 +71,7 @@ export class ProfileRepository extends BaseRepository {
 
   private async getLocalFeedback(): Promise<FeedbackItem[]> {
     if (!this.isFeedbackLoaded) {
-      this.localFeedback = await LocalDataStore.loadArray<FeedbackItem>(KEY_LOCAL_FEEDBACK, []);
+      this.localFeedback = await LocalDataStore.loadArray<FeedbackItem>(this.scopedKey(KEY_LOCAL_FEEDBACK), []);
       this.isFeedbackLoaded = true;
     }
     return this.localFeedback;
@@ -114,6 +117,12 @@ export class ProfileRepository extends BaseRepository {
 
   private getCurrentStudentProfile(): UserProfile {
     return SessionStorage.get().getStudent() ?? this.workingProfile;
+  }
+
+  // 学生私有的本地持久化 key 按当前登录学生隔离：base + '.' + studentId；未登录学生回退原 base。
+  private scopedKey(base: string): string {
+    const s = SessionStorage.get().getStudent();
+    return (s && s.studentId.length > 0) ? `${base}.${s.studentId}` : base;
   }
 
   private parseStringArray(raw: string): string[] {
@@ -263,8 +272,27 @@ export class ProfileRepository extends BaseRepository {
     return this.delayCopy<UserProfile>(next);
   }
 
+  // 今日星期：用真实日期 MM/DD 在本周日期表中定位（与首页“今日”高亮口径一致）；
+  // 超出本周范围时回退 JS 星期（周日记为 7）。
+  private resolveTodayWeekday(term: TermInfo): number {
+    const now = new Date();
+    const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+    const dd = now.getDate().toString().padStart(2, '0');
+    const idx = term.weekDates.indexOf(`${mm}/${dd}`);
+    if (idx >= 0) {
+      return idx + 1;
+    }
+    const js = now.getDay();
+    return js === 0 ? 7 : js;
+  }
+
   async getHomeSummary(): Promise<HomeSummary> {
     const summary = await this.delayCopy<HomeSummary>(mockHomeSummary);
+    // 今日课表改用与课表页同源的合并结果（导入课表 + 已选课程），按当前教学周 + 今日星期过滤，
+    // 使导入课表/选课后首页今天课表立即跟随。
+    const weekday = this.resolveTodayWeekday(summary.term);
+    const weekSchedule = await CourseRepository.get().getSchedule(undefined, summary.term.weekIndex);
+    summary.todayCourses = weekSchedule.filter((s: ScheduleItem) => s.weekday === weekday);
     // 未读角标与通知摘要改为按通知仓储动态计算，反映已读状态（避免静态快照不刷新）
     const notices = await NoticeStore.list(mockNotices);
     summary.unreadNoticeCount = notices.filter((n) => !n.isRead).length;
@@ -405,7 +433,7 @@ export class ProfileRepository extends BaseRepository {
     const next = [item].concat(localItems);
     this.localFeedback = next;
     this.isFeedbackLoaded = true;
-    await LocalDataStore.saveArray<FeedbackItem>(KEY_LOCAL_FEEDBACK, next);
+    await LocalDataStore.saveArray<FeedbackItem>(this.scopedKey(KEY_LOCAL_FEEDBACK), next);
     return this.delay<FeedbackItem>(item);
   }
 
