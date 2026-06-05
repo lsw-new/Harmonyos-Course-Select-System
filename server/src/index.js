@@ -69,6 +69,70 @@ function deriveTimeText(row) {
   return row.weeks_text || '';
 }
 
+// 解析课程周次文本（形如 "1-16 周" / "2-15 周" / "1,3,5 周" / "1-8,10-16"）为周次数组。
+// 与前端 CourseRepository.parseCourseWeeks 同源，保证前后端冲突判定口径一致。
+function parseCourseWeeks(weeksStr) {
+  const out = [];
+  const cleaned = String(weeksStr || '').replace(/[^0-9,\-]/g, '');
+  if (!cleaned) {
+    return out;
+  }
+  for (const tok of cleaned.split(',')) {
+    if (!tok) {
+      continue;
+    }
+    const dash = tok.indexOf('-');
+    if (dash > 0) {
+      const a = parseInt(tok.slice(0, dash), 10);
+      const b = parseInt(tok.slice(dash + 1), 10);
+      if (!Number.isNaN(a) && !Number.isNaN(b)) {
+        for (let w = a; w <= b; w++) {
+          if (out.indexOf(w) < 0) {
+            out.push(w);
+          }
+        }
+      }
+    } else {
+      const w = parseInt(tok, 10);
+      if (!Number.isNaN(w) && out.indexOf(w) < 0) {
+        out.push(w);
+      }
+    }
+  }
+  return out;
+}
+
+// 两门课是否时间冲突：同一星期、节次区间重叠、且周次有交集（与前端 coursesConflict 同源）。
+// 未排课（weekday/period 缺失，如集中实践）不参与冲突判定。
+function coursesConflict(a, b) {
+  const wda = Number(a.weekday);
+  const wdb = Number(b.weekday);
+  if (!wda || !wdb || wda < 1 || wdb < 1) {
+    return false;
+  }
+  if (wda !== wdb) {
+    return false;
+  }
+  const psa = Number(a.period_start);
+  const pea = Number(a.period_end);
+  const psb = Number(b.period_start);
+  const peb = Number(b.period_end);
+  if (!psa || !pea || !psb || !peb) {
+    return false;
+  }
+  if (psa > peb || psb > pea) {
+    return false;
+  }
+  const wa = parseCourseWeeks(a.weeks_text);
+  const wb = parseCourseWeeks(b.weeks_text);
+  for (const w of wa) {
+    if (wb.indexOf(w) >= 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function mapCourse(row) {
   return {
     id: row.course_id,
@@ -404,15 +468,18 @@ app.post('/api/selections', authRequired, async (req, res) => {
   try {
     await client.query('BEGIN');
     const round = await client.query(
-      `SELECT round_id FROM dtest2.selection_rounds WHERE status='running' ORDER BY start_time DESC LIMIT 1`
+      `SELECT round_id, credit_limit FROM dtest2.selection_rounds WHERE status='running' ORDER BY start_time DESC LIMIT 1`
     );
     if (round.rowCount === 0) {
       await client.query('ROLLBACK');
       return res.status(409).json(fail('当前不在选课时间，暂不能选课'));
     }
     const roundId = round.rows[0].round_id;
+    const creditLimit = Number(round.rows[0].credit_limit);
+    // FOR UPDATE 锁定课程行：序列化同一课程的并发选课，使下方 COUNT 容量校验与 INSERT 原子化，杜绝超容量。
     const course = await client.query(
-      `SELECT capacity, status FROM dtest2.courses WHERE course_id=$1`, [courseId]
+      `SELECT capacity, status, credit, weekday, period_start, period_end, weeks_text
+         FROM dtest2.courses WHERE course_id=$1 FOR UPDATE`, [courseId]
     );
     if (course.rowCount === 0) {
       await client.query('ROLLBACK');
@@ -436,6 +503,29 @@ app.post('/api/selections', authRequired, async (req, res) => {
     if (cnt.rows[0].n >= course.rows[0].capacity) {
       await client.query('ROLLBACK');
       return res.status(409).json(fail('课程容量已满'));
+    }
+    // 学分上限 + 时间冲突：后端为单一事实来源，基于当前轮次已选课程做权威校验（前端提示仅作辅助）。
+    const targetCourse = course.rows[0];
+    const selected = await client.query(
+      `SELECT c.name, c.credit, c.weekday, c.period_start, c.period_end, c.weeks_text
+         FROM dtest2.selections s
+         JOIN dtest2.courses c ON c.course_id = s.course_id
+        WHERE s.student_id=$1 AND s.round_id=$2 AND s.status='selected'`,
+      [studentId, roundId]
+    );
+    let selectedCredits = 0;
+    for (const row of selected.rows) {
+      selectedCredits += Number(row.credit);
+    }
+    if (selectedCredits + Number(targetCourse.credit) > creditLimit) {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail(`超过学分上限（${creditLimit} 学分）`));
+    }
+    for (const row of selected.rows) {
+      if (coursesConflict(targetCourse, row)) {
+        await client.query('ROLLBACK');
+        return res.status(409).json(fail(`与「${row.name}」时间冲突`));
+      }
     }
     const selId = `sel-${studentId}-${courseId}-${roundId}`;
     await client.query(
@@ -890,7 +980,8 @@ app.post('/api/practice/:id/signup', authRequired, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const proj = await client.query(`SELECT slots_total FROM dtest2.practice_projects WHERE project_id=$1`, [projectId]);
+    // FOR UPDATE 锁定项目行：序列化同一项目的并发报名，使下方 COUNT 名额校验与 INSERT 原子化，杜绝超名额。
+    const proj = await client.query(`SELECT slots_total FROM dtest2.practice_projects WHERE project_id=$1 FOR UPDATE`, [projectId]);
     if (proj.rowCount === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json(fail('实践项目不存在'));
