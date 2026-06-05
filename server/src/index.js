@@ -14,6 +14,8 @@ const {
   mapNotice, mapLeave, mapFeedback, mapEval, mapPractice, PRACTICE_SELECT,
   leaveTypeLabel, mapStudent, mapGradeTask, mapApproval, mapAuditLog, mapTemplate
 } = require('./mappers');
+const { globalLimiter, authLimiter } = require('./middleware/rateLimit');
+const { serverError } = require('./middleware/errorHandler');
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
@@ -29,47 +31,8 @@ const CORS_ORIGINS = (process.env.CORS_ORIGINS || '')
   .split(',').map((s) => s.trim()).filter((s) => s.length > 0);
 app.use(cors({ origin: CORS_ORIGINS.length > 0 ? CORS_ORIGINS : false, credentials: true }));
 
-// P2-01：极简内存级限流（单进程 fork 模式足够，无需新依赖）。固定窗口、按 IP 计数。
-function createRateLimiter(windowMs, max) {
-  const hits = new Map();
-  const timer = setInterval(() => {
-    const now = Date.now();
-    for (const [key, rec] of hits) {
-      if (now >= rec.resetAt) hits.delete(key);
-    }
-  }, windowMs);
-  if (timer.unref) timer.unref();
-  return (req, res, next) => {
-    const ip = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
-    const now = Date.now();
-    let rec = hits.get(ip);
-    if (!rec || now >= rec.resetAt) {
-      rec = { count: 0, resetAt: now + windowMs };
-      hits.set(ip, rec);
-    }
-    rec.count += 1;
-    if (rec.count > max) {
-      res.set('Retry-After', String(Math.ceil((rec.resetAt - now) / 1000)));
-      return res.status(429).json(fail('请求过于频繁，请稍后再试', 'rate_limited'));
-    }
-    next();
-  };
-}
-const RL_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10);
-const RL_GLOBAL_MAX = parseInt(process.env.RATE_LIMIT_MAX || '300', 10);
-const RL_AUTH_MAX = parseInt(process.env.AUTH_RATE_LIMIT_MAX || '10', 10);
-const globalLimiter = createRateLimiter(RL_WINDOW_MS, RL_GLOBAL_MAX);
-const authLimiter = createRateLimiter(RL_WINDOW_MS, RL_AUTH_MAX);
-
 app.use(globalLimiter);
 app.use(express.json());
-
-// 统一 500 处理：完整错误（含堆栈）记入服务端日志（pm2 可查），客户端只收通用文案，
-// 不把 e.message 回给客户端，避免泄露 DB 约束名 / 连接串 / 内部实现等敏感细节。
-function serverError(res, label, e, code) {
-  console.error(`[dtest2-api] ${label}:`, (e && e.stack) ? e.stack : e);
-  return res.status(500).json(fail(`${label}，请稍后重试`, code));
-}
 
 // P0-01 越权防护：当前学生身份一律取自 JWT（登录账号即学号，token.sub=account_id=student_id），
 // 不再信任客户端 query/body 传入的 studentId，杜绝 IDOR 水平越权。
