@@ -93,7 +93,11 @@ export class AuthRepository extends BaseRepository {
         await SessionStorage.get().setStudentSession(remote.token, user);
         return this.delay<LoginResult>(remoteResult);
       } catch (e) {
-        // 远程登录失败回退本地校验
+        // 远程登录失败：生产模式（禁止回退）下直接报错，不静默用本地/mock 账号建立会话
+        if (!AppConfig.allowMockFallbackInRemote) {
+          return this.reject('远程服务异常，登录失败，请检查网络后重试');
+        }
+        // 演示模式：回退本地校验
       }
     }
 
@@ -289,7 +293,11 @@ export class AuthRepository extends BaseRepository {
           return this.delay<AdminLoginResult>(remoteResult);
         }
       } catch (e) {
-        // 远程登录失败回退本地校验
+        // 远程登录失败：生产模式（禁止回退）下直接报错，不静默回退本地 mock 管理员
+        if (!AppConfig.allowMockFallbackInRemote) {
+          return this.reject('远程服务异常，登录失败，请检查网络后重试');
+        }
+        // 演示模式：回退本地校验
       }
     }
 
