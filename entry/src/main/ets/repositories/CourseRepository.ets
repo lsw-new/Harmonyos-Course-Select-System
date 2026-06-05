@@ -575,7 +575,11 @@ export class CourseRepository extends BaseRepository {
       try {
         return await this.remoteSelectionRound();
       } catch (e) {
-        // 远程失败回退本地
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 否则回退本地
       }
     }
     const active = await SelectionAdminRepository.get().getActiveRound();
@@ -616,7 +620,11 @@ export class CourseRepository extends BaseRepository {
       try {
         return await this.remoteSelectionCourses(query, category);
       } catch (e) {
-        // 远程失败回退本地
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 否则回退本地
       }
     }
     const catalog = await this.getOpenCatalog();
@@ -725,7 +733,11 @@ export class CourseRepository extends BaseRepository {
         });
         return this.delayCopy<SelectionCourse[]>(remoteItems);
       } catch (e) {
-        // 远程失败回退本地
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 否则回退本地
       }
     }
     const catalog = await this.getFullCatalog();
@@ -763,7 +775,11 @@ export class CourseRepository extends BaseRepository {
         const remoteItems: Notice[] = remote.map((n) => this.remoteToNotice(n));
         return this.delayCopy<Notice[]>(remoteItems);
       } catch (e) {
-        // 远程失败回退本地
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 否则回退本地
       }
     }
     let items = await NoticeStore.list(mockNotices, category);
@@ -779,7 +795,11 @@ export class CourseRepository extends BaseRepository {
         const remote = await RemoteApi.noticeDetail(this.currentStudentId(), id);
         return this.delayCopy<Notice>(this.remoteToNotice(remote));
       } catch (e) {
-        // 远程失败回退本地
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 否则回退本地
       }
     }
     const item = await NoticeStore.detail(mockNotices, id);

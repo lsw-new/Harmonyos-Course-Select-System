@@ -72,7 +72,11 @@ export class AccessControlRepository extends BaseRepository {
           const remote = await RemoteApi.adminListRoles();
           return this.delayCopy<AdminRoleView[]>(remote.map((r) => this.remoteToRole(r)));
         } catch (e) {
-          // 远程失败回退本地
+          // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+          if (!AppConfig.allowMockFallbackInRemote) {
+            throw new Error('远程服务异常，请稍后重试');
+          }
+          // 否则回退本地
         }
       }
     }
@@ -88,7 +92,11 @@ export class AccessControlRepository extends BaseRepository {
           const remote = await RemoteApi.adminListAuditLogs(typeFilter);
           return this.delayCopy<AuditLogEntry[]>(remote.map((l) => this.remoteToAuditLog(l)));
         } catch (e) {
-          // 远程失败回退本地
+          // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+          if (!AppConfig.allowMockFallbackInRemote) {
+            throw new Error('远程服务异常，请稍后重试');
+          }
+          // 否则回退本地
         }
       }
     }

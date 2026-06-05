@@ -705,7 +705,11 @@ export class AdminRepository extends BaseRepository {
         const remote = await RemoteApi.adminListStudents(query, college);
         return this.delayCopy<StudentAdminItem[]>(remote.map((s) => this.remoteToStudent(s)));
       } catch (e) {
-        // 远程失败回退本地
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 否则回退本地
       }
     }
     let items = mockAdminStudents;
@@ -860,7 +864,11 @@ export class AdminRepository extends BaseRepository {
         const remote = await RemoteApi.adminListGrades(status);
         return this.delayCopy<GradeAuditItem[]>(remote.map((t) => this.remoteToGradeTask(t)));
       } catch (e) {
-        // 远程失败回退本地
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 否则回退本地
       }
     }
     let items = await this.getGradeItems();
@@ -1053,7 +1061,11 @@ export class AdminRepository extends BaseRepository {
         const remote = await RemoteApi.adminListApprovals(status);
         return this.delayCopy<ApprovalItem[]>(remote.map((a) => this.remoteToApproval(a)));
       } catch (e) {
-        // 远程失败回退本地
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 否则回退本地
       }
     }
     let items = await this.getApprovalItems();

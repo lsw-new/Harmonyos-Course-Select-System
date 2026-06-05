@@ -331,7 +331,11 @@ export class ProfileRepository extends BaseRepository {
           const remoteItems: LeaveRequest[] = remote.map((l) => this.remoteToLeave(l));
           return this.delayCopy<LeaveRequest[]>(remoteItems);
         } catch (e) {
-          // 远程失败回退本地
+          // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+          if (!AppConfig.allowMockFallbackInRemote) {
+            throw new Error('远程服务异常，请稍后重试');
+          }
+          // 否则回退本地
         }
       }
     }
@@ -403,7 +407,11 @@ export class ProfileRepository extends BaseRepository {
           const remote = await RemoteApi.listFeedback(student.studentId);
           return this.delayCopy<FeedbackItem[]>(remote.map((f) => this.remoteToFeedback(f)));
         } catch (e) {
-          // 远程失败回退本地
+          // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+          if (!AppConfig.allowMockFallbackInRemote) {
+            throw new Error('远程服务异常，请稍后重试');
+          }
+          // 否则回退本地
         }
       }
     }

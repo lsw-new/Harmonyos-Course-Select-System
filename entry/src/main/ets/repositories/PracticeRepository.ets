@@ -159,7 +159,11 @@ export class PracticeRepository extends BaseRepository {
           const remote = await RemoteApi.listPractice(student.studentId, category);
           return this.delayCopy<PracticeProject[]>(remote.map((p) => this.remoteToProject(p)));
         } catch (e) {
-          // 远程失败回退本地
+          // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+          if (!AppConfig.allowMockFallbackInRemote) {
+            throw new Error('远程服务异常，请稍后重试');
+          }
+          // 否则回退本地
         }
       }
     }
@@ -183,7 +187,11 @@ export class PracticeRepository extends BaseRepository {
           const remote = await RemoteApi.practiceDetail(student.studentId, id);
           return this.delayCopy<PracticeProjectDetail>(this.remoteToDetail(remote));
         } catch (e) {
-          // 远程失败回退本地
+          // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+          if (!AppConfig.allowMockFallbackInRemote) {
+            throw new Error('远程服务异常，请稍后重试');
+          }
+          // 否则回退本地
         }
       }
     }
