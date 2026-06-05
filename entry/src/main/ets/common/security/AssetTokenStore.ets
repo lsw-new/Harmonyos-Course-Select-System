@@ -1,10 +1,11 @@
-// Token 安全存储 · 优先用 @kit.AssetStoreKit（TEE/安全硬件级），不可用时降级到“进程内内存”兜底。
-// Asset Store Kit 在运行期不可用（仿真器/低版本）时由 try/catch 自动回退。
-// 安全加固（P2-02）：降级路径**不再把长期 token 明文写入 Preferences**，改为仅保存在进程内存中。
-//   - 原因：Preferences 明文落盘会让 token 长期暴露在本地存储里（备份/取证风险）。
-//   - 影响可控：会话 token 的持久化由 SessionStorage 自身的 'session.token' 负责，
-//     AssetTokenStore 仅作为“安全镜像”。降级到内存后，同一进程内的 set/get 仍然一致，
-//     冷启动后的登录态仍由 SessionStorage.restore() 恢复，不依赖本兜底持久化。
+// Token 安全存储 · token 的权威持久化来源。优先用 @kit.AssetStoreKit（TEE/安全硬件级）；
+// 运行期不可用（仿真器/无 TEE 的低端机）时由 try/catch 自动降级到“进程内内存”兜底。
+// 安全模型（P2-02 收口）：
+//   - 长期 token 只存 Asset Store。SessionStorage 不再把 'session.token' 明文写入 Preferences；
+//     冷启动后的登录 token 由 SessionStorage.restore()→reconcileSecureToken() 从 Asset Store 取回。
+//   - Preferences 的 'fallback.token.*' 仅用于读取旧版本可能残留的明文 token，作一次性只读迁移，
+//     迁移/登出后即删（见 secureRemove），杜绝 token 长期明文落盘（备份/取证风险）。
+//   - 降级到内存后不落盘：同一进程内 set/get 一致，但冷启动内存清空 → 需重新登录（安全优先于便利）。
 // 说明：Asset Kit 分支按官方文档 Map 式 API 编写并通过构建校验，但本环境无法真机验证其运行路径。
 
 import util from '@ohos.util';
@@ -145,7 +146,7 @@ async function secureRemove(alias: string, prefKey: string): Promise<void> {
 // ---- 公开 API ---------------------------------------------------------------
 
 export class AssetTokenStore {
-  // 保存学生端 token（安全存储，降级到 Preferences）。
+  // 保存学生端 token（权威存安全存储；Asset 不可用时降级到进程内存，不落盘）。
   static async setStudentToken(token: string): Promise<void> {
     await secureSet(ASSET_ALIAS_STUDENT, token, PREF_KEY_STUDENT);
   }
@@ -155,7 +156,7 @@ export class AssetTokenStore {
     return secureGet(ASSET_ALIAS_STUDENT, PREF_KEY_STUDENT);
   }
 
-  // 保存管理员端 token（安全存储，降级到 Preferences）。
+  // 保存管理员端 token（权威存安全存储；Asset 不可用时降级到进程内存，不落盘）。
   static async setAdminToken(token: string): Promise<void> {
     await secureSet(ASSET_ALIAS_ADMIN, token, PREF_KEY_ADMIN);
   }
