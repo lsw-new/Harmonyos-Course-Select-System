@@ -27,8 +27,8 @@
 │   ├── src/ohosTest/         # OHOS 测试
 │   └── src/test/             # 本地单元测试
 ├── hvigor/                   # Hvigor 构建配置
-├── UI设计图/                 # UI 设计源文件
-├── UI设计图片/               # README 中引用的 UI 页面展示图片
+├── server/                   # Track B 远程后端 API（Node + Express + pg）+ Jest 测试套件
+├── docs/                     # 文档与实机运行截图（docs/screenshots/）
 ├── build-profile.json5       # 工程构建配置
 ├── hvigorfile.ts             # Hvigor 入口配置
 └── oh-package.json5          # OpenHarmony 包配置
@@ -119,10 +119,44 @@ entry/src/main/ets/
 - **密码哈希 bcrypt**：新口令 bcrypt，旧 SHA-256 账号登录成功后惰性升级；存量账号不中断。
 - **JWT 强制密钥**：缺失或过短的 `JWT_SECRET` 拒绝启动（移除弱默认）。
 - **限流与 CORS**：内存级限流（全局 / 登录与验证码分级，超限 429）；CORS 默认关闭跨域。
-- **本地数据隔离**：实践 / 评教 / 反馈 / 课表等本地缓存按用户 `scopedKey` 隔离，换账号不串数据；长期 token 改 Asset 安全存储。
+- **本地数据隔离**：实践 / 评教 / 反馈 / 课表等本地缓存按用户 `scopedKey` 隔离，换账号不串数据；**会话 token 仅存 Asset 安全存储，不再明文写入 Preferences**（旧版明文一次性迁移后清除）。
+- **个人资料同源**：登录后首页 / 我的 / 编辑资料优先读会话真实 profile（远程登录下发），未登录才回退本地 mock，避免真实账号被显示或覆盖为 mock 资料。
+- **选课规则后端兜底 + 并发安全**：选课的学分上限与时间冲突由后端在事务内权威校验（前端提示仅作辅助）；选课 / 实践报名对课程 / 项目行加 `SELECT … FOR UPDATE` 行锁，杜绝「先 count 再 insert」竞态导致的超容量 / 超名额。
 - **账号闭环**：注册真正落库（账号 + 学生资料）、找回密码校验账号存在且邮箱匹配（不再自动建号）、远程登录返回真实 profile（管理员含真实权限矩阵）。
 
-## UI 页面设计展示
+## 测试
+
+后端 API 配套 **Jest + supertest** 自动化测试套件（`server/test/`）：
+
+- **103 个用例 / 10 个套件**，覆盖登录与鉴权中间件、越权（IDOR）防护、管理端细粒度权限、限流、选课事务（轮次 / 容量 / 学分上限 / 时间冲突 + `FOR UPDATE` 行锁 + 失败回滚）、实践报名、注册与找回密码闭环、各读写端点，以及选课规则纯函数。
+- **行覆盖率 80.9%**（语句 79.9% / 函数 80.2%）；数据库连接池与 SMTP 等基础设施按约定排除统计。
+- 持久层经 mock 注入，无需真实数据库即可运行：`cd server && npm test`（或 `npm run test:coverage`）。
+- **CI**：[`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml) 在 push / PR 时于 Node 18 / 20 跑 `npm ci` + 覆盖率（仓库托管 Gitee，镜像到 GitHub 即自动运行）。
+
+> 前端 ArkTS 页面另有 hypium 单元测试（`entry/src/ohosTest/`、`entry/src/test/`），需在 DevEco Studio + 模拟器 / 真机内运行，不纳入无头 CI。
+
+## UI 实机运行截图
+
+> 以下为 **HarmonyOS 模拟器实机运行截图**（UI 验证轮采集，位于 [`docs/screenshots/`](docs/screenshots)）。设计风格：Elysia 玫瑰学院风 · 玫瑰粉 `#F2709C` / 奶油白 `#FFFDFB` / 浅紫 `#B589FF` / 金色 `#D9B675`。
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/screenshots/01-login.jpeg" alt="学生登录" width="210" /><br/><sub>学生登录</sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/02-home.jpeg" alt="首页工作台" width="210" /><br/><sub>首页工作台</sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/03-schedule.jpeg" alt="我的课表" width="210" /><br/><sub>我的课表</sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/04-selection.jpeg" alt="选课中心" width="210" /><br/><sub>选课中心</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/05-notices.jpeg" alt="通知列表" width="210" /><br/><sub>通知列表</sub></td>
+    <td align="center"><img src="docs/screenshots/06-notice-detail.jpeg" alt="通知详情" width="210" /><br/><sub>通知详情</sub></td>
+    <td align="center"><img src="docs/screenshots/07-practice.jpeg" alt="实践公服" width="210" /><br/><sub>实践公服</sub></td>
+    <td align="center"><img src="docs/screenshots/08-practice-detail.jpeg" alt="实践详情" width="210" /><br/><sub>实践详情</sub></td>
+  </tr>
+</table>
+
+> 上图为学生端核心流程（登录 → 首页 → 课表 / 选课 → 通知 → 实践）的实机截图；管理端与其余页面见下方「页面分组说明」与「完整页面清单」。
+
+## 页面分组说明
 
 文档版本：V1.1  
 设计风格：Elysia 玫瑰学院风  
@@ -133,8 +167,6 @@ entry/src/main/ets/
 
 学生端与管理端均采用玫瑰学院风视觉语言。学生端使用学号密码登录，管理端增加图形验证码。
 
-![认证页面：学生登录、注册、忘记密码](UI设计图片/1.png)
-
 **包含页面：**
 
 - 学生登录 LoginScreen：品牌 Logo + 欢迎语 + 学号/密码输入 + 登录按钮（玫瑰渐变胶囊）
@@ -144,8 +176,6 @@ entry/src/main/ets/
 ### 二、学生端首页
 
 首页以教学周卡片、快捷入口网格、今日课程列表和通知摘要组织高频信息。
-
-![学生端首页相关页面](UI设计图片/2.png)
 
 **包含页面：**
 
@@ -158,8 +188,6 @@ entry/src/main/ets/
 
 课表以周视图呈现，选课中心支持分类筛选与搜索。
 
-![课程相关页面](UI设计图片/3.png)
-
 **包含页面：**
 
 - 我的课表 ScheduleScreen：周视图课程表，颜色区分课程类型
@@ -170,8 +198,6 @@ entry/src/main/ets/
 
 成绩查询、考试安排与学籍信息集中展示。
 
-![学业信息页面](UI设计图片/4.png)
-
 **包含页面：**
 
 - 成绩查询 GradesScreen：学期筛选 + 课程成绩列表 + GPA 统计
@@ -181,8 +207,6 @@ entry/src/main/ets/
 ### 五、评教与杂项功能
 
 评教、请假、反馈、实践等辅助功能。
-
-![评教与杂项功能页面](UI设计图片/5.png)
 
 **包含页面：**
 
@@ -196,8 +220,6 @@ entry/src/main/ets/
 
 个人信息管理、账户安全与应用设置。
 
-![个人中心页面](UI设计图片/6.png)
-
 **包含页面：**
 
 - 我的 MineScreen：头像 + 基本信息 + 功能入口列表
@@ -210,8 +232,6 @@ entry/src/main/ets/
 
 管理端保留同一套玫瑰主题，信息密度更高，突出统计数据、图表和审批操作。
 
-![管理端登录与仪表盘](UI设计图片/7.png)
-
 **包含页面：**
 
 - 管理员登录 AdminLogin：`ADMIN · 教务` 标识 + 工号/密码 + 图形验证码
@@ -221,8 +241,6 @@ entry/src/main/ets/
 ### 八、管理端 — 课程与成绩管理
 
 课程、选课、成绩、通知的集中管理。
-
-![管理端课程与成绩管理](UI设计图片/8.png)
 
 **包含页面：**
 
@@ -234,12 +252,6 @@ entry/src/main/ets/
 ### 九、管理端 — 评教与审批
 
 评教数据管理与审批流程处理。
-
-![管理端评教管理](UI设计图片/9-1.png)
-
-![管理端审批中心](UI设计图片/9-2.png)
-
-![管理端审批详情与管理员中心](UI设计图片/9-3.png)
 
 **包含页面：**
 
@@ -387,7 +399,7 @@ $env:DEVECO_SDK_HOME = 'D:\DevEco Studio\sdk'
 
 - 学生端用于完成课程查看、选课、成绩考试查询、评教反馈、请假实践和个人信息管理。
 - 管理端用于完成学生、课程、选课、成绩、通知和审批流程管理。
-- README 中的 UI 截图位于 `UI设计图片/` 目录下，查看仓库首页或使用 Markdown 预览时会自动引用这些图片。
+- README 中的 UI 实机截图位于 `docs/screenshots/` 目录下，查看仓库首页或使用 Markdown 预览时会自动引用这些图片。
 
 ## 参与贡献
 
