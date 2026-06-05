@@ -47,6 +47,8 @@ export class SessionStorage {
 
   async restore(): Promise<void> {
     const prefs = PreferenceStorage.get();
+    // KEY_TOKEN 仅用于读取旧版本可能残留的明文 token，作为一次性迁移的桥接来源；
+    // 新版本不再写入此键，长期 token 的权威来源是 AssetTokenStore（见 reconcileSecureToken）。
     const t = await prefs.getString(KEY_TOKEN);
     const r = await prefs.getString(KEY_ROLE);
     this.token = t || undefined;
@@ -78,14 +80,18 @@ export class SessionStorage {
     }
     if (secure !== undefined && secure.length > 0) {
       this.token = secure;
+      // 安全存储已是权威来源：清除旧版本可能残留的 Preferences 明文 token
+      await PreferenceStorage.get().remove(KEY_TOKEN);
       return;
     }
     if (this.token !== undefined && this.token.length > 0) {
+      // 旧版本明文 token 一次性迁移到安全存储，迁移后删除 Preferences 明文，杜绝长期落盘
       if (this.role === 'admin') {
         await AssetTokenStore.setAdminToken(this.token);
       } else {
         await AssetTokenStore.setStudentToken(this.token);
       }
+      await PreferenceStorage.get().remove(KEY_TOKEN);
     }
   }
 
@@ -206,7 +212,9 @@ export class SessionStorage {
     this.studentProfile = profile;
     this.adminProfile = undefined;
     const prefs = PreferenceStorage.get();
-    await prefs.putString(KEY_TOKEN, token);
+    // 安全加固：token 仅由 AssetTokenStore（安全存储）持久化，不再明文写入 Preferences；
+    // 主动清除旧版本可能残留的明文 token。会话内 token 由内存字段 this.token 提供。
+    await prefs.remove(KEY_TOKEN);
     await prefs.putString(KEY_ROLE, 'student');
     await prefs.putString(KEY_STUDENT_PROFILE, JSON.stringify(profile));
     await prefs.remove(KEY_ADMIN_PROFILE);
@@ -226,7 +234,9 @@ export class SessionStorage {
     this.adminProfile = profile;
     this.studentProfile = undefined;
     const prefs = PreferenceStorage.get();
-    await prefs.putString(KEY_TOKEN, token);
+    // 安全加固：token 仅由 AssetTokenStore（安全存储）持久化，不再明文写入 Preferences；
+    // 主动清除旧版本可能残留的明文 token。会话内 token 由内存字段 this.token 提供。
+    await prefs.remove(KEY_TOKEN);
     await prefs.putString(KEY_ROLE, 'admin');
     await prefs.putString(KEY_ADMIN_PROFILE, JSON.stringify(profile));
     await prefs.remove(KEY_STUDENT_PROFILE);
