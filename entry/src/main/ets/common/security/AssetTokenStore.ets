@@ -35,8 +35,8 @@ function strToBytes(text: string): Uint8Array {
 }
 
 function bytesToStr(bytes: Uint8Array): string {
-  const decoder = new util.TextDecoder();
-  return decoder.decodeWithStream(bytes);
+  const decoder = util.TextDecoder.create('utf-8');
+  return decoder.decodeToString(bytes);
 }
 
 // ---- Asset Kit 调用封装（官方 Map 式 API） -----------------------------------

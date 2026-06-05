@@ -58,14 +58,14 @@ struct SchedulePage {
 
   private importBundled(): void {
     this.runImport(() => {
-      const ctx = getContext(this) as common.UIAbilityContext;
+      const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
       return ScheduleImportService.importBundledSchedule(ctx, DEFAULT_TERM);
     }, '已导入我的课表');
   }
 
   private importFromFile(): void {
     this.runImport(() => {
-      const ctx = getContext(this) as common.UIAbilityContext;
+      const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
       return ScheduleImportService.pickAndImportSchedule(ctx, DEFAULT_TERM);
     }, '已从文件导入课表');
   }
