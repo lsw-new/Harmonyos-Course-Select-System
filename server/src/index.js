@@ -748,7 +748,34 @@ app.delete('/api/practice/:id/signup', authRequired, async (req, res) => {
   }
 });
 
-// ================= 管理端域（需 role=admin）=================
+// ================= 管理端域（需 role=admin + 细粒度权限）=================
+
+// P0-02 细粒度鉴权：在 adminRequired（登录态 + role=admin）基础上，再校验当前管理员
+// 所属角色是否拥有指定权限码。权限只从数据库读取（admin_profiles.role_id → role_permissions），
+// 不写入 token，避免前端伪造。keys 为 'code:action' 列表，命中任意一个即放行（fail-closed）。
+function permissionRequired(...keys) {
+  return (req, res, next) => {
+    adminRequired(req, res, async () => {
+      const adminId = (req.auth && req.auth.sub) ? String(req.auth.sub) : '';
+      try {
+        const r = await pool.query(
+          `SELECT 1 FROM dtest2.admin_profiles ap
+             JOIN dtest2.role_permissions rp ON rp.role_id = ap.role_id
+            WHERE ap.admin_id = $1
+              AND (rp.code || ':' || rp.action) = ANY($2::text[])
+            LIMIT 1`,
+          [adminId, keys]
+        );
+        if (r.rowCount === 0) {
+          return res.status(403).json(fail('权限不足，需要相应管理权限', 'forbidden'));
+        }
+        next();
+      } catch (e) {
+        return res.status(500).json(fail('权限校验失败：' + e.message, 'server_error'));
+      }
+    });
+  };
+}
 
 function leaveTypeLabel(type) {
   if (type === 'sick') return '病假';
@@ -800,7 +827,7 @@ function mapApproval(row) {
 }
 
 // ---- 学生管理（列表）----
-app.get('/api/admin/students', adminRequired, async (req, res) => {
+app.get('/api/admin/students', permissionRequired('students.manage:view'), async (req, res) => {
   const q = req.query.q ? String(req.query.q) : null;
   const college = req.query.college ? String(req.query.college) : null;
   try {
@@ -818,7 +845,7 @@ app.get('/api/admin/students', adminRequired, async (req, res) => {
 });
 
 // ---- 成绩审核（列表）----
-app.get('/api/admin/grades', adminRequired, async (req, res) => {
+app.get('/api/admin/grades', permissionRequired('grades.approve:view', 'grades.input:view'), async (req, res) => {
   const status = req.query.status ? String(req.query.status) : null;
   try {
     const r = await pool.query(
@@ -836,7 +863,7 @@ app.get('/api/admin/grades', adminRequired, async (req, res) => {
 });
 
 // ---- 成绩录入 ----
-app.post('/api/admin/grades/:id/input', adminRequired, async (req, res) => {
+app.post('/api/admin/grades/:id/input', permissionRequired('grades.input:update', 'grades.input:create'), async (req, res) => {
   const inputProgress = Number((req.body || {}).inputProgress);
   if (!Number.isInteger(inputProgress) || inputProgress < 0 || inputProgress > 100) {
     return res.status(400).json(fail('录入进度需为 0-100 的整数'));
@@ -868,7 +895,7 @@ app.post('/api/admin/grades/:id/input', adminRequired, async (req, res) => {
 });
 
 // ---- 成绩审核通过 ----
-app.post('/api/admin/grades/:id/approve', adminRequired, async (req, res) => {
+app.post('/api/admin/grades/:id/approve', permissionRequired('grades.approve:approve'), async (req, res) => {
   try {
     const cur = await pool.query(`SELECT status, input_progress FROM dtest2.grade_tasks WHERE task_id=$1`, [req.params.id]);
     if (cur.rowCount === 0) {
@@ -888,7 +915,7 @@ app.post('/api/admin/grades/:id/approve', adminRequired, async (req, res) => {
 });
 
 // ---- 成绩驳回 ----
-app.post('/api/admin/grades/:id/reject', adminRequired, async (req, res) => {
+app.post('/api/admin/grades/:id/reject', permissionRequired('grades.approve:approve'), async (req, res) => {
   const reason = ((req.body || {}).reason || '').trim();
   if (!reason) {
     return res.status(400).json(fail('请填写驳回理由'));
@@ -909,7 +936,7 @@ app.post('/api/admin/grades/:id/reject', adminRequired, async (req, res) => {
 });
 
 // ---- 审批（列表）----
-app.get('/api/admin/approvals', adminRequired, async (req, res) => {
+app.get('/api/admin/approvals', permissionRequired('approvals.handle:view'), async (req, res) => {
   const status = req.query.status ? String(req.query.status) : null;
   try {
     const r = await pool.query(
@@ -958,7 +985,7 @@ async function handleApproval(req, res, newStatus, comment) {
 }
 
 // ---- 审批通过 ----
-app.post('/api/admin/approvals/:id/approve', adminRequired, async (req, res) => {
+app.post('/api/admin/approvals/:id/approve', permissionRequired('approvals.handle:approve'), async (req, res) => {
   const comment = ((req.body || {}).comment || '').trim();
   if (!comment) {
     return res.status(400).json(fail('请填写审批意见'));
@@ -967,7 +994,7 @@ app.post('/api/admin/approvals/:id/approve', adminRequired, async (req, res) => 
 });
 
 // ---- 审批驳回 ----
-app.post('/api/admin/approvals/:id/reject', adminRequired, async (req, res) => {
+app.post('/api/admin/approvals/:id/reject', permissionRequired('approvals.handle:approve'), async (req, res) => {
   const comment = ((req.body || {}).comment || '').trim();
   if (!comment) {
     return res.status(400).json(fail('请填写驳回意见'));
@@ -1004,7 +1031,7 @@ function mapTemplate(row) {
 // ---- 通知发布 ----
 const NOTICE_URGENCIES = ['normal', 'important', 'urgent'];
 const NOTICE_RECEIVER_TYPES = ['all', 'students', 'teachers', 'custom'];
-app.post('/api/admin/notices', adminRequired, async (req, res) => {
+app.post('/api/admin/notices', permissionRequired('notices.publish:publish', 'notices.publish:create'), async (req, res) => {
   const b = req.body || {};
   const title = ((b.title) || '').trim();
   const content = ((b.content) || '').trim();
@@ -1050,7 +1077,7 @@ app.post('/api/admin/notices', adminRequired, async (req, res) => {
 });
 
 // ---- 角色权限矩阵 ----
-app.get('/api/admin/roles', adminRequired, async (req, res) => {
+app.get('/api/admin/roles', permissionRequired('roles.manage:view'), async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT r.role_id, r.name AS role_name, COALESCE(r.description, '') AS description, r.member_count,
@@ -1090,7 +1117,7 @@ app.get('/api/admin/roles', adminRequired, async (req, res) => {
 });
 
 // ---- 操作日志 ----
-app.get('/api/admin/audit-logs', adminRequired, async (req, res) => {
+app.get('/api/admin/audit-logs', permissionRequired('audit.view:view'), async (req, res) => {
   const type = req.query.type ? String(req.query.type) : null;
   try {
     const r = await pool.query(
@@ -1107,7 +1134,7 @@ app.get('/api/admin/audit-logs', adminRequired, async (req, res) => {
 
 // ---- 评教问卷模板（CRUD）----
 const TEMPLATE_STATUSES = ['enabled', 'disabled'];
-app.get('/api/admin/eval/templates', adminRequired, async (req, res) => {
+app.get('/api/admin/eval/templates', permissionRequired('evaluations.manage:view'), async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT template_id, name, description, question_count, status FROM dtest2.evaluation_templates ORDER BY created_at DESC`
@@ -1118,7 +1145,7 @@ app.get('/api/admin/eval/templates', adminRequired, async (req, res) => {
   }
 });
 
-app.post('/api/admin/eval/templates', adminRequired, async (req, res) => {
+app.post('/api/admin/eval/templates', permissionRequired('evaluations.manage:create'), async (req, res) => {
   const b = req.body || {};
   const name = ((b.name) || '').trim();
   const description = ((b.description) || '').trim();
@@ -1147,7 +1174,7 @@ app.post('/api/admin/eval/templates', adminRequired, async (req, res) => {
   }
 });
 
-app.put('/api/admin/eval/templates/:id', adminRequired, async (req, res) => {
+app.put('/api/admin/eval/templates/:id', permissionRequired('evaluations.manage:update'), async (req, res) => {
   const b = req.body || {};
   const name = ((b.name) || '').trim();
   const description = ((b.description) || '').trim();
@@ -1178,7 +1205,7 @@ app.put('/api/admin/eval/templates/:id', adminRequired, async (req, res) => {
   }
 });
 
-app.delete('/api/admin/eval/templates/:id', adminRequired, async (req, res) => {
+app.delete('/api/admin/eval/templates/:id', permissionRequired('evaluations.manage:delete'), async (req, res) => {
   try {
     const r = await pool.query(`DELETE FROM dtest2.evaluation_templates WHERE template_id=$1`, [req.params.id]);
     if (r.rowCount === 0) {
