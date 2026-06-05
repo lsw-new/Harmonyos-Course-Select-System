@@ -19,7 +19,9 @@ export const mockAdminProfile: AdminProfile = {
     { code: 'courses.manage', name: '课程管理', module: 'courses', actions: ['view', 'create', 'update', 'delete'] },
     { code: 'grades.approve', name: '成绩审核', module: 'grades', actions: ['view', 'create', 'update', 'approve'] },
     { code: 'notices.publish', name: '通知发布', module: 'notices', actions: ['view', 'create', 'publish'] },
-    { code: 'approvals.handle', name: '审批处理', module: 'approvals', actions: ['view', 'approve'] }
+    { code: 'approvals.handle', name: '审批处理', module: 'approvals', actions: ['view', 'approve'] },
+    { code: 'roles.manage', name: '角色权限管理', module: 'roles', actions: ['view', 'update'] },
+    { code: 'audit.view', name: '审计日志查看', module: 'audit', actions: ['view'] }
   ]
 };
 

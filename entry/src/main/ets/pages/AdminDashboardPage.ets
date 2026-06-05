@@ -10,15 +10,18 @@ import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { AppIcon } from '../common/widgets/AppIcon';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
+import { AuthorizationService } from '../common/security/AuthorizationService';
 
 class AdminModule {
   icon: string = '';
   label: string = '';
   route: string = '';
-  constructor(icon: string, label: string, route: string) {
+  permCode: string = '';
+  constructor(icon: string, label: string, route: string, permCode: string) {
     this.icon = icon;
     this.label = label;
     this.route = route;
+    this.permCode = permCode;
   }
 }
 
@@ -30,11 +33,16 @@ struct AdminDashboardPage {
   @StorageProp('breakpoint') bp: string = 'sm';
 
   private modules: AdminModule[] = [
-    new AdminModule('selection', '选课管理', Routes.AdminSelection),
-    new AdminModule('grades', '成绩审核', Routes.AdminGrades),
-    new AdminModule('evaluation', '评教管理', Routes.AdminEval),
-    new AdminModule('notice', '通知发布', Routes.AdminNotice)
+    new AdminModule('selection', '选课管理', Routes.AdminSelection, 'selection.manage'),
+    new AdminModule('grades', '成绩审核', Routes.AdminGrades, 'grades.approve'),
+    new AdminModule('evaluation', '评教管理', Routes.AdminEval, 'evaluation.manage'),
+    new AdminModule('notice', '通知发布', Routes.AdminNotice, 'notices.publish')
   ];
+
+  // P2-03：仅展示当前管理员有 view 权限的功能入口（低权限管理员看不到无权模块）
+  private visibleModules(): AdminModule[] {
+    return this.modules.filter((m: AdminModule) => AuthorizationService.hasAdminPermission(m.permCode, 'view'));
+  }
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.AdminDashboard)) return;
@@ -115,7 +123,7 @@ struct AdminDashboardPage {
               Column() {
                 Text($r('app.string.admindash_modules')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 }).width('100%')
                 Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
-                  ForEach(this.modules, (m: AdminModule) => {
+                  ForEach(this.visibleModules(), (m: AdminModule) => {
                     this.ModuleCard(m)
                   }, (m: AdminModule) => m.route)
                 }.width('100%')

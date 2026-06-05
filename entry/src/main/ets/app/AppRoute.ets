@@ -4,6 +4,8 @@
 
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { UserRole } from '../models/User';
+import { AuthorizationService } from '../common/security/AuthorizationService';
+import { AdminPermissionAction } from '../models/Admin';
 
 export class Routes {
   static readonly Login = 'pages/LoginPage';
@@ -110,6 +112,49 @@ function expectedRoleFor(url: string): UserRole | undefined {
   return undefined;
 }
 
+// P2-03：管理端路由所需的细粒度权限（入口/只读统一用 view 动作）。
+// 与后端 P0-02 强校验呼应：前端在角色通过后再按权限收敛入口，未登记的管理端
+// 路由（仪表盘 / 个人页 / 日历 / 导入结果）仅需 role=admin。
+class RoutePerm {
+  code: string;
+  action: AdminPermissionAction;
+  constructor(code: string, action: AdminPermissionAction) {
+    this.code = code;
+    this.action = action;
+  }
+}
+
+function routePermissionFor(url: string): RoutePerm | undefined {
+  switch (url) {
+    case Routes.AdminStudents:
+    case Routes.AdminStudentDetail:
+      return new RoutePerm('students.manage', 'view');
+    case Routes.AdminCourses:
+    case Routes.AdminCourseDetail:
+      return new RoutePerm('courses.manage', 'view');
+    case Routes.AdminSelection:
+      return new RoutePerm('selection.manage', 'view');
+    case Routes.AdminGrades:
+      return new RoutePerm('grades.approve', 'view');
+    case Routes.AdminNotice:
+      return new RoutePerm('notices.publish', 'view');
+    case Routes.AdminEval:
+      return new RoutePerm('evaluation.manage', 'view');
+    case Routes.AdminApprovals:
+    case Routes.AdminApprovalDetail:
+      return new RoutePerm('approvals.handle', 'view');
+    case Routes.AdminRolePerm:
+      return new RoutePerm('roles.manage', 'view');
+    case Routes.AdminAuditLog:
+    case Routes.AuditLogDetail:
+      return new RoutePerm('audit.view', 'view');
+    case Routes.AdminSysConfig:
+      return new RoutePerm('system.config', 'view');
+    default:
+      return undefined;
+  }
+}
+
 export class AppRoute {
   // 全局唯一返回栈：由 pages/Index 的 Navigation(AppRoute.stack) 托管，所有跳转走它。
   static readonly stack: NavPathStack = new NavPathStack();
@@ -160,6 +205,14 @@ export class AppRoute {
     if (session.getRole() !== required) {
       AppRoute.stack.replacePathByName(required === 'admin' ? Routes.AdminLogin : Routes.Login, EMPTY_PARAMS);
       return false;
+    }
+    // P2-03：管理端角色通过后再校验路由所需的细粒度权限，缺权限跳无权限页
+    if (required === 'admin') {
+      const perm = routePermissionFor(url);
+      if (perm !== undefined && !AuthorizationService.hasAdminPermission(perm.code, perm.action)) {
+        AppRoute.stack.replacePathByName(Routes.NoPermission, EMPTY_PARAMS);
+        return false;
+      }
     }
     return true;
   }
