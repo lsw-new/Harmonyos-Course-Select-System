@@ -1510,4 +1510,13 @@ app.delete('/api/admin/eval/templates/:id', permissionRequired('evaluations.mana
 });
 
 const PORT = parseInt(process.env.PORT || '8090', 10);
-app.listen(PORT, () => console.log(`[dtest2-api] listening on :${PORT}`));
+// 仅当作为主模块（node src/index.js / pm2）运行时才监听端口；
+// 被测试 require 时不监听，便于 supertest 直接挂载 app。
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`[dtest2-api] listening on :${PORT}`));
+}
+
+// 导出供测试：app 用于 supertest，纯函数用于规则单测。
+module.exports = app;
+module.exports.parseCourseWeeks = parseCourseWeeks;
+module.exports.coursesConflict = coursesConflict;

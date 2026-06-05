@@ -16,6 +16,9 @@
 /.codegraph
 /harmonyos-course-select-system
 
+# Node 后端测试覆盖率产物
+**/coverage
+
 # HarmonyOS release signing materials - never commit private keys/certs/profiles/passwords
 **/*.p12
 **/*.p7b

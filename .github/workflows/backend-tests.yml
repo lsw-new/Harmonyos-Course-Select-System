@@ -1,0 +1,34 @@
+# 后端 API 自动化测试 CI（Jest + supertest）。
+# 仓库托管在 Gitee；如镜像到 GitHub 即自动运行。本地门禁：在 server/ 下 `npm test`。
+name: backend-tests
+
+on:
+  push:
+    paths:
+      - 'server/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    paths:
+      - 'server/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests with coverage
+        run: npm run test:coverage
