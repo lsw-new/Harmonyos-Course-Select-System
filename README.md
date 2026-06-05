@@ -36,30 +36,40 @@
 
 ## 技术架构
 
-应用采用分层架构，UI 与数据解耦。**当前数据模式**：`AppConfig.useMock = true`，所有数据来自本地 mock + Preferences 持久化 + 本地 RDB（RelationalStore，courses / selections 表），**App 不直连任何远程数据库或后端服务器**。若需接入真实后端，仅需将 `AppConfig.useMock` 置为 `false` 并实现 `HttpClient` 分支。
+应用采用分层架构，UI 与数据解耦，支持**本地优先 + 可选远程后端**双模式：
+
+- **本地模式（默认，`AppConfig.useRemote = false`）**：数据来自本地 mock + Preferences 持久化 + 本地 RDB（RelationalStore，courses / selections 表），可完全离线演示；
+- **远程模式（`AppConfig.useRemote = true`）**：认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践及管理端各域改走 **Track B 后端**（`AppConfig.baseUrl = https://lsw666.duckdns.org/api`，经 nginx 反代 + Let's Encrypt 的 **HTTPS**），读失败回退本地、写失败显式报错。
+
+> 邮箱验证码（注册 / 找回密码）始终联网走后端真实发送，不受 `useRemote` 开关影响。详见下文「后端服务（Track B）」与「安全与鉴权」。
 
 ```text
 entry/src/main/ets/
-├── app/            # 应用编排：AppStartup 启动注入、AppRoute 路由与角色守卫、AppConfig 全局配置
+├── app/            # 应用编排：AppStartup 启动注入、AppRoute（Navigation 系统路由表门面 + 角色/权限守卫）、AppConfig（useRemote 远程开关 / baseUrl）
 ├── models/         # 领域模型（User / Course / Academic / Notice / Evaluation / Admin …）
-├── repositories/   # 仓储层：BaseRepository + 各域 Repository（单例），统一返回 Promise
+├── repositories/   # 仓储层：BaseRepository + 各域 Repository（单例），统一返回 Promise；远程开启时走 RemoteApi、失败回退本地
 ├── mock/           # 各域 mock 数据（含测试账号凭据）
 ├── common/
-│   ├── http/       # HttpClient（封装 @ohos.net.http）+ HttpError 统一错误
-│   ├── storage/    # PreferenceStorage 本地持久化 + SessionStorage 会话（Token / 角色 / 用户）
-│   ├── utils/      # DateUtils / TermUtils / ValidatorUtils
+│   ├── http/       # ApiClient / HttpClient（封装 @ohos.net.http，拆 ApiResponse 信封 + 附带 Bearer token）+ HttpError
+│   ├── remote/     # RemoteApi：Track B 后端各端点封装（认证 / 选课 / 成绩 / 通知 / … / 管理端）
+│   ├── security/   # AssetTokenStore（Asset 安全存储 token）· AuthorizationService（管理端细粒度权限判定）
+│   ├── storage/    # PreferenceStorage · SessionStorage（会话）· AccountStore（账号密码本地持久层）· AppDatabase（本地 RDB）
+│   ├── utils/      # DateUtils / TermUtils / ValidatorUtils / I18nUtils（中文文案）
 │   ├── widgets/    # AppIcon 图标 · StateViews 加载/空/错状态 · TabBars 底部导航
 │   ├── constants/  # 颜色 / 尺寸 / 文字样式 token
 │   └── Components.ets · Theme.ets   # 通用组件库与主题
-└── pages/          # 42 个页面（学生端 + 管理端）
+└── pages/          # 59 个页面（Index 根容器 + 学生端 + 管理端 + 详情/二级页）
 ```
 
-**数据流**：`页面 (@Entry/@Component)` → `XxxRepository.get().method()` → `mock 数据` 或 `HttpClient`（真实后端）。
+> **导航**：已从已废弃的 Page Router 迁移到 **Navigation + NavPathStack（系统路由表懒加载）**；`pages/Index.ets` 为唯一 `@Entry` 根容器，其余页面经 `route_map.json` 注册、由 `AppRoute` 门面统一驱动。
+> **国际化**：UI 静态中文文案已外置到 `resources/base/element/string.json`（约 534 条），代码经 `$r(...)` / `I18nUtils` 引用。
+
+**数据流**：`页面 (@Component)` → `XxxRepository.get().method()` → `本地 mock / RDB / Preferences`，或开启远程后经 `RemoteApi` → `Track B 后端`（读失败回退本地）。
 
 **工程约定**：
 
 - 页面在 `aboutToAppear()` 经仓储加载数据，并用 `LoadingState / ErrorState / EmptyState` 处理加载 / 失败 / 空态；
-- 导航统一走 `AppRoute.go / back / clearTo / getParam`，内置按角色（学生 / 管理员）的**路由守卫**，不直接使用 `router`；
+- 导航统一走 `AppRoute.go / back / clearTo / getParam`（内部为 `NavPathStack` 系统路由表门面），内置按**角色（学生 / 管理员）+ 管理端细粒度权限**的守卫，不直接使用 `router`；
 - 登录经 `AuthRepository` 校验 → `SessionStorage` 写入会话 → `AppRoute.clearTo` 进入主页；退出登录清理会话并返回登录页；
 - 图标统一使用 `AppIcon`（基于 `ic_*.svg` 媒体注册表），不使用 emoji 占位。
 
@@ -67,7 +77,7 @@ entry/src/main/ets/
 
 ### 学生端
 
-> 以下功能均为**本地 mock 原型演示**；课程目录与选课关系额外落本地 RDB（courses / selections 表）。
+> 默认本地模式为 mock + 本地持久化原型；课程目录与选课关系落本地 RDB（courses / selections 表）。开启 `useRemote` 后，认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践改走 Track B 后端真实数据。
 
 - 用户认证：登录、注册、忘记密码
 - 首页工作台：教学周信息、快捷入口、今日课程、通知摘要
@@ -78,7 +88,7 @@ entry/src/main/ets/
 
 ### 管理端
 
-> 以下功能均为**本地 mock 原型演示**，数据存于本地 RDB / Preferences，不涉及真实后端。
+> 默认本地模式数据存于本地 RDB / Preferences；开启 `useRemote` 后，学生管理 / 成绩审核 / 审批 / 通知发布 / 角色权限 / 评教模板 / 审计日志等改走 Track B 后端，并受后端**细粒度权限**校验。
 
 - 管理员认证：工号密码登录、图形验证码（任意 4 位即可）
 - 管理仪表盘：统计卡片、选课趋势、课程类型分布（mock 数据）
@@ -88,6 +98,29 @@ entry/src/main/ets/
 - 成绩管理：成绩录入、成绩审核（mock 演示）
 - 通知发布：通知编辑、发布范围选择（mock 演示）
 - 审批管理：审批中心、审批详情、通过与驳回操作（mock 演示）
+
+## 后端服务（Track B）
+
+`server/` 目录为 App 的远程后端 API，仅在 `AppConfig.useRemote = true` 时被调用。
+
+- **技术栈**：Node.js 18 + Express + `pg`（CommonJS 免构建），直连 Postgres（`dtest2` schema），统一返回 `ApiResponse` 信封 `{ success, data, error }`。
+- **部署**：服务器 `138.2.47.185`，pm2 进程 `dtest2-api` 监听 `:8090`；前置 **nginx 反向代理**终止 TLS（Let's Encrypt 证书），对外为 `https://lsw666.duckdns.org/api`。
+- **覆盖域**：认证（登录 / 注册 / 找回密码 / 邮箱验证码）、课程、选课（事务校验）、成绩、通知、请假、反馈、评教、实践，以及管理端的学生管理、成绩审核、审批、通知发布、角色权限、评教模板、审计日志。
+- **数据库迁移**：`server/migrations/` 权威建表脚本 + `npm run migrate` 幂等 runner。
+
+详见 [`server/README.md`](server/README.md)（端点与部署）与 [`server/deploy/nginx-https-setup.md`](server/deploy/nginx-https-setup.md)（HTTPS 反代配置）。
+
+## 安全与鉴权
+
+经一轮全项目安全审计加固，主要措施：
+
+- **身份从 JWT 派生**：学生端接口一律以 `token.sub` 作为当前学号，不接受客户端传入 `studentId`，杜绝水平越权（IDOR）。
+- **管理端细粒度鉴权**：后端 `permissionRequired(code:action)` 中间件按 `admin_profiles.role_id → role_permissions` 校验权限（权限只读数据库、不写 token）；前端 dashboard 入口与路由守卫同步按权限收敛。
+- **密码哈希 bcrypt**：新口令 bcrypt，旧 SHA-256 账号登录成功后惰性升级；存量账号不中断。
+- **JWT 强制密钥**：缺失或过短的 `JWT_SECRET` 拒绝启动（移除弱默认）。
+- **限流与 CORS**：内存级限流（全局 / 登录与验证码分级，超限 429）；CORS 默认关闭跨域。
+- **本地数据隔离**：实践 / 评教 / 反馈 / 课表等本地缓存按用户 `scopedKey` 隔离，换账号不串数据；长期 token 改 Asset 安全存储。
+- **账号闭环**：注册真正落库（账号 + 学生资料）、找回密码校验账号存在且邮箱匹配（不再自动建号）、远程登录返回真实 profile（管理员含真实权限矩阵）。
 
 ## UI 页面设计展示
 
@@ -253,7 +286,7 @@ entry/src/main/ets/
 
 ## 完整页面清单
 
-> 「ArkTS 文件」列为实际工程页面文件，位于 `entry/src/main/ets/pages/`。
+> 共 **59 个页面**（含 Navigation 迁移后新增的 `Index` 根容器与各详情 / 二级页），位于 `entry/src/main/ets/pages/`。「ArkTS 文件」列为实际工程文件名。
 
 | 序号 | 页面 | 角色 | ArkTS 文件 |
 | --- | --- | --- | --- |
@@ -299,6 +332,23 @@ entry/src/main/ets/
 | 40 | 系统配置 | 管理员 | AdminSysConfigPage.ets |
 | 41 | 服务大厅 | 学生 | ServiceHallPage.ets |
 | 42 | 文档页 | 通用 | DocPage.ets |
+| 43 | 应用根容器（Navigation） | 通用 | Index.ets |
+| 44 | 选课结果 | 学生 | SelectionResultPage.ets |
+| 45 | 选课确认 | 学生 | SelectionConfirmPage.ets |
+| 46 | 成绩详情 | 学生 | GradeDetailPage.ets |
+| 47 | 成绩申诉 | 学生 | GradeAppealPage.ets |
+| 48 | 考试详情 | 学生 | ExamDetailPage.ets |
+| 49 | 请假详情 | 学生 | LeaveDetailPage.ets |
+| 50 | 反馈详情 | 学生 | FeedbackDetailPage.ets |
+| 51 | 实践报名 | 学生 | PracticeSignupPage.ets |
+| 52 | 我的实践 | 学生 | MyPracticePage.ets |
+| 53 | 消息中心 | 学生 | MessageCenterPage.ets |
+| 54 | 附件预览 | 学生 | AttachmentPreviewPage.ets |
+| 55 | 无权限提示 | 通用 | NoPermissionPage.ets |
+| 56 | 审批详情 | 管理员 | AdminApprovalDetailPage.ets |
+| 57 | 课程详情（管理） | 管理员 | AdminCourseDetailPage.ets |
+| 58 | 导入结果 | 管理员 | ImportResultPage.ets |
+| 59 | 审计日志详情 | 管理员 | AuditLogDetailPage.ets |
 
 ## 安装与运行
 
@@ -313,24 +363,25 @@ entry/src/main/ets/
 项目未提交 `hvigorw` 包装脚本，`local.properties` 也不含 `sdk.dir`，命令行构建需先指定 HarmonyOS SDK（路径替换为本机实际安装位置）：
 
 ```bash
-# Windows PowerShell 示例
+# Windows PowerShell 示例（路径替换为本机实际安装位置）
 $env:DEVECO_SDK_HOME = 'D:\DevEco Studio\sdk'
-& 'D:\DevEco Studio\tools\hvigor\bin\hvigorw.bat' assembleHap
+& 'D:\DevEco Studio\tools\node\node.exe' 'D:\DevEco Studio\tools\hvigor\bin\hvigorw.js' assembleHap --no-daemon
 ```
 
-构建产物（HAP）输出至 `entry/build/` 目录。
+构建产物（HAP）输出至 `entry/build/` 目录。后端（`server/`）的本地运行 / 部署 / 数据库迁移见 [`server/README.md`](server/README.md)。
 
 ## 测试账号
 
-当前为本地 mock 原型模式（`AppConfig.useMock = true`，无远程后端），内置以下测试账号（定义于 `mock/mockUser.ets`、`mock/mockAdmin.ets`，校验在 `repositories/AuthRepository.ets`）：
+内置以下测试账号（本地 mock 定义于 `mock/mockUser.ets` / `mock/mockAdmin.ets`，并已在 Track B 后端 `accounts` 表种子化，本地 / 远程模式均可登录）：
 
 | 角色 | 账号 | 密码 | 登录后身份 |
 | --- | --- | --- | --- |
 | 学生端 | `2023307020941` | `Elysia@2024` | 李仕炜 |
-| 管理端 | `A20251001` | `Admin@2024` | 爱莉希雅 · 教务管理员 |
+| 管理端 | `A20251001` | `Admin@2024` | 爱莉希雅 · 教务管理员（远程模式返回后端真实 profile 与权限矩阵） |
 
 - 管理端登录需额外输入**任意 4 位**图形验证码（如 `1234`）。
-- 找回密码验证码固定为 `123456`；修改密码时原密码即登录密码，新密码需 8–32 位且至少包含字母、数字、符号中的两种。
+- **注册 / 找回密码的邮箱验证码为真实发送**：由后端经 QQ 邮箱 SMTP 发送到所填邮箱（5 分钟有效、60 秒重发节流），不再有固定万能码；找回密码要求账号已存在且邮箱与账号绑定邮箱一致（不再自动建号）。
+- 修改密码时原密码即登录密码，新密码需 8–32 位且至少包含字母、数字、符号中的两种。
 
 ## 使用说明
 
