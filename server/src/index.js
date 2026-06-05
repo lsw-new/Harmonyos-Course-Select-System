@@ -5,7 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const { pool } = require('./db');
 const { ok, fail } = require('./envelope');
-const { verifyPassword, genSalt, hashPassword } = require('./hash');
+const { verifyPassword, hashBcrypt, isBcryptHash } = require('./hash');
 const { signToken, authRequired, adminRequired } = require('./auth');
 const { sendVerificationCode } = require('./email');
 const codeStore = require('./codeStore');
@@ -173,8 +173,16 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     if (a.status !== 'active') {
       return res.status(403).json(fail('账号状态异常：' + a.status));
     }
-    if (!verifyPassword(password, a.salt, a.password_hash)) {
+    const passOk = await verifyPassword(password, a.salt, a.password_hash);
+    if (!passOk) {
       return res.status(401).json(fail('账号或密码错误'));
+    }
+    // P2-01 收尾：旧 SHA-256 账号登录成功后惰性升级为 bcrypt（失败不影响本次登录）
+    if (!isBcryptHash(a.password_hash)) {
+      try {
+        const upgraded = await hashBcrypt(password);
+        await pool.query('UPDATE dtest2.accounts SET password_hash=$2, salt=$3, updated_at=now() WHERE account_id=$1', [a.account_id, upgraded, '']);
+      } catch (e) { /* 迁移失败忽略，下次登录再试 */ }
     }
     const token = signToken({ sub: a.account_id, role: a.role });
     // P1-03：随登录下发真实 profile（取不到则置 null，前端回退本地兜底）
@@ -252,11 +260,10 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(409).json(fail('该学号已注册'));
     }
-    const salt = genSalt();
-    const passwordHash = hashPassword(password, salt);
+    const passwordHash = await hashBcrypt(password);
     await client.query(
       `INSERT INTO dtest2.accounts (account_id, role, password_hash, salt, status) VALUES ($1,'student',$2,$3,'active')`,
-      [studentId, passwordHash, salt]
+      [studentId, passwordHash, '']
     );
     await client.query(
       `INSERT INTO dtest2.student_profiles (student_id, name, college, major, class_name, grade, email)
@@ -306,11 +313,10 @@ app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
     if (!v.ok) {
       return res.status(400).json(fail(v.reason));
     }
-    const salt = genSalt();
-    const passwordHash = hashPassword(newPassword, salt);
+    const passwordHash = await hashBcrypt(newPassword);
     await pool.query(
       'UPDATE dtest2.accounts SET password_hash=$2, salt=$3, updated_at=now() WHERE account_id=$1',
-      [account, passwordHash, salt]
+      [account, passwordHash, '']
     );
     res.json(ok({ reset: true }));
   } catch (e) {
