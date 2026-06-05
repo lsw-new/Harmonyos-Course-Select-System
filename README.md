@@ -45,24 +45,115 @@
 
 ```text
 entry/src/main/ets/
-├── app/            # 应用编排：AppStartup 启动注入、AppRoute（Navigation 系统路由表门面 + 角色/权限守卫）、AppConfig（useRemote 远程开关 / baseUrl）
-├── models/         # 领域模型（User / Course / Academic / Notice / Evaluation / Admin …）
-├── repositories/   # 仓储层：BaseRepository + 各域 Repository（单例），统一返回 Promise；远程开启时走 RemoteApi、失败回退本地
-├── mock/           # 各域 mock 数据（含测试账号凭据）
+├── entryability/
+│   └── EntryAbility.ets              # UIAbility 入口：建窗口、监听断点写 AppStorage、AppStartup.init() 后 loadContent('pages/Index')
+├── entrybackupability/
+│   └── EntryBackupAbility.ets        # 系统数据备份/恢复能力骨架（onBackup / onRestore）
+├── app/                              # 应用编排
+│   ├── AppConfig.ets                 # 运行配置：useRemote 远程开关 / baseUrl（默认本地 mock）
+│   ├── AppRoute.ets                  # Navigation 系统路由表门面：go/back/clearTo/getParam + 角色 & 细粒度权限守卫
+│   └── AppStartup.ets                # 启动注入：初始化本地 RDB / Preferences、恢复会话、安全 token 对齐
+├── models/                           # 领域模型（纯 interface / type，无逻辑）
+│   ├── User.ets                      # 学生资料、登录/注册/改密请求、账号信息
+│   ├── Course.ets                    # 课程、课表项、选课课程、选课轮次
+│   ├── Academic.ets                  # 成绩、考试、学籍
+│   ├── Notice.ets                    # 通知
+│   ├── Evaluation.ets                # 评教任务 / 问卷
+│   ├── Home.ets                      # 首页摘要、教学周
+│   ├── Misc.ets                      # 请假、反馈、实践等杂项
+│   ├── Common.ets                    # 通用枚举 / 分页 / 响应等共享类型
+│   ├── Admin.ets                     # 管理员资料、权限、审批、成绩审核
+│   ├── PracticeModels.ets            # 实践项目 / 报名
+│   ├── SelectionAdminModels.ets      # 管理端选课统计
+│   ├── StudentDetailModels.ets       # 管理端学生详情
+│   ├── EvalAdminModels.ets           # 管理端评教模板 / 统计
+│   ├── AccessControlModels.ets       # 角色权限矩阵、审计日志
+│   └── SysConfigModels.ets           # 系统配置项
+├── repositories/                     # 仓储层（单例，统一返回 Promise；远程开启走 RemoteApi、失败回退本地）
+│   ├── BaseRepository.ets            # 基类：delay / delayCopy / reject + scopedKey 用户数据隔离辅助
+│   ├── AuthRepository.ets            # 登录 / 注册 / 找回密码 / 改密 / 登出 + 管理员登录
+│   ├── ProfileRepository.ets         # 个人资料、首页摘要、请假 / 反馈 / 实践
+│   ├── CourseRepository.ets          # 课表、选课中心、选课/退课事务、课程详情、课表导入合并
+│   ├── AcademicRepository.ets        # 成绩、考试
+│   ├── EvaluationRepository.ets      # 学生评教
+│   ├── PracticeRepository.ets        # 实践项目 / 报名
+│   ├── AdminRepository.ets           # 管理端：课程、审批、成绩审核、通知发布
+│   ├── StudentAdminRepository.ets    # 管理端学生管理（学籍操作）
+│   ├── SelectionAdminRepository.ets  # 管理端选课轮次 / 统计
+│   ├── AccessControlRepository.ets   # 角色权限、审计日志
+│   ├── EvalAdminRepository.ets       # 管理端评教模板 CRUD
+│   └── SysConfigRepository.ets       # 系统配置
+├── mock/                             # 各域 mock 数据（本地模式数据源，含测试账号凭据）
+│   ├── mockUser.ets                  # 学生资料 + 测试学生账号
+│   ├── mockAdmin.ets                 # 管理员资料 + 权限矩阵 + 测试管理员账号
+│   ├── mockHome.ets                  # 首页摘要、今日课程
+│   ├── mockCourses.ets               # 课程目录 / 课表
+│   ├── mockAcademic.ets              # 成绩、考试、学籍
+│   ├── mockNotices.ets               # 通知
+│   ├── mockEvaluations.ets           # 学生评教任务
+│   ├── mockPractice.ets              # 实践项目
+│   ├── mockMisc.ets                  # 请假、反馈
+│   ├── mockSelectionAdmin.ets        # 管理端选课统计
+│   ├── mockStudentDetail.ets         # 管理端学生详情
+│   ├── mockEvalAdmin.ets             # 管理端评教模板 / 统计
+│   ├── mockAccessControl.ets         # 角色权限、审计日志
+│   └── mockSysConfig.ets             # 系统配置
 ├── common/
-│   ├── http/       # ApiClient / HttpClient（封装 @ohos.net.http，拆 ApiResponse 信封 + 附带 Bearer token）+ HttpError
-│   ├── remote/     # RemoteApi：Track B 后端各端点封装（认证 / 选课 / 成绩 / 通知 / … / 管理端）
-│   ├── security/   # AssetTokenStore（Asset 安全存储 token）· AuthorizationService（管理端细粒度权限判定）
-│   ├── storage/    # PreferenceStorage · SessionStorage（会话）· AccountStore（账号密码本地持久层）· AppDatabase（本地 RDB）
-│   ├── utils/      # DateUtils / TermUtils / ValidatorUtils / I18nUtils（中文文案）
-│   ├── widgets/    # AppIcon 图标 · StateViews 加载/空/错状态 · TabBars 底部导航
-│   ├── constants/  # 颜色 / 尺寸 / 文字样式 token
-│   └── Components.ets · Theme.ets   # 通用组件库与主题
-└── pages/          # 59 个页面（Index 根容器 + 学生端 + 管理端 + 详情/二级页）
+│   ├── http/
+│   │   ├── HttpClient.ets            # 封装 @ohos.net.http（GET/POST/PUT/DELETE + 超时）
+│   │   ├── ApiClient.ets             # 拆 ApiResponse 信封 + 附带 Bearer token
+│   │   └── HttpError.ets             # 带状态码的 HTTP 错误类型
+│   ├── remote/
+│   │   └── RemoteApi.ets             # Track B 后端各端点封装（认证 / 选课 / 成绩 / 通知 / … / 管理端）
+│   ├── security/
+│   │   ├── AssetTokenStore.ets       # Asset Store Kit 安全存储 token（不可用时降级进程内存）
+│   │   └── AuthorizationService.ets  # 管理端细粒度权限判定（hasAdminPermission(code, action)）
+│   ├── services/
+│   │   ├── ScheduleImportService.ets # xlsx 课表解析 + 导入管线
+│   │   ├── NoticeStore.ets           # 通知已读状态本地存储
+│   │   └── FileService.ets           # 文件下载 / 附件（mock 路径 + 文件名安全校验）
+│   ├── storage/
+│   │   ├── PreferenceStorage.ets     # Preferences 键值封装
+│   │   ├── SessionStorage.ets        # 会话：token / 角色 / profile（token 仅走安全存储）
+│   │   ├── AccountStore.ets          # 账号密码本地持久层（bcrypt + 旧 SHA 双轨兜底）
+│   │   ├── LocalDataStore.ets        # 通用本地数组持久化（Preferences 封装）
+│   │   ├── AppDatabase.ets           # 本地 RDB（RelationalStore）封装
+│   │   └── DatabaseSchema.ets        # 本地 RDB 建表 SQL + 版本
+│   ├── utils/
+│   │   ├── DateUtils.ets             # 日期格式化
+│   │   ├── TermUtils.ets             # 学期 / 教学周推算
+│   │   └── ValidatorUtils.ets        # 学号 / 邮箱 / 密码等输入校验
+│   ├── widgets/
+│   │   ├── AppIcon.ets               # 图标组件（基于 ic_*.svg 媒体注册表）
+│   │   ├── TabBars.ets               # 学生 / 管理端底部导航
+│   │   ├── StateViews.ets            # LoadingState / EmptyState / ErrorState
+│   │   ├── Skeleton.ets              # 骨架屏（SkeletonList / Card / Block）
+│   │   ├── Feedback.ets              # Toast 封装（替代已废弃 promptAction）
+│   │   ├── Breakpoint.ets            # 断点自适应 BreakpointManager
+│   │   ├── DataSource.ets            # ArrayDataSource（LazyForEach 长列表虚拟化）
+│   │   ├── SafeArea.ets              # 安全区避让 SafeTop / SafeBottom
+│   │   └── RouteLoadingOverlay.ets   # 路由加载遮罩（现 no-op，加载态交各页 Skeleton）
+│   ├── constants/
+│   │   ├── Colors.ets                # 颜色 token
+│   │   ├── Dimensions.ets            # 尺寸 / 间距 / 圆角 token
+│   │   └── TextStyles.ets            # 文字样式 token
+│   ├── Components.ets                # 通用组件库（TopBar / 卡片 / 按钮 / 输入框 / Pill / Divider …）
+│   └── Theme.ets                     # 主题聚合与玫瑰学院风设计 token
+└── pages/                            # 59 个页面（逐页角色见下方「完整页面清单」表）
+    ├── Index.ets                     # 唯一 @Entry：托管 Navigation(AppRoute.stack)，按会话 push 初始路由
+    ├── 〔认证〕LoginPage(学生登录)·RegisterPage(注册)·ForgotPage(忘记密码)·AdminLoginPage(管理员登录)
+    ├── 〔学生·首页/通知〕HomePage(首页工作台)·TodayPage(今日课程)·NoticesPage(通知列表)·NoticeDetailPage(通知详情)·MessageCenterPage(消息中心)
+    ├── 〔学生·课程/选课〕SchedulePage(我的课表)·CourseDetailPage(课程详情)·SelectionPage(选课中心)·SelectionConfirmPage(选课确认)·SelectionResultPage(选课结果)
+    ├── 〔学生·学业〕GradesPage(成绩查询)·GradeDetailPage(成绩详情)·GradeAppealPage(成绩申诉)·ExamPage(考试安排)·ExamDetailPage(考试详情)·RosterPage(学籍信息)
+    ├── 〔学生·评教/杂项〕EvalPage(评教)·LeavePage(请假)·LeaveDetailPage(请假详情)·FeedbackPage(反馈)·FeedbackDetailPage(反馈详情)·PracticePage(实践公服)·PracticeDetailPage(实践详情)·PracticeSignupPage(实践报名)·MyPracticePage(我的实践)·ServiceHallPage(服务大厅)
+    ├── 〔学生·个人中心〕MinePage(我的)·AccountPage(我的账户)·EditInfoPage(修改资料)·PasswordPage(修改密码)·SettingsPage(设置)·AboutPage(关于)
+    ├── 〔管理端·主〕AdminDashboardPage(仪表盘)·AdminStudentsPage(学生管理)·AdminStudentDetailPage(学生详情)·AdminCoursesPage(课程管理)·AdminCourseDetailPage(课程详情)·AdminSelectionPage(选课管理)·AdminGradesPage(成绩管理)·AdminNoticePage(通知发布)·AdminEvalPage(评教管理)·AdminApprovalsPage(审批中心)·AdminApprovalDetailPage(审批详情)
+    ├── 〔管理端·配置〕AdminCalendarPage(教学日历)·AdminRolePermPage(角色权限)·AdminAuditLogPage(审计日志)·AuditLogDetailPage(日志详情)·AdminSysConfigPage(系统配置)·AdminProfilePage(管理员中心)·AdminPasswordPage(管理员改密)
+    └── 〔通用/工具页〕AttachmentPreviewPage(附件预览)·ImportResultPage(导入结果)·NoPermissionPage(无权限)·DocPage(协议/隐私文档)
 ```
 
 > **导航**：已从已废弃的 Page Router 迁移到 **Navigation + NavPathStack（系统路由表懒加载）**；`pages/Index.ets` 为唯一 `@Entry` 根容器，其余页面经 `route_map.json` 注册、由 `AppRoute` 门面统一驱动。
-> **国际化**：UI 静态中文文案已外置到 `resources/base/element/string.json`（约 534 条），代码经 `$r(...)` / `I18nUtils` 引用。
+> **国际化**：UI 静态中文文案已外置到 `resources/base/element/string.json`（约 534 条），代码经 `$r(...)` 引用。
 
 **数据流**：`页面 (@Component)` → `XxxRepository.get().method()` → `本地 mock / RDB / Preferences`，或开启远程后经 `RemoteApi` → `Track B 后端`（读失败回退本地）。
 
