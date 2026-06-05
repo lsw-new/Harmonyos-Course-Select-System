@@ -225,7 +225,7 @@ entry/src/main/ets/
 - 持久层经 mock 注入，无需真实数据库即可运行：`cd server && npm test`（或 `npm run test:coverage`）。
 - **CI**：[`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml) 在 push / PR 时于 Node 18 / 20 跑 `npm ci` → JS 语法检查 → 带**覆盖率门禁**（行 ≥ 80%）的测试（仓库托管 Gitee，镜像到 GitHub 即自动运行）。
 
-> 前端 ArkTS 页面另有 hypium 单元测试（`entry/src/ohosTest/`、`entry/src/test/`），需在 DevEco Studio + 模拟器 / 真机内运行，不纳入无头 CI。
+> **客户端测试**：ArkTS 端用 `@ohos/hypium`，分两层——本地单测 `entry/src/test/`（16 例：仓储 / 解析器 / 文件安全 / 会话 / 管理端 CRUD 与状态机，无需设备）+ 设备测试 `entry/src/ohosTest/`（Ability 冒烟，需模拟器 / 真机）。HarmonyOS 暂无简洁无头 CLI，故未接无头 CI；运行方式、用例清单、常见失败与「运行登记」见 [`docs/CLIENT_TESTING.md`](docs/CLIENT_TESTING.md)，充当人工测试门禁。
 
 ## UI 实机运行截图
 
