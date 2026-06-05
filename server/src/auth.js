@@ -2,7 +2,12 @@
 const jwt = require('jsonwebtoken');
 const { fail } = require('./envelope');
 
-const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+// P2-01：强制要求足够强度的 JWT_SECRET，拒绝以默认/弱密钥启动（fail-fast）。
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET || SECRET.length < 16) {
+  console.error('[FATAL] 未配置 JWT_SECRET 或长度不足（至少 16 字符），服务拒绝启动。请在 .env 设置随机长串。');
+  process.exit(1);
+}
 
 function signToken(payload) {
   return jwt.sign(payload, SECRET, { expiresIn: '7d' });

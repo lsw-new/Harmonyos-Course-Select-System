@@ -13,7 +13,46 @@ const codeStore = require('./codeStore');
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 const app = express();
-app.use(cors());
+
+// P2-01：CORS 收紧。原生 App 不受浏览器 CORS 约束；默认关闭跨域，
+// 仅当 .env 配置 CORS_ORIGINS（逗号分隔）时放行可信域名。
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || '')
+  .split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+app.use(cors({ origin: CORS_ORIGINS.length > 0 ? CORS_ORIGINS : false, credentials: true }));
+
+// P2-01：极简内存级限流（单进程 fork 模式足够，无需新依赖）。固定窗口、按 IP 计数。
+function createRateLimiter(windowMs, max) {
+  const hits = new Map();
+  const timer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, rec] of hits) {
+      if (now >= rec.resetAt) hits.delete(key);
+    }
+  }, windowMs);
+  if (timer.unref) timer.unref();
+  return (req, res, next) => {
+    const ip = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
+    const now = Date.now();
+    let rec = hits.get(ip);
+    if (!rec || now >= rec.resetAt) {
+      rec = { count: 0, resetAt: now + windowMs };
+      hits.set(ip, rec);
+    }
+    rec.count += 1;
+    if (rec.count > max) {
+      res.set('Retry-After', String(Math.ceil((rec.resetAt - now) / 1000)));
+      return res.status(429).json(fail('请求过于频繁，请稍后再试', 'rate_limited'));
+    }
+    next();
+  };
+}
+const RL_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10);
+const RL_GLOBAL_MAX = parseInt(process.env.RATE_LIMIT_MAX || '300', 10);
+const RL_AUTH_MAX = parseInt(process.env.AUTH_RATE_LIMIT_MAX || '10', 10);
+const globalLimiter = createRateLimiter(RL_WINDOW_MS, RL_GLOBAL_MAX);
+const authLimiter = createRateLimiter(RL_WINDOW_MS, RL_AUTH_MAX);
+
+app.use(globalLimiter);
 app.use(express.json());
 
 const WEEKDAY_CN = ['', '一', '二', '三', '四', '五', '六', '日'];
@@ -65,7 +104,7 @@ app.get('/health', async (req, res) => {
 });
 
 // ---- 登录 ----
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   const account = ((req.body && req.body.account) || '').trim();
   const password = (req.body && req.body.password) || '';
   if (!account || !password) {
@@ -94,7 +133,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ---- 发送邮箱验证码（公开，无需登录）----
-app.post('/api/auth/email-code', async (req, res) => {
+app.post('/api/auth/email-code', authLimiter, async (req, res) => {
   const email = ((req.body && req.body.email) || '').trim();
   if (!EMAIL_RE.test(email)) {
     return res.status(400).json(fail('邮箱格式不正确'));
@@ -114,7 +153,7 @@ app.post('/api/auth/email-code', async (req, res) => {
 });
 
 // ---- 校验邮箱验证码（公开，无需登录；成功即消费）----
-app.post('/api/auth/verify-email-code', (req, res) => {
+app.post('/api/auth/verify-email-code', authLimiter, (req, res) => {
   const email = ((req.body && req.body.email) || '').trim();
   const code = ((req.body && req.body.code) || '').trim();
   if (!EMAIL_RE.test(email) || !code) {
