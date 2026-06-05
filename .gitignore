@@ -40,3 +40,7 @@
 !entry/src/**/*Profile*.ets
 !entry/src/**/*Secret*.ets
 !entry/src/**/*Provision*.ets
+
+# 例外：server 后端源码（CommonJS）同样会被上面的保密名规则误伤（如 profile.repo.js）。
+# 放行整个 server/src 源码树；真正的密钥/凭据在 server/.env（不在源码树），另行处置。
+!server/src/**
