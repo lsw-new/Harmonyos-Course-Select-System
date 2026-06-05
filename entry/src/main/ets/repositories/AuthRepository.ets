@@ -3,17 +3,29 @@
 import { BaseRepository } from './BaseRepository';
 import {
   LoginRequest, RegisterRequest, ResetPasswordRequest, ChangePasswordRequest,
-  LoginResult, AccountInfo, LoginHistoryItem
+  LoginResult, AccountInfo, LoginHistoryItem, UserProfile
 } from '../models/User';
-import { AdminLoginRequest, AdminProfile, AdminLoginResult } from '../models/Admin';
+import { AdminLoginRequest, AdminProfile, AdminLoginResult, AdminPermission, AdminPermissionAction } from '../models/Admin';
 import { mockStudentProfile, mockAccountInfo, mockLoginHistory, TEST_STUDENT_ID, TEST_STUDENT_PASSWORD } from '../mock/mockUser';
 import { mockAdminProfile, TEST_ADMIN_ID, TEST_ADMIN_PASSWORD } from '../mock/mockAdmin';
 import { AccountStore } from '../common/storage/AccountStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AssetTokenStore } from '../common/security/AssetTokenStore';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi } from '../common/remote/RemoteApi';
+import { RemoteApi, RemoteProfile, RemoteAdminPermission } from '../common/remote/RemoteApi';
 import { HttpError } from '../common/http/HttpError';
+
+// P1-03：把后端动作字符串窄化为 AdminPermissionAction（ArkTS 安全，非法值兜底 view）
+function toAdminAction(a: string): AdminPermissionAction {
+  switch (a) {
+    case 'create': return 'create';
+    case 'update': return 'update';
+    case 'delete': return 'delete';
+    case 'approve': return 'approve';
+    case 'publish': return 'publish';
+    default: return 'view';
+  }
+}
 
 export class AuthRepository extends BaseRepository {
   private static _instance?: AuthRepository;
@@ -22,6 +34,47 @@ export class AuthRepository extends BaseRepository {
       AuthRepository._instance = new AuthRepository();
     }
     return AuthRepository._instance;
+  }
+
+  // P1-03：远程 profile -> UserProfile
+  private mapStudentProfile(p: RemoteProfile): UserProfile {
+    return {
+      studentId: p.studentId ?? '',
+      name: p.name ?? '',
+      avatarUrl: p.avatarUrl,
+      college: p.college ?? '',
+      major: p.major ?? '',
+      className: p.className ?? '',
+      grade: p.grade ?? '',
+      phone: p.phone,
+      email: p.email,
+      address: p.address,
+      emergencyContact: p.emergencyContact,
+      bio: p.bio,
+      role: 'student'
+    };
+  }
+
+  // P1-03：远程 profile -> AdminProfile（含权限矩阵）
+  private mapAdminProfile(p: RemoteProfile): AdminProfile {
+    const remotePerms: RemoteAdminPermission[] = p.permissions ?? [];
+    const permissions: AdminPermission[] = remotePerms.map((rp: RemoteAdminPermission) => {
+      const actions: AdminPermissionAction[] = rp.actions.map((a: string) => toAdminAction(a));
+      const perm: AdminPermission = { code: rp.code, name: rp.name, module: rp.module, actions: actions };
+      return perm;
+    });
+    const status: string = p.onlineStatus ?? 'offline';
+    const onlineStatus: 'online' | 'busy' | 'offline' =
+      status === 'online' ? 'online' : (status === 'busy' ? 'busy' : 'offline');
+    return {
+      adminId: p.adminId ?? '',
+      name: p.name ?? '',
+      department: p.department ?? '',
+      roleName: p.roleName ?? '',
+      avatarUrl: p.avatarUrl,
+      onlineStatus: onlineStatus,
+      permissions: permissions
+    };
   }
 
   async login(req: LoginRequest): Promise<LoginResult> {
@@ -33,9 +86,11 @@ export class AuthRepository extends BaseRepository {
     if (AppConfig.useRemote) {
       try {
         const remote = await RemoteApi.login(req.studentId.trim(), req.password);
-        const remoteResult: LoginResult = { token: remote.token, user: mockStudentProfile };
+        // P1-03：使用后端下发的真实 profile，取不到才回退 mock
+        const user: UserProfile = remote.profile ? this.mapStudentProfile(remote.profile) : mockStudentProfile;
+        const remoteResult: LoginResult = { token: remote.token, user: user };
         await AssetTokenStore.setStudentToken(remote.token);
-        await SessionStorage.get().setStudentSession(remote.token, mockStudentProfile);
+        await SessionStorage.get().setStudentSession(remote.token, user);
         return this.delay<LoginResult>(remoteResult);
       } catch (e) {
         // 远程登录失败回退本地校验
@@ -76,15 +131,35 @@ export class AuthRepository extends BaseRepository {
     if (!req.agreed) {
       return this.reject('请先同意用户协议');
     }
+    if (req.studentId.trim().length === 0 || req.name.trim().length === 0) {
+      return this.reject('学号和姓名不能为空');
+    }
     if (req.password !== req.confirmPassword) {
       return this.reject('两次密码不一致');
     }
-    // 校验邮箱验证码：走后端真实验证码（成功即被后端消费）。
+    // P1-01：注册真正落库
+    if (AppConfig.useRemote) {
+      // 远程：后端校验验证码并建账号 + 学生资料（重复学号 409）
+      try {
+        await RemoteApi.register(req.studentId.trim(), req.name.trim(), req.email, req.emailCode, req.password);
+      } catch (e) {
+        const msg = (e instanceof HttpError) ? (e as HttpError).message : '注册失败，请检查网络';
+        return this.reject(msg);
+      }
+      return this.delay<boolean>(true);
+    }
+    // 本地：邮箱验证码仍走后端校验（邮件发送必须联网），再建本地账号
     try {
       await RemoteApi.verifyEmailCode(req.email, req.emailCode);
     } catch (e) {
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '验证码校验失败，请检查网络';
       return this.reject(msg);
+    }
+    try {
+      await AccountStore.createAccount(req.studentId.trim(), 'student', req.password);
+    } catch (e) {
+      const msg = (e instanceof Error) ? e.message : String(e);
+      return this.reject(`注册失败：${msg}`);
     }
     return this.delay<boolean>(true);
   }
@@ -105,28 +180,33 @@ export class AuthRepository extends BaseRepository {
   }
 
   async resetPassword(req: ResetPasswordRequest): Promise<boolean> {
-    // 校验账号是否存在（学生 or 管理员）
     const accountId = req.account.trim();
     if (accountId.length === 0) {
       return this.reject('账号不能为空');
     }
-
-    // 校验邮箱验证码：走后端真实验证码（成功即被后端消费），不再接受固定码。
+    // P1-02：远程优先——后端校验账号存在 + 邮箱匹配 + 验证码，仅重置不建号
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.resetPassword(accountId, req.contact, req.verifyCode, req.newPassword);
+      } catch (e) {
+        const msg = (e instanceof HttpError) ? (e as HttpError).message : '重置密码失败，请检查网络';
+        return this.reject(msg);
+      }
+      return this.delay<boolean>(true);
+    }
+    // 本地：邮箱验证码走后端校验，再本地重置（账号不存在会抛错，不再自动建号）
     try {
       await RemoteApi.verifyEmailCode(req.contact, req.verifyCode);
     } catch (e) {
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '验证码校验失败，请检查网络';
       return this.reject(msg);
     }
-
-    // 将新密码真正持久化
     try {
       await AccountStore.resetPassword(accountId, req.newPassword);
     } catch (e) {
       const msg = (e instanceof Error) ? e.message : String(e);
       return this.reject(`重置密码失败：${msg}`);
     }
-
     return this.delay<boolean>(true);
   }
 
@@ -201,9 +281,11 @@ export class AuthRepository extends BaseRepository {
       try {
         const remote = await RemoteApi.login(req.adminId.trim(), req.password);
         if (remote.role === 'admin') {
-          const remoteResult: AdminLoginResult = { token: remote.token, profile: mockAdminProfile };
+          // P1-03：使用后端下发的真实管理员 profile（含真实权限矩阵），取不到才回退 mock
+          const profile: AdminProfile = remote.profile ? this.mapAdminProfile(remote.profile) : mockAdminProfile;
+          const remoteResult: AdminLoginResult = { token: remote.token, profile: profile };
           await AssetTokenStore.setAdminToken(remote.token);
-          await SessionStorage.get().setAdminSession(remote.token, mockAdminProfile);
+          await SessionStorage.get().setAdminSession(remote.token, profile);
           return this.delay<AdminLoginResult>(remoteResult);
         }
       } catch (e) {

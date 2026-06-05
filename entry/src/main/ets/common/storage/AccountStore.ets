@@ -172,22 +172,46 @@ export class AccountStore {
 
   /**
    * 重置密码（找回密码流程，无需旧密码）。
-   * 若账号不存在则自动创建（student 角色）。
+   * P1-02：账号不存在直接抛错，不再自动建号（堵掉「找回密码可建任意账号」）。
    */
   static async resetPassword(accountId: string, newPassword: string): Promise<void> {
     await AccountStore.ensureSeeded();
     const record = await AccountStore.loadRecord(accountId);
-    const role = record ? record.role : 'student';
+    if (!record) {
+      throw new Error('账号不存在，无法重置密码');
+    }
     const salt = generateSalt();
     const passwordHash = await hashPassword(newPassword, salt);
     const updated: AccountRecord = {
+      accountId: record.accountId,
+      role: record.role,
+      passwordHash: passwordHash,
+      salt: salt,
+      status: 'active'
+    };
+    await AccountStore.saveRecord(updated);
+  }
+
+  /**
+   * 创建账号（注册流程）。
+   * P1-01：账号已存在则抛错；否则写入新账号（默认 active）。
+   */
+  static async createAccount(accountId: string, role: string, password: string): Promise<void> {
+    await AccountStore.ensureSeeded();
+    const existing = await AccountStore.loadRecord(accountId);
+    if (existing) {
+      throw new Error('该账号已存在');
+    }
+    const salt = generateSalt();
+    const passwordHash = await hashPassword(password, salt);
+    const record: AccountRecord = {
       accountId: accountId,
       role: role,
       passwordHash: passwordHash,
       salt: salt,
       status: 'active'
     };
-    await AccountStore.saveRecord(updated);
+    await AccountStore.saveRecord(record);
   }
 
   // ---- 底层 IO：统一入口 -------------------------------------------------------

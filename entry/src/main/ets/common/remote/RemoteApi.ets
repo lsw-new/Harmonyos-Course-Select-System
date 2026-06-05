@@ -25,10 +25,43 @@ export interface RemoteRound {
   creditLimit: number;
 }
 
+export interface RemoteAdminPermission {
+  code: string;
+  name: string;
+  module: string;
+  actions: string[];
+}
+
+// P1-03：后端随登录下发的真实 profile（学生字段 + 管理员字段合并，按 role 取用）。
+export interface RemoteProfile {
+  // 共有
+  name?: string;
+  avatarUrl?: string;
+  email?: string;
+  role?: string;
+  // 学生
+  studentId?: string;
+  college?: string;
+  major?: string;
+  className?: string;
+  grade?: string;
+  phone?: string;
+  address?: string;
+  emergencyContact?: string;
+  bio?: string;
+  // 管理员
+  adminId?: string;
+  department?: string;
+  roleName?: string;
+  onlineStatus?: string;
+  permissions?: RemoteAdminPermission[];
+}
+
 export interface RemoteLoginResult {
   token: string;
   accountId: string;
   role: string;
+  profile?: RemoteProfile;
 }
 
 interface LoginBody {
@@ -43,6 +76,21 @@ interface EmailCodeBody {
 interface VerifyEmailCodeBody {
   email: string;
   code: string;
+}
+
+interface RegisterBody {
+  studentId: string;
+  name: string;
+  email: string;
+  emailCode: string;
+  password: string;
+}
+
+interface ResetPasswordBody {
+  account: string;
+  contact: string;
+  verifyCode: string;
+  newPassword: string;
 }
 
 interface SelectionBody {
@@ -266,6 +314,18 @@ export class RemoteApi {
   static async verifyEmailCode(email: string, code: string): Promise<void> {
     const body: VerifyEmailCodeBody = { email: email, code: code };
     await apiClient.post<Object>('/auth/verify-email-code', body);
+  }
+
+  // P1-01：注册（公开端点，后端校验验证码 + 建账号 + 建学生资料）
+  static async register(studentId: string, name: string, email: string, emailCode: string, password: string): Promise<void> {
+    const body: RegisterBody = { studentId: studentId, name: name, email: email, emailCode: emailCode, password: password };
+    await apiClient.post<Object>('/auth/register', body);
+  }
+
+  // P1-02：找回密码（公开端点，后端校验账号存在 + 邮箱匹配 + 验证码，仅重置不建号）
+  static async resetPassword(account: string, contact: string, verifyCode: string, newPassword: string): Promise<void> {
+    const body: ResetPasswordBody = { account: account, contact: contact, verifyCode: verifyCode, newPassword: newPassword };
+    await apiClient.post<Object>('/auth/reset-password', body);
   }
 
   static async listOpenCourses(): Promise<RemoteCourse[]> {
