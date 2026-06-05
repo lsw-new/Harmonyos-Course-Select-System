@@ -14,6 +14,10 @@ const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 const app = express();
 
+// HTTPS：仅信任本地回环反代（nginx）转发的 X-Forwarded-For，使限流/req.ip 取到真实客户端 IP；
+// 外部直连 :8090 的对端非回环，不会被信任，无法伪造 IP 绕过限流。
+app.set('trust proxy', 'loopback');
+
 // P2-01：CORS 收紧。原生 App 不受浏览器 CORS 约束；默认关闭跨域，
 // 仅当 .env 配置 CORS_ORIGINS（逗号分隔）时放行可信域名。
 const CORS_ORIGINS = (process.env.CORS_ORIGINS || '')
