@@ -30,5 +30,7 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: Run tests with coverage
+      - name: JS syntax check
+        run: npm run check:syntax
+      - name: Run tests with coverage (gated ≥80% lines)
         run: npm run test:coverage

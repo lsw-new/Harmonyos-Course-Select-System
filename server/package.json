@@ -9,7 +9,8 @@
     "migrate": "node migrate.js",
     "seed": "node seed.js",
     "test": "jest",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "check:syntax": "node scripts/check-syntax.js"
   },
   "engines": {
     "node": ">=18"
@@ -43,6 +44,14 @@
     "coverageReporters": [
       "text-summary",
       "lcov"
-    ]
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 80,
+        "functions": 80,
+        "statements": 79,
+        "branches": 62
+      }
+    }
   }
 }

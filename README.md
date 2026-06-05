@@ -219,10 +219,11 @@ entry/src/main/ets/
 
 后端 API 配套 **Jest + supertest** 自动化测试套件（`server/test/`）：
 
-- **103 个用例 / 10 个套件**，覆盖登录与鉴权中间件、越权（IDOR）防护、管理端细粒度权限、限流、选课事务（轮次 / 容量 / 学分上限 / 时间冲突 + `FOR UPDATE` 行锁 + 失败回滚）、实践报名、注册与找回密码闭环、各读写端点，以及选课规则纯函数。
+- **108 个用例 / 11 个套件**，覆盖登录与鉴权中间件、越权（IDOR）防护、管理端细粒度权限、限流、选课事务（轮次 / 容量 / 学分上限 / 时间冲突 + `FOR UPDATE` 行锁 + 失败回滚）、实践报名、注册与找回密码闭环、各读写端点，以及选课规则纯函数。
+- **并发压力测试**：有状态 mock 忠实复刻 `FOR UPDATE` 行锁对临界区的序列化，跑真正的 `Promise.all` 并发——20 人同抢 1/5 个名额恰好 1/5 人成功、落库数不超容量；另设「去锁对照」证明该断言非恒真（锁缺失即超卖）。
 - **行覆盖率 80.9%**（语句 79.9% / 函数 80.2%）；数据库连接池与 SMTP 等基础设施按约定排除统计。
 - 持久层经 mock 注入，无需真实数据库即可运行：`cd server && npm test`（或 `npm run test:coverage`）。
-- **CI**：[`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml) 在 push / PR 时于 Node 18 / 20 跑 `npm ci` + 覆盖率（仓库托管 Gitee，镜像到 GitHub 即自动运行）。
+- **CI**：[`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml) 在 push / PR 时于 Node 18 / 20 跑 `npm ci` → JS 语法检查 → 带**覆盖率门禁**（行 ≥ 80%）的测试（仓库托管 Gitee，镜像到 GitHub 即自动运行）。
 
 > 前端 ArkTS 页面另有 hypium 单元测试（`entry/src/ohosTest/`、`entry/src/test/`），需在 DevEco Studio + 模拟器 / 真机内运行，不纳入无头 CI。
 
