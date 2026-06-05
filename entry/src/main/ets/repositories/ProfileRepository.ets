@@ -247,11 +247,16 @@ export class ProfileRepository extends BaseRepository {
   }
 
   async getProfile(): Promise<UserProfile> {
-    return this.delayCopy<UserProfile>(this.workingProfile);
+    // 优先返回已登录会话的真实资料（远程登录下发的 profile）；未登录/本地 demo 才回退 workingProfile(mock)。
+    // 同步刷新 workingProfile 缓存，保证后续兜底与会话一致。
+    const cur = this.getCurrentStudentProfile();
+    this.workingProfile = cur;
+    return this.delayCopy<UserProfile>(cur);
   }
 
   async updateProfile(patch: ProfileEditPatch): Promise<UserProfile> {
-    const cur = this.workingProfile;
+    // 基于当前会话真实资料增量更新，避免把真实资料覆盖回 mock。
+    const cur = this.getCurrentStudentProfile();
     const next: UserProfile = {
       studentId: cur.studentId,
       name: cur.name,
