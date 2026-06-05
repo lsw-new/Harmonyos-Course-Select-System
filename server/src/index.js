@@ -59,6 +59,13 @@ const authLimiter = createRateLimiter(RL_WINDOW_MS, RL_AUTH_MAX);
 app.use(globalLimiter);
 app.use(express.json());
 
+// 统一 500 处理：完整错误（含堆栈）记入服务端日志（pm2 可查），客户端只收通用文案，
+// 不把 e.message 回给客户端，避免泄露 DB 约束名 / 连接串 / 内部实现等敏感细节。
+function serverError(res, label, e, code) {
+  console.error(`[dtest2-api] ${label}:`, (e && e.stack) ? e.stack : e);
+  return res.status(500).json(fail(`${label}，请稍后重试`, code));
+}
+
 const WEEKDAY_CN = ['', '一', '二', '三', '四', '五', '六', '日'];
 
 function deriveTimeText(row) {
@@ -218,7 +225,7 @@ app.get('/health', async (req, res) => {
     const r = await pool.query('SELECT now() AS now');
     res.json(ok({ db: 'ok', now: r.rows[0].now }));
   } catch (e) {
-    res.status(500).json(fail('数据库连接失败：' + e.message));
+    serverError(res, '数据库连接失败', e);
   }
 });
 
@@ -262,7 +269,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     }
     res.json(ok({ token, accountId: a.account_id, role: a.role, profile }));
   } catch (e) {
-    res.status(500).json(fail('登录失败：' + e.message));
+    serverError(res, '登录失败', e);
   }
 });
 
@@ -282,7 +289,7 @@ app.post('/api/auth/email-code', authLimiter, async (req, res) => {
     await sendVerificationCode(email, code);
     res.json(ok({ sent: true, ttl: 300 }));
   } catch (e) {
-    res.status(500).json(fail('邮件发送失败：' + e.message));
+    serverError(res, '邮件发送失败', e);
   }
 });
 
@@ -343,7 +350,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     res.json(ok({ registered: true, accountId: studentId }));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
-    res.status(500).json(fail('注册失败：' + e.message));
+    serverError(res, '注册失败', e);
   } finally {
     client.release();
   }
@@ -388,7 +395,7 @@ app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
     );
     res.json(ok({ reset: true }));
   } catch (e) {
-    res.status(500).json(fail('重置密码失败：' + e.message));
+    serverError(res, '重置密码失败', e);
   }
 });
 
@@ -406,7 +413,7 @@ app.get('/api/courses', authRequired, async (req, res) => {
     );
     res.json(ok(r.rows.map(mapCourse)));
   } catch (e) {
-    res.status(500).json(fail('查询课程失败：' + e.message));
+    serverError(res, '查询课程失败', e);
   }
 });
 
@@ -431,7 +438,7 @@ app.get('/api/selection-rounds/active', authRequired, async (req, res) => {
       creditLimit: Number(row.credit_limit)
     }));
   } catch (e) {
-    res.status(500).json(fail('查询轮次失败：' + e.message));
+    serverError(res, '查询轮次失败', e);
   }
 });
 
@@ -453,7 +460,7 @@ app.get('/api/selections', authRequired, async (req, res) => {
     );
     res.json(ok(r.rows.map(mapCourse)));
   } catch (e) {
-    res.status(500).json(fail('查询选课失败：' + e.message));
+    serverError(res, '查询选课失败', e);
   }
 });
 
@@ -539,7 +546,7 @@ app.post('/api/selections', authRequired, async (req, res) => {
     res.json(ok({ selected: true }));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
-    res.status(500).json(fail('选课失败：' + e.message));
+    serverError(res, '选课失败', e);
   } finally {
     client.release();
   }
@@ -563,7 +570,7 @@ app.delete('/api/selections', authRequired, async (req, res) => {
     }
     res.json(ok({ dropped: true }));
   } catch (e) {
-    res.status(500).json(fail('退课失败：' + e.message));
+    serverError(res, '退课失败', e);
   }
 });
 
@@ -632,7 +639,7 @@ app.get('/api/grades', authRequired, async (req, res) => {
     });
     res.json(ok(data));
   } catch (e) {
-    res.status(500).json(fail('查询成绩失败：' + e.message));
+    serverError(res, '查询成绩失败', e);
   }
 });
 
@@ -652,7 +659,7 @@ app.get('/api/notices', authRequired, async (req, res) => {
     );
     res.json(ok(r.rows.map(mapNotice)));
   } catch (e) {
-    res.status(500).json(fail('查询通知失败：' + e.message));
+    serverError(res, '查询通知失败', e);
   }
 });
 
@@ -673,7 +680,7 @@ app.get('/api/notices/:id', authRequired, async (req, res) => {
     }
     res.json(ok(mapNotice(r.rows[0])));
   } catch (e) {
-    res.status(500).json(fail('查询通知失败：' + e.message));
+    serverError(res, '查询通知失败', e);
   }
 });
 
@@ -691,7 +698,7 @@ app.post('/api/notices/:id/read', authRequired, async (req, res) => {
     );
     res.json(ok({ read: true }));
   } catch (e) {
-    res.status(500).json(fail('标记已读失败：' + e.message));
+    serverError(res, '标记已读失败', e);
   }
 });
 
@@ -710,7 +717,7 @@ app.get('/api/leave', authRequired, async (req, res) => {
     );
     res.json(ok(r.rows.map(mapLeave)));
   } catch (e) {
-    res.status(500).json(fail('查询请假失败：' + e.message));
+    serverError(res, '查询请假失败', e);
   }
 });
 
@@ -760,7 +767,7 @@ app.post('/api/leave', authRequired, async (req, res) => {
     res.json(ok(mapLeave(r.rows[0])));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
-    res.status(500).json(fail('提交请假失败：' + e.message));
+    serverError(res, '提交请假失败', e);
   } finally {
     client.release();
   }
@@ -838,7 +845,7 @@ app.get('/api/feedback', authRequired, async (req, res) => {
     );
     res.json(ok(r.rows.map(mapFeedback)));
   } catch (e) {
-    res.status(500).json(fail('查询反馈失败：' + e.message));
+    serverError(res, '查询反馈失败', e);
   }
 });
 
@@ -866,7 +873,7 @@ app.post('/api/feedback', authRequired, async (req, res) => {
     );
     res.json(ok(mapFeedback(r.rows[0])));
   } catch (e) {
-    res.status(500).json(fail('提交反馈失败：' + e.message));
+    serverError(res, '提交反馈失败', e);
   }
 });
 
@@ -891,7 +898,7 @@ app.get('/api/evaluations', authRequired, async (req, res) => {
     );
     res.json(ok(r.rows.map(mapEval)));
   } catch (e) {
-    res.status(500).json(fail('查询评教失败：' + e.message));
+    serverError(res, '查询评教失败', e);
   }
 });
 
@@ -935,7 +942,7 @@ app.post('/api/evaluations/:taskId/submit', authRequired, async (req, res) => {
     res.json(ok({ submitted: true }));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
-    res.status(500).json(fail('提交评教失败：' + e.message));
+    serverError(res, '提交评教失败', e);
   } finally {
     client.release();
   }
@@ -952,7 +959,7 @@ app.get('/api/practice', authRequired, async (req, res) => {
     );
     res.json(ok(r.rows.map(mapPractice)));
   } catch (e) {
-    res.status(500).json(fail('查询实践失败：' + e.message));
+    serverError(res, '查询实践失败', e);
   }
 });
 
@@ -966,7 +973,7 @@ app.get('/api/practice/:id', authRequired, async (req, res) => {
     }
     res.json(ok(mapPractice(r.rows[0])));
   } catch (e) {
-    res.status(500).json(fail('查询实践详情失败：' + e.message));
+    serverError(res, '查询实践详情失败', e);
   }
 });
 
@@ -1011,7 +1018,7 @@ app.post('/api/practice/:id/signup', authRequired, async (req, res) => {
     res.json(ok(mapPractice(updated.rows[0])));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
-    res.status(500).json(fail('报名失败：' + e.message));
+    serverError(res, '报名失败', e);
   } finally {
     client.release();
   }
@@ -1036,7 +1043,7 @@ app.delete('/api/practice/:id/signup', authRequired, async (req, res) => {
     const updated = await pool.query(`${PRACTICE_SELECT} WHERE p.project_id = $2 LIMIT 1`, [studentId, projectId]);
     res.json(ok(mapPractice(updated.rows[0])));
   } catch (e) {
-    res.status(500).json(fail('取消报名失败：' + e.message));
+    serverError(res, '取消报名失败', e);
   }
 });
 
@@ -1063,7 +1070,7 @@ function permissionRequired(...keys) {
         }
         next();
       } catch (e) {
-        return res.status(500).json(fail('权限校验失败：' + e.message, 'server_error'));
+        return serverError(res, '权限校验失败', e, 'server_error');
       }
     });
   };
@@ -1132,7 +1139,7 @@ app.get('/api/admin/students', permissionRequired('students.manage:view'), async
     );
     res.json(ok(r.rows.map(mapStudent)));
   } catch (e) {
-    res.status(500).json(fail('查询学生失败：' + e.message));
+    serverError(res, '查询学生失败', e);
   }
 });
 
@@ -1150,7 +1157,7 @@ app.get('/api/admin/grades', permissionRequired('grades.approve:view', 'grades.i
     );
     res.json(ok(r.rows.map(mapGradeTask)));
   } catch (e) {
-    res.status(500).json(fail('查询成绩审核失败：' + e.message));
+    serverError(res, '查询成绩审核失败', e);
   }
 });
 
@@ -1182,7 +1189,7 @@ app.post('/api/admin/grades/:id/input', permissionRequired('grades.input:update'
     );
     res.json(ok(mapGradeTask(updated.rows[0])));
   } catch (e) {
-    res.status(500).json(fail('录入成绩失败：' + e.message));
+    serverError(res, '录入成绩失败', e);
   }
 });
 
@@ -1202,7 +1209,7 @@ app.post('/api/admin/grades/:id/approve', permissionRequired('grades.approve:app
     await pool.query(`UPDATE dtest2.grade_tasks SET status='published', updated_at=now() WHERE task_id=$1`, [req.params.id]);
     res.json(ok({ approved: true }));
   } catch (e) {
-    res.status(500).json(fail('审核成绩失败：' + e.message));
+    serverError(res, '审核成绩失败', e);
   }
 });
 
@@ -1223,7 +1230,7 @@ app.post('/api/admin/grades/:id/reject', permissionRequired('grades.approve:appr
     await pool.query(`UPDATE dtest2.grade_tasks SET status='rejected', reject_reason=$2, updated_at=now() WHERE task_id=$1`, [req.params.id, reason]);
     res.json(ok({ rejected: true }));
   } catch (e) {
-    res.status(500).json(fail('驳回成绩失败：' + e.message));
+    serverError(res, '驳回成绩失败', e);
   }
 });
 
@@ -1238,7 +1245,7 @@ app.get('/api/admin/approvals', permissionRequired('approvals.handle:view'), asy
     );
     res.json(ok(r.rows.map(mapApproval)));
   } catch (e) {
-    res.status(500).json(fail('查询审批失败：' + e.message));
+    serverError(res, '查询审批失败', e);
   }
 });
 
@@ -1270,7 +1277,7 @@ async function handleApproval(req, res, newStatus, comment) {
     res.json(ok({ handled: true, status: newStatus }));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
-    res.status(500).json(fail('审批处理失败：' + e.message));
+    serverError(res, '审批处理失败', e);
   } finally {
     client.release();
   }
@@ -1364,7 +1371,7 @@ app.post('/api/admin/notices', permissionRequired('notices.publish:publish', 'no
       attachments: []
     }));
   } catch (e) {
-    res.status(500).json(fail('发布通知失败：' + e.message));
+    serverError(res, '发布通知失败', e);
   }
 });
 
@@ -1404,7 +1411,7 @@ app.get('/api/admin/roles', permissionRequired('roles.manage:view'), async (req,
     }
     res.json(ok(order.map((id) => map[id])));
   } catch (e) {
-    res.status(500).json(fail('查询角色失败：' + e.message));
+    serverError(res, '查询角色失败', e);
   }
 });
 
@@ -1420,7 +1427,7 @@ app.get('/api/admin/audit-logs', permissionRequired('audit.view:view'), async (r
     );
     res.json(ok(r.rows.map(mapAuditLog)));
   } catch (e) {
-    res.status(500).json(fail('查询操作日志失败：' + e.message));
+    serverError(res, '查询操作日志失败', e);
   }
 });
 
@@ -1433,7 +1440,7 @@ app.get('/api/admin/eval/templates', permissionRequired('evaluations.manage:view
     );
     res.json(ok(r.rows.map(mapTemplate)));
   } catch (e) {
-    res.status(500).json(fail('查询问卷模板失败：' + e.message));
+    serverError(res, '查询问卷模板失败', e);
   }
 });
 
@@ -1462,7 +1469,7 @@ app.post('/api/admin/eval/templates', permissionRequired('evaluations.manage:cre
     );
     res.json(ok(mapTemplate(r.rows[0])));
   } catch (e) {
-    res.status(500).json(fail('新建问卷模板失败：' + e.message));
+    serverError(res, '新建问卷模板失败', e);
   }
 });
 
@@ -1493,7 +1500,7 @@ app.put('/api/admin/eval/templates/:id', permissionRequired('evaluations.manage:
     }
     res.json(ok(mapTemplate(r.rows[0])));
   } catch (e) {
-    res.status(500).json(fail('更新问卷模板失败：' + e.message));
+    serverError(res, '更新问卷模板失败', e);
   }
 });
 
@@ -1505,7 +1512,7 @@ app.delete('/api/admin/eval/templates/:id', permissionRequired('evaluations.mana
     }
     res.json(ok({ deleted: true }));
   } catch (e) {
-    res.status(500).json(fail('删除问卷模板失败：' + e.message));
+    serverError(res, '删除问卷模板失败', e);
   }
 });
 

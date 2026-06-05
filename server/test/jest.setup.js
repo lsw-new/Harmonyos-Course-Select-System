@@ -7,3 +7,13 @@ process.env.NODE_ENV = 'test';
 process.env.RATE_LIMIT_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS || '60000';
 process.env.RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX || '1000000';
 process.env.AUTH_RATE_LIMIT_MAX = process.env.AUTH_RATE_LIMIT_MAX || '1000000';
+
+// 500 catch 分支用例会故意触发查询异常，serverError 的 `[dtest2-api]` 服务端日志属预期噪音。
+// 仅消音我们自己的后端错误日志，保持 CI 输出干净；其它真实/意外 console.error 照常透传。
+const __origConsoleError = console.error.bind(console);
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && args[0].startsWith('[dtest2-api]')) {
+    return;
+  }
+  __origConsoleError(...args);
+};

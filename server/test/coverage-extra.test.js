@@ -59,11 +59,14 @@ describe('详情读端点（有数据 → 200，映射行）', () => {
 });
 
 describe('查询异常 → 500 catch 分支', () => {
-  test('登录时账号查询抛错 → 500', async () => {
-    __mock.setRoutes([{ match: /FROM dtest2\.accounts/, result: new Error('db connection lost') }]);
+  test('登录时账号查询抛错 → 500，且不泄露内部错误细节', async () => {
+    __mock.setRoutes([{ match: /FROM dtest2\.accounts/, result: new Error('db connection lost: host=10.0.0.5 pwd=secret') }]);
     const res = await request(app).post('/api/auth/login').send({ account: '2023307020941', password: 'x' });
     expect(res.status).toBe(500);
     expect(res.body.success).toBe(false);
+    // 安全：内部错误细节（连接串 / 主机 / 凭据等）绝不出现在客户端响应里，只回通用文案
+    expect(res.body.error).not.toMatch(/db connection lost|10\.0\.0\.5|secret/);
+    expect(res.body.error).toMatch(/请稍后重试/);
   });
 
   test('课程查询抛错 → 500', async () => {
