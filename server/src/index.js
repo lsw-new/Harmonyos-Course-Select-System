@@ -5,7 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const { pool } = require('./db');
 const { ok, fail } = require('./envelope');
-const { verifyPassword } = require('./hash');
+const { verifyPassword, genSalt, hashPassword } = require('./hash');
 const { signToken, authRequired, adminRequired } = require('./auth');
 const { sendVerificationCode } = require('./email');
 const codeStore = require('./codeStore');
@@ -93,6 +93,57 @@ function currentStudentId(req) {
   return (req.auth && req.auth.sub) ? String(req.auth.sub) : '';
 }
 
+// P1-03：登录返回真实 profile（学生查 student_profiles；管理员带角色名与权限矩阵）。
+function normalizePermCode(code) {
+  // 前端权限词表用 evaluation.manage（单数），后端 permissions 表用 evaluations.manage（复数），下发前对齐。
+  return code === 'evaluations.manage' ? 'evaluation.manage' : code;
+}
+
+async function fetchStudentProfile(studentId) {
+  const r = await pool.query(
+    `SELECT student_id, name, avatar_url, college, major, class_name, grade, phone, email, address, emergency_contact, bio
+     FROM dtest2.student_profiles WHERE student_id=$1`,
+    [studentId]
+  );
+  if (r.rowCount === 0) return null;
+  const p = r.rows[0];
+  return {
+    studentId: p.student_id, name: p.name, avatarUrl: p.avatar_url || '',
+    college: p.college, major: p.major, className: p.class_name, grade: p.grade,
+    phone: p.phone || '', email: p.email || '', address: p.address || '',
+    emergencyContact: p.emergency_contact || '', bio: p.bio || '', role: 'student'
+  };
+}
+
+async function fetchAdminProfile(adminId) {
+  const r = await pool.query(
+    `SELECT ap.admin_id, ap.name, ap.department, ap.role_id, ap.avatar_url, ap.online_status,
+            COALESCE(ro.name, '') AS role_name
+     FROM dtest2.admin_profiles ap LEFT JOIN dtest2.roles ro ON ro.role_id = ap.role_id
+     WHERE ap.admin_id=$1`,
+    [adminId]
+  );
+  if (r.rowCount === 0) return null;
+  const a = r.rows[0];
+  const permR = await pool.query(
+    `SELECT rp.code, MIN(p.name) AS name, MIN(p.module) AS module, array_agg(rp.action ORDER BY rp.action) AS actions
+     FROM dtest2.role_permissions rp
+     LEFT JOIN dtest2.permissions p ON p.code = rp.code AND p.action = rp.action
+     WHERE rp.role_id=$1 GROUP BY rp.code ORDER BY rp.code`,
+    [a.role_id]
+  );
+  const permissions = permR.rows.map((row) => ({
+    code: normalizePermCode(row.code),
+    name: row.name || row.code,
+    module: row.module || '',
+    actions: Array.isArray(row.actions) ? row.actions : []
+  }));
+  return {
+    adminId: a.admin_id, name: a.name, department: a.department, roleName: a.role_name,
+    avatarUrl: a.avatar_url || '', onlineStatus: a.online_status, permissions
+  };
+}
+
 // ---- 健康检查 ----
 app.get('/health', async (req, res) => {
   try {
@@ -126,7 +177,14 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.status(401).json(fail('账号或密码错误'));
     }
     const token = signToken({ sub: a.account_id, role: a.role });
-    res.json(ok({ token, accountId: a.account_id, role: a.role }));
+    // P1-03：随登录下发真实 profile（取不到则置 null，前端回退本地兜底）
+    let profile = null;
+    if (a.role === 'student') {
+      profile = await fetchStudentProfile(a.account_id);
+    } else if (a.role === 'admin') {
+      profile = await fetchAdminProfile(a.account_id);
+    }
+    res.json(ok({ token, accountId: a.account_id, role: a.role, profile }));
   } catch (e) {
     res.status(500).json(fail('登录失败：' + e.message));
   }
@@ -164,6 +222,100 @@ app.post('/api/auth/verify-email-code', authLimiter, (req, res) => {
     return res.status(400).json(fail(result.reason));
   }
   res.json(ok({ valid: true }));
+});
+
+// ---- 注册（公开）：校验邮箱验证码 + 建账号 + 建学生资料（重复学号拒绝）----
+// P1-01：注册真正落库（accounts + student_profiles）。注册仅收集 学号/姓名/邮箱，
+// student_profiles 其余 NOT NULL 字段先占位「待完善」，由学生登录后在「编辑资料」补全。
+app.post('/api/auth/register', authLimiter, async (req, res) => {
+  const b = req.body || {};
+  const studentId = ((b.studentId) || '').trim();
+  const name = ((b.name) || '').trim();
+  const email = ((b.email) || '').trim();
+  const code = ((b.emailCode) || '').trim();
+  const password = (b.password) || '';
+  if (!studentId || !name || !EMAIL_RE.test(email) || !code || !password) {
+    return res.status(400).json(fail('注册信息不完整'));
+  }
+  if (password.length < 6) {
+    return res.status(400).json(fail('密码至少 6 位'));
+  }
+  const v = codeStore.verify(email, code);
+  if (!v.ok) {
+    return res.status(400).json(fail(v.reason));
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const exists = await client.query('SELECT 1 FROM dtest2.accounts WHERE account_id=$1', [studentId]);
+    if (exists.rowCount > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail('该学号已注册'));
+    }
+    const salt = genSalt();
+    const passwordHash = hashPassword(password, salt);
+    await client.query(
+      `INSERT INTO dtest2.accounts (account_id, role, password_hash, salt, status) VALUES ($1,'student',$2,$3,'active')`,
+      [studentId, passwordHash, salt]
+    );
+    await client.query(
+      `INSERT INTO dtest2.student_profiles (student_id, name, college, major, class_name, grade, email)
+       VALUES ($1,$2,'待完善','待完善','待完善','待完善',$3)
+       ON CONFLICT (student_id) DO UPDATE SET name=EXCLUDED.name, email=EXCLUDED.email`,
+      [studentId, name, email]
+    );
+    await client.query('COMMIT');
+    res.json(ok({ registered: true, accountId: studentId }));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    res.status(500).json(fail('注册失败：' + e.message));
+  } finally {
+    client.release();
+  }
+});
+
+// ---- 找回密码（公开）：账号须存在且邮箱与绑定邮箱一致，仅重置不建号 ----
+// P1-02：堵掉「找回密码可建任意账号」——账号不存在直接 404，邮箱不匹配 403。
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
+  const b = req.body || {};
+  const account = ((b.account) || '').trim();
+  const email = ((b.contact) || b.email || '').trim();
+  const code = ((b.verifyCode) || b.code || '').trim();
+  const newPassword = (b.newPassword) || '';
+  if (!account || !EMAIL_RE.test(email) || !code || !newPassword) {
+    return res.status(400).json(fail('找回密码信息不完整'));
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json(fail('密码至少 6 位'));
+  }
+  try {
+    const acc = await pool.query('SELECT account_id, role FROM dtest2.accounts WHERE account_id=$1', [account]);
+    if (acc.rowCount === 0) {
+      return res.status(404).json(fail('账号不存在'));
+    }
+    if (acc.rows[0].role !== 'student') {
+      return res.status(403).json(fail('该账号不支持邮箱找回密码'));
+    }
+    const prof = await pool.query('SELECT email FROM dtest2.student_profiles WHERE student_id=$1', [account]);
+    const boundEmail = (prof.rowCount > 0 ? (prof.rows[0].email || '') : '').trim().toLowerCase();
+    if (!boundEmail || boundEmail !== email.toLowerCase()) {
+      return res.status(403).json(fail('邮箱与账号不匹配'));
+    }
+    // 账号/邮箱校验通过后再消费验证码，避免无谓消费
+    const v = codeStore.verify(email, code);
+    if (!v.ok) {
+      return res.status(400).json(fail(v.reason));
+    }
+    const salt = genSalt();
+    const passwordHash = hashPassword(newPassword, salt);
+    await pool.query(
+      'UPDATE dtest2.accounts SET password_hash=$2, salt=$3, updated_at=now() WHERE account_id=$1',
+      [account, passwordHash, salt]
+    );
+    res.json(ok({ reset: true }));
+  } catch (e) {
+    res.status(500).json(fail('重置密码失败：' + e.message));
+  }
 });
 
 // ---- 课程列表（可选 ?status=open）----
