@@ -2,7 +2,7 @@
 
 import { BaseRepository } from './BaseRepository';
 import {
-  AdminDashboardSummary, StudentAdminItem, StudentAdminStatus, StudentEducationLevel, AdminCourseItem, AdminCourseWritePayload, SelectionRound,
+  AdminDashboardSummary, StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound,
   GradeAuditItem, GradeAuditStatus, GradeInputPayload, GradeRejectPayload, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
   AdminPermissionAction, AdminCourseCategory, AdminCourseStatus
 } from '../models/Admin';
@@ -16,18 +16,14 @@ import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AuthorizationService } from '../common/security/AuthorizationService';
 import { NoticeStore } from '../common/services/NoticeStore';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteStudent, RemoteGradeTask, RemoteApproval } from '../common/remote/RemoteApi';
+import { RemoteApi } from '../common/remote/RemoteApi';
+import { AdminLogic } from './AdminLogic';
 
 const KEY_ADMIN_APPROVALS = 'local.adminApprovals.v1';
 const KEY_ADMIN_GRADES = 'local.adminGrades.v1';
 const KEY_ADMIN_COURSES = 'local.adminCourses.v1';
 const SEED_COURSES_FLAG = 'seed.courses.v1';
 const KEY_LOCAL_LEAVES = 'local.leaveRequests.v1';
-const COURSE_CATEGORIES: string[] = ['required', 'elective', 'public', 'practice'];
-const COURSE_STATUSES: string[] = ['draft', 'open', 'closed', 'archived'];
-const GRADE_STATUSES: string[] = ['pendingAudit', 'inputting', 'published', 'appealed', 'rejected'];
-const COURSE_CODE_PATTERN: RegExp = /^[A-Za-z0-9_-]{2,32}$/;
-const CONTROL_CHAR_PATTERN: RegExp = /[\r\n\u0000-\u001f\u007f]/;
 
 export class AdminRepository extends BaseRepository {
   private static _instance?: AdminRepository;
@@ -49,12 +45,12 @@ export class AdminRepository extends BaseRepository {
     if (AppDatabase.isReady()) {
       const rdbItems = await this.getApprovalItemsFromRdb();
       const stored = await LocalDataStore.loadArray<ApprovalItem>(KEY_ADMIN_APPROVALS, []);
-      this.approvals = this.mergeApprovalItems(this.mergeApprovalItems(rdbItems, stored), mockApprovals);
+      this.approvals = AdminLogic.mergeApprovalItems(AdminLogic.mergeApprovalItems(rdbItems, stored), mockApprovals);
       this.isApprovalsLoaded = true;
       return this.approvals;
     }
     const stored = await LocalDataStore.loadArray<ApprovalItem>(KEY_ADMIN_APPROVALS, []);
-    this.approvals = this.mergeApprovalItems(stored, mockApprovals);
+    this.approvals = AdminLogic.mergeApprovalItems(stored, mockApprovals);
     this.isApprovalsLoaded = true;
     return this.approvals;
   }
@@ -64,10 +60,10 @@ export class AdminRepository extends BaseRepository {
       const rdbItems = await this.loadGradeTasksFromRdb();
       if (rdbItems.length > 0) {
         const stored = await LocalDataStore.loadArray<GradeAuditItem>(KEY_ADMIN_GRADES, []);
-        this.grades = this.mergeGradeItems(rdbItems, this.mergeGradeItems(stored, mockGradeAudits));
+        this.grades = AdminLogic.mergeGradeItems(rdbItems, AdminLogic.mergeGradeItems(stored, mockGradeAudits));
       } else {
         const stored = await LocalDataStore.loadArray<GradeAuditItem>(KEY_ADMIN_GRADES, mockGradeAudits);
-        const sanitized = this.sanitizeGradeItems(stored);
+        const sanitized = AdminLogic.sanitizeGradeItems(stored);
         this.grades = sanitized.length > 0 ? sanitized : JSON.parse(JSON.stringify(mockGradeAudits)) as GradeAuditItem[];
       }
       this.isGradesLoaded = true;
@@ -75,7 +71,7 @@ export class AdminRepository extends BaseRepository {
     }
     if (!this.isGradesLoaded) {
       const stored = await LocalDataStore.loadArray<GradeAuditItem>(KEY_ADMIN_GRADES, mockGradeAudits);
-      const sanitized = this.sanitizeGradeItems(stored);
+      const sanitized = AdminLogic.sanitizeGradeItems(stored);
       this.grades = sanitized.length > 0 ? sanitized : JSON.parse(JSON.stringify(mockGradeAudits)) as GradeAuditItem[];
       this.isGradesLoaded = true;
     }
@@ -123,17 +119,6 @@ export class AdminRepository extends BaseRepository {
     return items;
   }
 
-  // 合并 grade 列表，以 localItems 中的条目优先（local 覆盖 seed 同 id）
-  private mergeGradeItems(localItems: GradeAuditItem[], seedItems: GradeAuditItem[]): GradeAuditItem[] {
-    const result: GradeAuditItem[] = JSON.parse(JSON.stringify(localItems)) as GradeAuditItem[];
-    seedItems.forEach((item) => {
-      const exists = result.some((cur) => cur.id === item.id);
-      if (!exists) {
-        result.push(item);
-      }
-    });
-    return result;
-  }
 
   // approve 时：若 RDB 就绪，尝试批量将该任务关联课程的所有选课学生的成绩行置为 published
   private async publishGradesToRdb(taskId: string): Promise<void> {
@@ -189,13 +174,13 @@ export class AdminRepository extends BaseRepository {
     if (AppDatabase.isReady()) {
       await this.seedCoursesIfNeeded();
       const rdbItems = await this.loadCoursesFromRdb();
-      this.courses = this.sanitizeCourseItems(rdbItems);
+      this.courses = AdminLogic.sanitizeCourseItems(rdbItems);
       this.isCoursesLoaded = true;
       return this.courses;
     }
     if (!this.isCoursesLoaded) {
       const stored = await LocalDataStore.loadArray<AdminCourseItem>(KEY_ADMIN_COURSES, mockAdminCourses);
-      const sanitized = this.sanitizeCourseItems(stored);
+      const sanitized = AdminLogic.sanitizeCourseItems(stored);
       this.courses = sanitized.length > 0 ? sanitized : JSON.parse(JSON.stringify(mockAdminCourses)) as AdminCourseItem[];
       this.isCoursesLoaded = true;
     }
@@ -313,233 +298,6 @@ export class AdminRepository extends BaseRepository {
     return this.reject('无权限操作', 'unauthorized');
   }
 
-  private isAllowedCourseCategory(value: string): boolean {
-    return COURSE_CATEGORIES.indexOf(value) >= 0;
-  }
-
-  private isAllowedCourseStatus(value: string): boolean {
-    return COURSE_STATUSES.indexOf(value) >= 0;
-  }
-
-  private isAllowedGradeStatus(value: string): boolean {
-    return GRADE_STATUSES.indexOf(value) >= 0;
-  }
-
-  private shouldHaveCompleteGradeInput(status: string): boolean {
-    return status === 'pendingAudit' || status === 'published' || status === 'rejected' || status === 'appealed';
-  }
-
-  private isValidRejectReason(value: string | undefined): boolean {
-    return value !== undefined && this.isCleanText(value, 1, 120);
-  }
-
-  private isFiniteNumber(value: number): boolean {
-    return typeof value === 'number' && value === value && value !== Infinity && value !== -Infinity;
-  }
-
-  private hasOneDecimalAtMost(value: number): boolean {
-    return Math.round(value * 10) === value * 10;
-  }
-
-  private isCleanText(value: string, min: number, max: number): boolean {
-    if (typeof value !== 'string') {
-      return false;
-    }
-    const text = value.trim();
-    return text.length >= min && text.length <= max && !CONTROL_CHAR_PATTERN.test(text);
-  }
-
-  private isValidStoredCourse(item: AdminCourseItem): boolean {
-    if (!item || typeof item !== 'object') {
-      return false;
-    }
-    if (!this.isCleanText(item.id, 1, 64)) {
-      return false;
-    }
-    if (typeof item.code !== 'string' || !COURSE_CODE_PATTERN.test(item.code.trim())) {
-      return false;
-    }
-    if (!this.isCleanText(item.name, 1, 64) || !this.isCleanText(item.teacher, 1, 32) || !this.isCleanText(item.timeText, 1, 80)) {
-      return false;
-    }
-    if (!this.isAllowedCourseCategory(item.category) || !this.isAllowedCourseStatus(item.status)) {
-      return false;
-    }
-    if (!this.isFiniteNumber(item.credit) || item.credit <= 0 || item.credit > 20 || !this.hasOneDecimalAtMost(item.credit)) {
-      return false;
-    }
-    if (!this.isFiniteNumber(item.capacity) || Math.floor(item.capacity) !== item.capacity || item.capacity < 1 || item.capacity > 10000) {
-      return false;
-    }
-    if (!this.isFiniteNumber(item.selectedCount) || Math.floor(item.selectedCount) !== item.selectedCount || item.selectedCount < 0 || item.selectedCount > item.capacity) {
-      return false;
-    }
-    return true;
-  }
-
-  private sanitizeCourseItems(items: AdminCourseItem[]): AdminCourseItem[] {
-    return items.filter((item) => this.isValidStoredCourse(item)).map((item) => {
-      const sanitized: AdminCourseItem = {
-        id: item.id.trim(),
-        code: item.code.trim(),
-        name: item.name.trim(),
-        teacher: item.teacher.trim(),
-        category: item.category,
-        credit: item.credit,
-        timeText: item.timeText.trim(),
-        capacity: item.capacity,
-        selectedCount: item.selectedCount,
-        status: item.status
-      };
-      return sanitized;
-    });
-  }
-
-  private isValidStoredGrade(item: GradeAuditItem): boolean {
-    if (!item || typeof item !== 'object') {
-      return false;
-    }
-    if (!this.isCleanText(item.id, 1, 64)) {
-      return false;
-    }
-    if (!this.isCleanText(item.courseName, 1, 80) || !this.isCleanText(item.teachingClassName, 1, 80) || !this.isCleanText(item.teacherName, 1, 32)) {
-      return false;
-    }
-    if (!this.isCleanText(item.updatedAt, 1, 40)) {
-      return false;
-    }
-    if (!this.isValidInputProgress(item.inputProgress) || !this.isAllowedGradeStatus(item.status)) {
-      return false;
-    }
-    if (this.shouldHaveCompleteGradeInput(item.status) && item.inputProgress !== 100) {
-      return false;
-    }
-    if (item.status === 'rejected' && !this.isValidRejectReason(item.rejectReason)) {
-      return false;
-    }
-    return true;
-  }
-
-  private sanitizeGradeItems(items: GradeAuditItem[]): GradeAuditItem[] {
-    const ids: string[] = [];
-    const sanitized: GradeAuditItem[] = [];
-    items.forEach((item) => {
-      if (!this.isValidStoredGrade(item)) {
-        return;
-      }
-      const id = item.id.trim();
-      if (ids.indexOf(id) >= 0) {
-        return;
-      }
-      ids.push(id);
-      const next: GradeAuditItem = {
-        id: id,
-        courseName: item.courseName.trim(),
-        teachingClassName: item.teachingClassName.trim(),
-        teacherName: item.teacherName.trim(),
-        inputProgress: item.inputProgress,
-        status: item.status,
-        updatedAt: item.updatedAt.trim()
-      };
-      const rejectReason = item.rejectReason;
-      if (item.status === 'rejected' && rejectReason !== undefined && this.isValidRejectReason(rejectReason)) {
-        next.rejectReason = rejectReason.trim();
-      }
-      sanitized.push(next);
-    });
-    return sanitized;
-  }
-
-  private isValidInputProgress(value: number): boolean {
-    return this.isFiniteNumber(value) && Math.floor(value) === value && value >= 0 && value <= 100;
-  }
-
-  private normalizeRejectReason(reason: string): string {
-    return reason.trim();
-  }
-
-  private validateRejectReason(reason: string): string {
-    if (!this.isCleanText(reason, 1, 120)) {
-      return '驳回理由需为 1-120 字且不能包含换行或控制字符';
-    }
-    return '';
-  }
-
-  private canInputGradeStatus(status: string): boolean {
-    return status === 'inputting' || status === 'rejected' || status === 'appealed';
-  }
-
-  private toGradeStatusByProgress(inputProgress: number): 'inputting' | 'pendingAudit' {
-    return inputProgress === 100 ? 'pendingAudit' : 'inputting';
-  }
-
-  private validateCoursePayload(payload: AdminCourseWritePayload, items: AdminCourseItem[], editingId?: string): string {
-    const code = payload.code.trim();
-    const name = payload.name.trim();
-    const teacher = payload.teacher.trim();
-    const timeText = payload.timeText.trim();
-    if (!COURSE_CODE_PATTERN.test(code)) {
-      return '课程代码需为 2-32 位字母、数字、下划线或短横线';
-    }
-    if (!this.isCleanText(name, 1, 64)) {
-      return '课程名称需为 1-64 字且不能包含换行或控制字符';
-    }
-    if (!this.isCleanText(teacher, 1, 32)) {
-      return '教师需为 1-32 字且不能包含换行或控制字符';
-    }
-    if (!this.isCleanText(timeText, 1, 80)) {
-      return '上课时间需为 1-80 字且不能包含换行或控制字符';
-    }
-    if (!this.isAllowedCourseCategory(payload.category)) {
-      return '课程类型不合法';
-    }
-    if (!this.isAllowedCourseStatus(payload.status)) {
-      return '课程状态不合法';
-    }
-    if (!this.isFiniteNumber(payload.credit) || payload.credit <= 0 || payload.credit > 20 || !this.hasOneDecimalAtMost(payload.credit)) {
-      return '学分需大于 0 且不超过 20，最多一位小数';
-    }
-    if (!this.isFiniteNumber(payload.capacity) || Math.floor(payload.capacity) !== payload.capacity || payload.capacity < 1 || payload.capacity > 10000) {
-      return '容量需为 1-10000 的整数';
-    }
-    if (!this.isFiniteNumber(payload.selectedCount) || Math.floor(payload.selectedCount) !== payload.selectedCount || payload.selectedCount < 0 || payload.selectedCount > payload.capacity) {
-      return '已选人数需为 0 到容量之间的整数';
-    }
-    const duplicated = items.some((item) => item.id !== editingId && item.code.toLowerCase() === code.toLowerCase());
-    if (duplicated) {
-      return '课程代码已存在';
-    }
-    const hasTeacherConflict = items.some((item) => item.id !== editingId && item.teacher.trim() === teacher && item.timeText.trim() === timeText);
-    if (hasTeacherConflict) {
-      return '同一教师在该时间已有课程';
-    }
-    return '';
-  }
-
-  private normalizeCoursePayload(payload: AdminCourseWritePayload): AdminCourseWritePayload {
-    return {
-      code: payload.code.trim(),
-      name: payload.name.trim(),
-      teacher: payload.teacher.trim(),
-      category: payload.category,
-      credit: payload.credit,
-      timeText: payload.timeText.trim(),
-      capacity: payload.capacity,
-      selectedCount: payload.selectedCount,
-      status: payload.status
-    };
-  }
-
-  private mergeApprovalItems(localItems: ApprovalItem[], seedItems: ApprovalItem[]): ApprovalItem[] {
-    const result: ApprovalItem[] = JSON.parse(JSON.stringify(localItems)) as ApprovalItem[];
-    seedItems.forEach((item) => {
-      const exists = result.some((cur) => cur.id === item.id);
-      if (!exists) {
-        result.push(item);
-      }
-    });
-    return result;
-  }
 
   private async getApprovalItemsFromRdb(): Promise<ApprovalItem[]> {
     const resultSet = await AppDatabase.query(
@@ -637,56 +395,12 @@ export class AdminRepository extends BaseRepository {
   }
 
   private async saveGrades(next: GradeAuditItem[]): Promise<void> {
-    const sanitized = this.sanitizeGradeItems(next);
+    const sanitized = AdminLogic.sanitizeGradeItems(next);
     this.grades = sanitized;
     this.isGradesLoaded = true;
     await LocalDataStore.saveArray<GradeAuditItem>(KEY_ADMIN_GRADES, sanitized);
   }
 
-  // ===== Track B 管理端远程映射 =====
-  private remoteToStudent(s: RemoteStudent): StudentAdminItem {
-    const item: StudentAdminItem = {
-      studentId: s.studentId,
-      name: s.name,
-      college: s.college,
-      major: s.major,
-      className: s.className,
-      status: s.status as StudentAdminStatus,
-      educationLevel: s.educationLevel as StudentEducationLevel
-    };
-    return item;
-  }
-
-  private remoteToGradeTask(t: RemoteGradeTask): GradeAuditItem {
-    const item: GradeAuditItem = {
-      id: t.id,
-      courseName: t.courseName,
-      teachingClassName: t.teachingClassName,
-      teacherName: t.teacherName,
-      inputProgress: t.inputProgress,
-      status: t.status as GradeAuditStatus,
-      updatedAt: t.updatedAt
-    };
-    if (t.rejectReason !== undefined && t.rejectReason.length > 0) {
-      item.rejectReason = t.rejectReason;
-    }
-    return item;
-  }
-
-  private remoteToApproval(a: RemoteApproval): ApprovalItem {
-    const item: ApprovalItem = {
-      id: a.id,
-      type: a.type,
-      applicantName: a.applicantName,
-      applicantId: a.applicantId,
-      title: a.title,
-      reason: a.reason,
-      status: a.status as ApprovalStatus,
-      isUrgent: a.isUrgent,
-      submittedAt: a.submittedAt
-    };
-    return item;
-  }
 
   async getDashboard(): Promise<AdminDashboardSummary> {
     const approvals = await this.getApprovalItems();
@@ -703,7 +417,7 @@ export class AdminRepository extends BaseRepository {
     if (AppConfig.useRemote) {
       try {
         const remote = await RemoteApi.adminListStudents(query, college);
-        return this.delayCopy<StudentAdminItem[]>(remote.map((s) => this.remoteToStudent(s)));
+        return this.delayCopy<StudentAdminItem[]>(remote.map((s) => AdminLogic.remoteToStudent(s)));
       } catch (e) {
         // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
         if (!AppConfig.allowMockFallbackInRemote) {
@@ -784,8 +498,8 @@ export class AdminRepository extends BaseRepository {
       return this.rejectUnauthorized();
     }
     const items = await this.getCourseItems();
-    const normalized = this.normalizeCoursePayload(payload);
-    const error = this.validateCoursePayload(normalized, items);
+    const normalized = AdminLogic.normalizeCoursePayload(payload);
+    const error = AdminLogic.validateCoursePayload(normalized, items);
     if (error.length > 0) {
       return this.reject(error);
     }
@@ -815,8 +529,8 @@ export class AdminRepository extends BaseRepository {
     if (!target) {
       return this.reject('课程不存在', 'notFound');
     }
-    const normalized = this.normalizeCoursePayload(payload);
-    const error = this.validateCoursePayload(normalized, items, id);
+    const normalized = AdminLogic.normalizeCoursePayload(payload);
+    const error = AdminLogic.validateCoursePayload(normalized, items, id);
     if (error.length > 0) {
       return this.reject(error);
     }
@@ -862,7 +576,7 @@ export class AdminRepository extends BaseRepository {
     if (AppConfig.useRemote) {
       try {
         const remote = await RemoteApi.adminListGrades(status);
-        return this.delayCopy<GradeAuditItem[]>(remote.map((t) => this.remoteToGradeTask(t)));
+        return this.delayCopy<GradeAuditItem[]>(remote.map((t) => AdminLogic.remoteToGradeTask(t)));
       } catch (e) {
         // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
         if (!AppConfig.allowMockFallbackInRemote) {
@@ -935,12 +649,12 @@ export class AdminRepository extends BaseRepository {
     if (AppConfig.useRemote) {
       try {
         const remote = await RemoteApi.adminGradeInput(payload.id, payload.inputProgress);
-        return this.delayCopy<GradeAuditItem>(this.remoteToGradeTask(remote));
+        return this.delayCopy<GradeAuditItem>(AdminLogic.remoteToGradeTask(remote));
       } catch (e) {
         return this.reject((e instanceof Error) ? e.message : String(e));
       }
     }
-    if (!this.isValidInputProgress(payload.inputProgress)) {
+    if (!AdminLogic.isValidInputProgress(payload.inputProgress)) {
       return this.reject('录入进度需为 0-100 的整数');
     }
     const grades = await this.getGradeItems();
@@ -948,10 +662,10 @@ export class AdminRepository extends BaseRepository {
     if (!target) {
       return this.reject('成绩记录不存在', 'notFound');
     }
-    if (!this.canInputGradeStatus(target.status)) {
+    if (!AdminLogic.canInputGradeStatus(target.status)) {
       return this.reject('当前状态不可录入');
     }
-    const nextStatus = this.toGradeStatusByProgress(payload.inputProgress);
+    const nextStatus = AdminLogic.toGradeStatusByProgress(payload.inputProgress);
     const updated: GradeAuditItem = {
       id: target.id,
       courseName: target.courseName,
@@ -989,8 +703,8 @@ export class AdminRepository extends BaseRepository {
         return this.reject((e instanceof Error) ? e.message : String(e));
       }
     }
-    const normalizedReason = this.normalizeRejectReason(payload.reason);
-    const reasonError = this.validateRejectReason(normalizedReason);
+    const normalizedReason = AdminLogic.normalizeRejectReason(payload.reason);
+    const reasonError = AdminLogic.validateRejectReason(normalizedReason);
     if (reasonError.length > 0) {
       return this.reject(reasonError);
     }
@@ -1059,7 +773,7 @@ export class AdminRepository extends BaseRepository {
     if (AppConfig.useRemote) {
       try {
         const remote = await RemoteApi.adminListApprovals(status);
-        return this.delayCopy<ApprovalItem[]>(remote.map((a) => this.remoteToApproval(a)));
+        return this.delayCopy<ApprovalItem[]>(remote.map((a) => AdminLogic.remoteToApproval(a)));
       } catch (e) {
         // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
         if (!AppConfig.allowMockFallbackInRemote) {
