@@ -2,9 +2,8 @@
 
 import { BaseRepository } from './BaseRepository';
 import { Course, ScheduleItem, SelectionCourse, SelectionRoundInfo } from '../models/Course';
-import { AdminCourseItem, AdminCourseCategory, AdminCourseStatus } from '../models/Admin';
 import { Notice } from '../models/Notice';
-import { mockCourses, mockSchedule } from '../mock/mockCourses';
+import { mockSchedule } from '../mock/mockCourses';
 import { mockNotices } from '../mock/mockNotices';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AppDatabase } from '../common/storage/AppDatabase';
@@ -13,14 +12,14 @@ import { NoticeStore } from '../common/services/NoticeStore';
 import { SelectionAdminRepository } from './SelectionAdminRepository';
 import { AdminRepository } from './AdminRepository';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteCourse, RemoteNotice } from '../common/remote/RemoteApi';
+import { RemoteApi } from '../common/remote/RemoteApi';
+import { CourseLogic } from './CourseLogic';
 
 const CREDIT_LIMIT: number = 28; // 学分上限：选课事务据此校验，超出则拒绝
 const KEY_SELECTED_IDS = 'local.selectedCourseIds.v1';
 const KEY_IMPORTED_SCHEDULE = 'local.importedSchedule.v1';
 // 默认教学周：与首页 mockHome term.weekIndex / 课表页默认周一致，用于今日页今天/明天 tab 的周次过滤。
 const DEFAULT_TEACHING_WEEK: number = 14;
-const CONTROL_CHAR_PATTERN: RegExp = new RegExp('[\\u0000-\\u001f\\u007f]');
 
 export class CourseRepository extends BaseRepository {
   private static _instance?: CourseRepository;
@@ -37,18 +36,6 @@ export class CourseRepository extends BaseRepository {
   // 导入课表：非空时覆盖 mockSchedule，作为 Schedule/Home/Today 的数据源。
   private importedSchedule: ScheduleItem[] = [];
   private isImportedLoaded: boolean = false;
-
-  private isFiniteNumber(value: number): boolean {
-    return typeof value === 'number' && value === value && value !== Infinity && value !== -Infinity;
-  }
-
-  private isCleanText(value: string, min: number, max: number): boolean {
-    if (typeof value !== 'string') {
-      return false;
-    }
-    const text = value.trim();
-    return text.length >= min && text.length <= max && !CONTROL_CHAR_PATTERN.test(text);
-  }
 
   // ============ 已选成员关系（仅存 id，课程主数据以管理端为准） ============
 
@@ -74,33 +61,17 @@ export class CourseRepository extends BaseRepository {
     return AppConfig.useRemote && this.currentStudentId().length > 0;
   }
 
-  private remoteToAdminCourse(r: RemoteCourse): AdminCourseItem {
-    const item: AdminCourseItem = {
-      id: r.id,
-      code: r.code,
-      name: r.name,
-      teacher: r.teacher,
-      category: r.category as AdminCourseCategory,
-      credit: r.credit,
-      timeText: r.timeText,
-      capacity: r.capacity,
-      selectedCount: r.selectedCount,
-      status: r.status as AdminCourseStatus
-    };
-    return item;
-  }
-
   private async remoteSelectionCourses(query?: string, category?: string): Promise<SelectionCourse[]> {
     const openRemote = await RemoteApi.listOpenCourses();
     const mineRemote = await RemoteApi.mySelections(this.currentStudentId());
     const mineIds: string[] = mineRemote.map((c) => c.id);
     const base: SelectionCourse[] = openRemote.map((r) => {
-      const course = this.toStudentCourse(this.remoteToAdminCourse(r));
+      const course = CourseLogic.toStudentCourse(CourseLogic.remoteToAdminCourse(r));
       const isSelected = mineIds.indexOf(course.id) >= 0;
       const sc: SelectionCourse = { course: course, status: isSelected ? 'selected' : 'available', conflictWith: undefined };
       return sc;
     });
-    let items = this.decorateStatuses(base);
+    let items = CourseLogic.decorateStatuses(base);
     if (query && query.length > 0) {
       const q = query.toLowerCase();
       items = items.filter((s) =>
@@ -135,7 +106,7 @@ export class CourseRepository extends BaseRepository {
       roundName: round.name,
       startTime: round.startTime,
       endTime: round.endTime,
-      remainingSeconds: this.computeRemainingSeconds(round.endTime),
+      remainingSeconds: CourseLogic.computeRemainingSeconds(round.endTime),
       selectedCredits: selectedCredits,
       creditLimit: round.creditLimit,
       inProgress: true
@@ -218,88 +189,13 @@ export class CourseRepository extends BaseRepository {
 
   // ============ 管理端课程目录 → 学生课程映射（单一事实来源） ============
 
-  private mapCategory(category: string): string {
-    if (category === 'required') {
-      return '必修';
-    }
-    if (category === 'elective') {
-      return '选修';
-    }
-    if (category === 'public') {
-      return '公选';
-    }
-    if (category === 'practice') {
-      return '实践';
-    }
-    return category;
-  }
-
-  private weekdayFromCn(c: string): number {
-    switch (c) {
-      case '一': return 1;
-      case '二': return 2;
-      case '三': return 3;
-      case '四': return 4;
-      case '五': return 5;
-      case '六': return 6;
-      case '日': return 7;
-      case '天': return 7;
-      default: return 0;
-    }
-  }
-
-  // 解析 "周一 1-2 节" → [weekday, periodStart, periodEnd]；无法解析返回 []
-  private parseTimeText(timeText: string): number[] {
-    const m: RegExpExecArray | null = /周(.)\s*(\d+)\s*-\s*(\d+)\s*节/.exec(timeText);
-    if (m === null) {
-      return [];
-    }
-    const wd = this.weekdayFromCn(m[1]);
-    if (wd === 0) {
-      return [];
-    }
-    return [wd, parseInt(m[2], 10), parseInt(m[3], 10)];
-  }
-
-  // 管理端课程 → 学生课程：排课结构字段优先取同 code 的内置课程，其次解析 timeText
-  private toStudentCourse(a: AdminCourseItem): Course {
-    const code = a.code.trim().toLowerCase();
-    const rich = mockCourses.find((m) => m.code.trim().toLowerCase() === code);
-    const parsed = this.parseTimeText(a.timeText);
-    const hasParsed = parsed.length === 3;
-    const weekday = hasParsed ? parsed[0] : (rich ? rich.weekday : 0);
-    const periodStart = hasParsed ? parsed[1] : (rich ? rich.periodStart : 0);
-    const periodEnd = hasParsed ? parsed[2] : (rich ? rich.periodEnd : 0);
-    const course: Course = {
-      id: a.id,
-      code: a.code,
-      teachingClassNo: rich ? rich.teachingClassNo : '—',
-      name: a.name,
-      category: this.mapCategory(a.category),
-      credit: a.credit,
-      teacher: a.teacher,
-      college: rich ? rich.college : '—',
-      campus: rich ? rich.campus : undefined,
-      classroom: rich ? rich.classroom : (a.timeText.trim().length > 0 ? a.timeText.trim() : '待定'),
-      weeks: rich ? rich.weeks : (weekday > 0 ? '1-16 周' : '—'),
-      periodStart: periodStart,
-      periodEnd: periodEnd,
-      weekday: weekday,
-      capacity: a.capacity,
-      selectedCount: a.selectedCount,
-      description: rich ? rich.description : undefined,
-      assessment: rich ? rich.assessment : undefined
-    };
-    return course;
-  }
-
   // 学生可选目录：管理端 status='open' 的课程
   private async getOpenCatalog(): Promise<Course[]> {
     const adminCourses = await AdminRepository.get().getCourses();
     const open: Course[] = [];
     for (let i = 0; i < adminCourses.length; i++) {
       if (adminCourses[i].status === 'open') {
-        open.push(this.toStudentCourse(adminCourses[i]));
+        open.push(CourseLogic.toStudentCourse(adminCourses[i]));
       }
     }
     return open;
@@ -308,46 +204,21 @@ export class CourseRepository extends BaseRepository {
   // 完整目录（含已关闭）：用于「我的已选」与课程详情
   private async getFullCatalog(): Promise<Course[]> {
     const adminCourses = await AdminRepository.get().getCourses();
-    return adminCourses.map((a) => this.toStudentCourse(a));
-  }
-
-  private isValidScheduleItem(s: ScheduleItem): boolean {
-    if (!s || typeof s !== 'object') {
-      return false;
-    }
-    if (!this.isCleanText(s.id, 1, 64) || !this.isCleanText(s.courseName, 1, 80) || !this.isCleanText(s.teacher, 1, 40)) {
-      return false;
-    }
-    if (!this.isFiniteNumber(s.weekday) || s.weekday < 1 || s.weekday > 7) {
-      return false;
-    }
-    if (!this.isFiniteNumber(s.periodStart) || !this.isFiniteNumber(s.periodEnd)) {
-      return false;
-    }
-    if (Math.floor(s.periodStart) !== s.periodStart || Math.floor(s.periodEnd) !== s.periodEnd) {
-      return false;
-    }
-    if (s.periodStart < 1 || s.periodEnd < s.periodStart || s.periodEnd > 12) {
-      return false;
-    }
-    if (!Array.isArray(s.weeks) || s.weeks.length === 0) {
-      return false;
-    }
-    return true;
+    return adminCourses.map((a) => CourseLogic.toStudentCourse(a));
   }
 
   // 当前生效课表：有导入课表则用导入，否则回退到内置 mockSchedule。
   private async getActiveSchedule(): Promise<ScheduleItem[]> {
     if (!this.isImportedLoaded) {
       const stored = await LocalDataStore.loadArray<ScheduleItem>(this.scopedKey(KEY_IMPORTED_SCHEDULE), []);
-      this.importedSchedule = stored.filter((s) => this.isValidScheduleItem(s));
+      this.importedSchedule = stored.filter((s) => CourseLogic.isValidScheduleItem(s));
       this.isImportedLoaded = true;
     }
     return this.importedSchedule.length > 0 ? this.importedSchedule : mockSchedule;
   }
 
   async saveImportedSchedule(items: ScheduleItem[]): Promise<number> {
-    const valid = items.filter((s) => this.isValidScheduleItem(s));
+    const valid = items.filter((s) => CourseLogic.isValidScheduleItem(s));
     this.importedSchedule = valid;
     this.isImportedLoaded = true;
     await LocalDataStore.saveArray<ScheduleItem>(this.scopedKey(KEY_IMPORTED_SCHEDULE), valid);
@@ -365,53 +236,12 @@ export class CourseRepository extends BaseRepository {
     return this.importedSchedule.length > 0;
   }
 
-  // 节次 → 上课/下课时间（与导入课表口径一致；索引 0 占位，节次从 1 起）
-  private sectionStartTime(section: number): string {
-    const t: string[] = ['', '08:00', '08:55', '10:00', '10:55', '14:00', '14:55', '16:00', '16:55', '19:00', '19:55', '21:00', '21:55'];
-    return (section >= 1 && section < t.length) ? t[section] : '';
-  }
-
-  private sectionEndTime(section: number): string {
-    const t: string[] = ['', '08:45', '09:35', '10:45', '11:35', '14:45', '15:35', '16:45', '17:35', '19:45', '20:35', '21:45', '22:35'];
-    return (section >= 1 && section < t.length) ? t[section] : '';
-  }
-
-  // 已选课程 → 课表行：仅转换含有效星期/节次/周次的课程（集中实践等无排课信息的跳过）
-  private selectedCourseToScheduleItem(c: Course): ScheduleItem | undefined {
-    if (c.weekday < 1 || c.weekday > 7 || c.periodStart < 1 || c.periodEnd < c.periodStart) {
-      return undefined;
-    }
-    const weeks = this.parseCourseWeeks(c.weeks);
-    if (weeks.length === 0) {
-      return undefined;
-    }
-    const item: ScheduleItem = {
-      id: 'sel-' + c.id,
-      term: '2025-2026-2',
-      type: 'normal',
-      courseId: c.id,
-      courseName: c.name,
-      teacher: c.teacher,
-      weekday: c.weekday,
-      periodStart: c.periodStart,
-      periodEnd: c.periodEnd,
-      startTime: this.sectionStartTime(c.periodStart),
-      endTime: this.sectionEndTime(c.periodEnd),
-      classroom: c.classroom,
-      campus: c.campus,
-      weeks: weeks,
-      weekText: c.weeks,
-      courseType: c.category
-    };
-    return item;
-  }
-
   // 已选课程对应的课表行（并入「我的课表」）
   private async getSelectedScheduleItems(): Promise<ScheduleItem[]> {
     const mine = await this.getMySelectedCourses();
     const out: ScheduleItem[] = [];
     for (let i = 0; i < mine.length; i++) {
-      const item = this.selectedCourseToScheduleItem(mine[i].course);
+      const item = CourseLogic.selectedCourseToScheduleItem(mine[i].course);
       if (item !== undefined) {
         out.push(item);
       }
@@ -478,97 +308,6 @@ export class CourseRepository extends BaseRepository {
 
   // ============ 选课事务（轮次 / 容量 / 学分 / 冲突 校验） ============
 
-  // 解析课程周次文本（形如 "1-16 周" / "2-15 周" / "1,3,5 周"）为周次数组
-  private parseCourseWeeks(weeksStr: string): number[] {
-    const out: number[] = [];
-    const cleaned = weeksStr.replace(/[^0-9,\-]/g, '');
-    const tokens = cleaned.split(',');
-    for (let t = 0; t < tokens.length; t++) {
-      const tok = tokens[t];
-      if (tok.length === 0) {
-        continue;
-      }
-      const dash = tok.indexOf('-');
-      if (dash > 0) {
-        const a = parseInt(tok.substring(0, dash), 10);
-        const b = parseInt(tok.substring(dash + 1), 10);
-        if (!Number.isNaN(a) && !Number.isNaN(b)) {
-          for (let w = a; w <= b; w++) {
-            if (out.indexOf(w) < 0) {
-              out.push(w);
-            }
-          }
-        }
-      } else {
-        const w = parseInt(tok, 10);
-        if (!Number.isNaN(w) && out.indexOf(w) < 0) {
-          out.push(w);
-        }
-      }
-    }
-    return out;
-  }
-
-  // 两门课是否时间冲突：同一星期、节次区间重叠、且周次有交集
-  private coursesConflict(a: Course, b: Course): boolean {
-    if (a.weekday < 1 || b.weekday < 1) {
-      return false; // 未排课（如集中实践）不参与冲突判定
-    }
-    if (a.weekday !== b.weekday) {
-      return false;
-    }
-    if (a.periodStart > b.periodEnd || b.periodStart > a.periodEnd) {
-      return false;
-    }
-    const wa = this.parseCourseWeeks(a.weeks);
-    const wb = this.parseCourseWeeks(b.weeks);
-    for (let i = 0; i < wa.length; i++) {
-      if (wb.indexOf(wa[i]) >= 0) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // 展示态：已选保持 selected；其余按容量/冲突派生 full / conflict / available
-  private decorateStatuses(selections: SelectionCourse[]): SelectionCourse[] {
-    const selected = selections.filter((s) => s.status === 'selected');
-    return selections.map((item) => {
-      if (item.status === 'selected') {
-        const sel: SelectionCourse = { course: item.course, status: 'selected', conflictWith: undefined };
-        return sel;
-      }
-      const cap = item.course.capacity;
-      const cnt = item.course.selectedCount;
-      if (cap !== undefined && cnt !== undefined && cnt >= cap) {
-        const full: SelectionCourse = { course: item.course, status: 'full', conflictWith: undefined };
-        return full;
-      }
-      let conflictName: string = '';
-      for (let i = 0; i < selected.length; i++) {
-        if (this.coursesConflict(item.course, selected[i].course)) {
-          conflictName = selected[i].course.name;
-          break;
-        }
-      }
-      if (conflictName.length > 0) {
-        const conf: SelectionCourse = { course: item.course, status: 'conflict', conflictWith: `与「${conflictName}」时间冲突` };
-        return conf;
-      }
-      const avail: SelectionCourse = { course: item.course, status: 'available', conflictWith: undefined };
-      return avail;
-    });
-  }
-
-  private computeRemainingSeconds(endTime: string): number {
-    const end = Date.parse(endTime.replace(' ', 'T'));
-    if (Number.isNaN(end)) {
-      return 0;
-    }
-    const diff = Math.floor((end - Date.now()) / 1000);
-    return diff > 0 ? diff : 0;
-  }
-
   // 选课轮次：与管理端「进行中」轮次共享同一事实来源
   async getSelectionRound(): Promise<SelectionRoundInfo> {
     if (this.useRemote()) {
@@ -607,7 +346,7 @@ export class CourseRepository extends BaseRepository {
       roundName: active.name,
       startTime: active.startTime,
       endTime: active.endTime,
-      remainingSeconds: this.computeRemainingSeconds(active.endTime),
+      remainingSeconds: CourseLogic.computeRemainingSeconds(active.endTime),
       selectedCredits: selectedCredits,
       creditLimit: CREDIT_LIMIT,
       inProgress: true
@@ -634,7 +373,7 @@ export class CourseRepository extends BaseRepository {
       const sc: SelectionCourse = { course: c, status: isSelected ? 'selected' : 'available', conflictWith: undefined };
       return sc;
     });
-    let items = this.decorateStatuses(base);
+    let items = CourseLogic.decorateStatuses(base);
     if (query && query.length > 0) {
       const q = query.toLowerCase();
       items = items.filter((s) =>
@@ -690,7 +429,7 @@ export class CourseRepository extends BaseRepository {
       return this.reject(`超过学分上限（${CREDIT_LIMIT} 学分）`);
     }
     for (let i = 0; i < selected.length; i++) {
-      if (this.coursesConflict(target, selected[i])) {
+      if (CourseLogic.coursesConflict(target, selected[i])) {
         return this.reject(`与「${selected[i].name}」时间冲突`);
       }
     }
@@ -728,7 +467,7 @@ export class CourseRepository extends BaseRepository {
       try {
         const mineRemote = await RemoteApi.mySelections(this.currentStudentId());
         const remoteItems: SelectionCourse[] = mineRemote.map((r) => {
-          const sc: SelectionCourse = { course: this.toStudentCourse(this.remoteToAdminCourse(r)), status: 'selected', conflictWith: undefined };
+          const sc: SelectionCourse = { course: CourseLogic.toStudentCourse(CourseLogic.remoteToAdminCourse(r)), status: 'selected', conflictWith: undefined };
           return sc;
         });
         return this.delayCopy<SelectionCourse[]>(remoteItems);
@@ -753,26 +492,11 @@ export class CourseRepository extends BaseRepository {
   }
 
   // 通知
-  private remoteToNotice(n: RemoteNotice): Notice {
-    const item: Notice = {
-      id: n.id,
-      title: n.title,
-      publisher: n.publisher,
-      publishedAt: n.publishedAt,
-      summary: n.summary,
-      content: n.content,
-      isRead: n.isRead,
-      category: n.category,
-      attachments: []
-    };
-    return item;
-  }
-
   async getNotices(category?: string): Promise<Notice[]> {
     if (this.useRemote()) {
       try {
         const remote = await RemoteApi.listNotices(this.currentStudentId(), category);
-        const remoteItems: Notice[] = remote.map((n) => this.remoteToNotice(n));
+        const remoteItems: Notice[] = remote.map((n) => CourseLogic.remoteToNotice(n));
         return this.delayCopy<Notice[]>(remoteItems);
       } catch (e) {
         // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
@@ -793,7 +517,7 @@ export class CourseRepository extends BaseRepository {
     if (this.useRemote()) {
       try {
         const remote = await RemoteApi.noticeDetail(this.currentStudentId(), id);
-        return this.delayCopy<Notice>(this.remoteToNotice(remote));
+        return this.delayCopy<Notice>(CourseLogic.remoteToNotice(remote));
       } catch (e) {
         // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
         if (!AppConfig.allowMockFallbackInRemote) {
