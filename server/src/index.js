@@ -17,6 +17,8 @@ const {
 const { globalLimiter, authLimiter } = require('./middleware/rateLimit');
 const { serverError } = require('./middleware/errorHandler');
 const { fetchStudentProfile, fetchAdminProfile } = require('./repositories/profile.repo');
+const { currentStudentId } = require('./identity');
+const { permissionRequired } = require('./middleware/permission');
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
@@ -34,12 +36,6 @@ app.use(cors({ origin: CORS_ORIGINS.length > 0 ? CORS_ORIGINS : false, credentia
 
 app.use(globalLimiter);
 app.use(express.json());
-
-// P0-01 越权防护：当前学生身份一律取自 JWT（登录账号即学号，token.sub=account_id=student_id），
-// 不再信任客户端 query/body 传入的 studentId，杜绝 IDOR 水平越权。
-function currentStudentId(req) {
-  return (req.auth && req.auth.sub) ? String(req.auth.sub) : '';
-}
 
 // ---- 健康检查 ----
 app.get('/health', async (req, res) => {
@@ -782,33 +778,7 @@ app.delete('/api/practice/:id/signup', authRequired, async (req, res) => {
 });
 
 // ================= 管理端域（需 role=admin + 细粒度权限）=================
-
-// P0-02 细粒度鉴权：在 adminRequired（登录态 + role=admin）基础上，再校验当前管理员
-// 所属角色是否拥有指定权限码。权限只从数据库读取（admin_profiles.role_id → role_permissions），
-// 不写入 token，避免前端伪造。keys 为 'code:action' 列表，命中任意一个即放行（fail-closed）。
-function permissionRequired(...keys) {
-  return (req, res, next) => {
-    adminRequired(req, res, async () => {
-      const adminId = (req.auth && req.auth.sub) ? String(req.auth.sub) : '';
-      try {
-        const r = await pool.query(
-          `SELECT 1 FROM dtest2.admin_profiles ap
-             JOIN dtest2.role_permissions rp ON rp.role_id = ap.role_id
-            WHERE ap.admin_id = $1
-              AND (rp.code || ':' || rp.action) = ANY($2::text[])
-            LIMIT 1`,
-          [adminId, keys]
-        );
-        if (r.rowCount === 0) {
-          return res.status(403).json(fail('权限不足，需要相应管理权限', 'forbidden'));
-        }
-        next();
-      } catch (e) {
-        return serverError(res, '权限校验失败', e, 'server_error');
-      }
-    });
-  };
-}
+// permissionRequired 细粒度鉴权中间件工厂已抽到 ./middleware/permission
 
 // ---- 学生管理（列表）----
 app.get('/api/admin/students', permissionRequired('students.manage:view'), async (req, res) => {
