@@ -47,103 +47,11 @@ app.use(require('./routes/auth.routes'));
 // ---- 选课域（课程列表 / 选课轮次 / 我的已选 / 选课 / 退课）已抽到 ./routes/selection.routes ----
 app.use(require('./routes/selection.routes'));
 
-// ---- 成绩（当前学生已发布成绩）----
-app.get('/api/grades', authRequired, async (req, res) => {
-  const studentId = currentStudentId(req);
-  if (!studentId) {
-    return res.status(400).json(fail('缺少 studentId'));
-  }
-  const term = req.query.term ? String(req.query.term) : null;
-  try {
-    const r = await pool.query(
-      `SELECT g.grade_id, g.term, g.score, COALESCE(g.grade_point, 0) AS grade_point, COALESCE(g.rank, 0) AS rank, g.published_at,
-              COALESCE(c.code, '') AS code, COALESCE(c.teaching_class_no, '') AS teaching_class_no,
-              COALESCE(c.name, '') AS name, COALESCE(c.category, '') AS category, COALESCE(c.credit, 0) AS credit
-       FROM dtest2.grades g
-       LEFT JOIN dtest2.courses c ON c.course_id = g.course_id
-       WHERE g.student_id = $1 AND ($2::text IS NULL OR g.term = $2)
-       ORDER BY g.published_at DESC`,
-      [studentId, term]
-    );
-    const data = r.rows.map((row) => {
-      return {
-        id: row.grade_id,
-        term: row.term,
-        courseCode: row.code,
-        teachingClassNo: row.teaching_class_no,
-        courseName: row.name,
-        courseCategory: row.category,
-        credit: Number(row.credit),
-        score: Number(row.score),
-        gradePoint: Number(row.grade_point),
-        rank: Number(row.rank),
-        publishedAt: row.published_at
-      };
-    });
-    res.json(ok(data));
-  } catch (e) {
-    serverError(res, '查询成绩失败', e);
-  }
-});
+// ---- 成绩域（当前学生已发布成绩）已抽到 ./routes/grades.routes ----
+app.use(require('./routes/grades.routes'));
 
-// ---- 通知列表 ----
-app.get('/api/notices', authRequired, async (req, res) => {
-  const studentId = currentStudentId(req);
-  const category = req.query.category ? String(req.query.category) : null;
-  try {
-    const r = await pool.query(
-      `SELECT n.notice_id, n.title, n.publisher, n.summary, n.content, n.category, n.published_at,
-              CASE WHEN nr.notice_id IS NULL THEN false ELSE true END AS is_read
-       FROM dtest2.notices n
-       LEFT JOIN dtest2.notice_reads nr ON nr.notice_id = n.notice_id AND nr.student_id = $1
-       WHERE ($2::text IS NULL OR n.category = $2)
-       ORDER BY n.published_at DESC`,
-      [studentId, category]
-    );
-    res.json(ok(r.rows.map(mapNotice)));
-  } catch (e) {
-    serverError(res, '查询通知失败', e);
-  }
-});
-
-// ---- 通知详情 ----
-app.get('/api/notices/:id', authRequired, async (req, res) => {
-  const studentId = currentStudentId(req);
-  try {
-    const r = await pool.query(
-      `SELECT n.notice_id, n.title, n.publisher, n.summary, n.content, n.category, n.published_at,
-              CASE WHEN nr.notice_id IS NULL THEN false ELSE true END AS is_read
-       FROM dtest2.notices n
-       LEFT JOIN dtest2.notice_reads nr ON nr.notice_id = n.notice_id AND nr.student_id = $1
-       WHERE n.notice_id = $2 LIMIT 1`,
-      [studentId, req.params.id]
-    );
-    if (r.rowCount === 0) {
-      return res.status(404).json(fail('通知不存在'));
-    }
-    res.json(ok(mapNotice(r.rows[0])));
-  } catch (e) {
-    serverError(res, '查询通知失败', e);
-  }
-});
-
-// ---- 通知标记已读 ----
-app.post('/api/notices/:id/read', authRequired, async (req, res) => {
-  const studentId = currentStudentId(req);
-  if (!studentId) {
-    return res.status(400).json(fail('缺少 studentId'));
-  }
-  try {
-    await pool.query(
-      `INSERT INTO dtest2.notice_reads (notice_id, student_id, read_at) VALUES ($1, $2, now())
-       ON CONFLICT (notice_id, student_id) DO NOTHING`,
-      [req.params.id, studentId]
-    );
-    res.json(ok({ read: true }));
-  } catch (e) {
-    serverError(res, '标记已读失败', e);
-  }
-});
+// ---- 通知域（列表 / 详情 / 标记已读）已抽到 ./routes/notices.routes ----
+app.use(require('./routes/notices.routes'));
 
 // ---- 我的请假 ----
 app.get('/api/leave', authRequired, async (req, res) => {
