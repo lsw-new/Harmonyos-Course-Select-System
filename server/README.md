@@ -15,6 +15,28 @@ Node.js + Express + pg，返回 App 端 `ApiResponse` 信封 `{ success, data, e
 | POST | `/api/selections` | `{ studentId, courseId }` 选课（轮次/容量/重复校验） | Bearer |
 | DELETE | `/api/selections` | `{ studentId, courseId }` 退课（软删除） | Bearer |
 
+> 上表为早期垂直切片端点；实际已覆盖成绩 / 通知 / 请假 / 反馈 / 评教 / 实践及管理端各域，
+> 完整端点见各 `src/routes/*.routes.js` 模块。
+
+## 源码结构
+
+`src/index.js` 仅做**装配**（约 80 行）：中间件 + `/health` + 按域 `app.use(require('./routes/*.routes'))`，
+并导出 `app`（供 supertest）与 `parseCourseWeeks`/`coursesConflict`（供规则单测）。各域路由与公共件已拆分：
+
+```
+src/
+├── index.js                       # 装配层：trust proxy / CORS / 限流 / JSON / /health / 各域路由挂载
+├── db.js envelope.js hash.js      # 连接池 / ApiResponse 信封 / 密码哈希（bcrypt 双轨）
+├── auth.js email.js codeStore.js  # JWT 签发与校验 / 邮件发送 / 验证码存储
+├── identity.js mappers.js         # 请求身份提取（防 IDOR）/ 纯映射与 SQL 常量
+├── middleware/                    # rateLimit 限流 / errorHandler（500 不漏内部信息）/ permission 细粒度鉴权
+├── repositories/                  # profile.repo（学生 / 管理员 profile 读取）
+└── routes/                        # 按域拆分：auth / selection / grades / notices / leave / feedback / evaluations / practice / admin
+```
+
+> 路由模块各自 `require` 自身依赖；测试 `jest.mock('../src/db')` 按解析后绝对路径替换，
+> 对全部模块统一生效，故按域拆分不影响既有测试。
+
 ## 部署（服务器本机，连 127.0.0.1:15432）
 
 ```bash
