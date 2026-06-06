@@ -4,17 +4,11 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { pool } = require('./db');
-const { ok, fail } = require('./envelope');
-const {
-  deriveTimeText, parseCourseWeeks, coursesConflict, mapCourse, COURSE_COLUMNS, SELECTED_COUNT_JOIN,
-  mapNotice, mapLeave, mapFeedback, mapEval, mapPractice, PRACTICE_SELECT,
-  leaveTypeLabel, mapStudent, mapGradeTask, mapApproval, mapAuditLog, mapTemplate
-} = require('./mappers');
-const { authRequired } = require('./auth');
+const { ok } = require('./envelope');
+// 仅保留 /health 与底部 re-export 所需；各域路由各自 require 自己的依赖。
+const { parseCourseWeeks, coursesConflict } = require('./mappers');
 const { globalLimiter } = require('./middleware/rateLimit');
 const { serverError } = require('./middleware/errorHandler');
-const { currentStudentId } = require('./identity');
-const { permissionRequired } = require('./middleware/permission');
 
 const app = express();
 
