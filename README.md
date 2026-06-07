@@ -50,7 +50,7 @@ entry/src/main/ets/
 ├── entrybackupability/
 │   └── EntryBackupAbility.ets        # 系统数据备份/恢复能力骨架（onBackup / onRestore）
 ├── app/                              # 应用编排
-│   ├── AppConfig.ets                 # 运行配置：useRemote 远程开关 / baseUrl（默认本地 mock）
+│   ├── AppConfig.ets                 # 运行配置：runtimeMode（mock/local/remote 单一开关，默认 mock）+ baseUrl；useRemote 等为派生 getter
 │   ├── AppRoute.ets                  # Navigation 系统路由表门面：go/back/clearTo/getParam + 角色 & 细粒度权限守卫
 │   └── AppStartup.ets                # 启动注入：初始化本地 RDB / Preferences、恢复会话、安全 token 对齐
 ├── models/                           # 领域模型（纯 interface / type，无逻辑）
@@ -73,11 +73,14 @@ entry/src/main/ets/
 │   ├── BaseRepository.ets            # 基类：delay / delayCopy / reject + scopedKey 用户数据隔离辅助
 │   ├── AuthRepository.ets            # 登录 / 注册 / 找回密码 / 改密 / 登出 + 管理员登录
 │   ├── ProfileRepository.ets         # 个人资料、首页摘要、请假 / 反馈 / 实践
-│   ├── CourseRepository.ets          # 课表、选课中心、选课/退课事务、课程详情、课表导入合并
+│   ├── CourseRepository.ets          # 课表、选课中心、选课/退课事务、课程详情、课表导入合并（编排）
+│   ├── CourseLogic.ets               # 课程域纯逻辑（静态、无状态）：映射 / 周次解析 / 冲突判定 / 课表格式化 / DTO 映射
 │   ├── AcademicRepository.ets        # 成绩、考试
 │   ├── EvaluationRepository.ets      # 学生评教
 │   ├── PracticeRepository.ets        # 实践项目 / 报名
-│   ├── AdminRepository.ets           # 管理端：课程、审批、成绩审核、通知发布
+│   ├── AdminRepository.ets           # 管理端：课程、审批、成绩审核、通知发布（编排）
+│   ├── AdminLogic.ets                # 管理端纯逻辑（静态、无状态）：校验 / 净化 / 规范化 / 状态机 / 合并 / DTO 映射
+│   ├── AdminRdbStore.ets             # 管理端本地 RDB 直接读写（成绩任务 / 课程目录 / 审批实例的 SQL）
 │   ├── StudentAdminRepository.ets    # 管理端学生管理（学籍操作）
 │   ├── SelectionAdminRepository.ets  # 管理端选课轮次 / 统计
 │   ├── AccessControlRepository.ets   # 角色权限、审计日志
@@ -195,6 +198,7 @@ entry/src/main/ets/
 `server/` 目录为 App 的远程后端 API，仅在 `AppConfig.useRemote = true` 时被调用。
 
 - **技术栈**：Node.js 18 + Express + `pg`（CommonJS 免构建），直连 Postgres（`dtest2` schema），统一返回 `ApiResponse` 信封 `{ success, data, error }`。
+- **源码结构**：`src/index.js` 仅做装配（中间件 + `/health` + 按域 `app.use(require('./routes/*'))`，约 80 行）；各域路由拆到 `src/routes/*.routes.js`（认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践 / 管理端），公共件在 `src/middleware/`（限流 / 错误处理 / 细粒度鉴权）与 `src/repositories/`（profile 读取），纯映射与 SQL 常量在 `src/mappers.js`。
 - **部署**：服务器 `138.2.47.185`，pm2 进程 `dtest2-api` 监听 `:8090`；前置 **nginx 反向代理**终止 TLS（Let's Encrypt 证书），对外为 `https://lsw666.duckdns.org/api`。
 - **覆盖域**：认证（登录 / 注册 / 找回密码 / 邮箱验证码）、课程、选课（事务校验）、成绩、通知、请假、反馈、评教、实践，以及管理端的学生管理、成绩审核、审批、通知发布、角色权限、评教模板、审计日志。
 - **数据库迁移**：`server/migrations/` 权威建表脚本 + `npm run migrate` 幂等 runner。
@@ -221,7 +225,7 @@ entry/src/main/ets/
 
 - **108 个用例 / 11 个套件**，覆盖登录与鉴权中间件、越权（IDOR）防护、管理端细粒度权限、限流、选课事务（轮次 / 容量 / 学分上限 / 时间冲突 + `FOR UPDATE` 行锁 + 失败回滚）、实践报名、注册与找回密码闭环、各读写端点，以及选课规则纯函数。
 - **并发压力测试**：有状态 mock 忠实复刻 `FOR UPDATE` 行锁对临界区的序列化，跑真正的 `Promise.all` 并发——20 人同抢 1/5 个名额恰好 1/5 人成功、落库数不超容量；另设「去锁对照」证明该断言非恒真（锁缺失即超卖）。
-- **行覆盖率 80.9%**（语句 79.9% / 函数 80.2%）；数据库连接池与 SMTP 等基础设施按约定排除统计。
+- **行覆盖率 83.2%**（语句 82.3% / 函数 80.4% / 分支 63.6%）；数据库连接池与 SMTP 等基础设施按约定排除统计。
 - 持久层经 mock 注入，无需真实数据库即可运行：`cd server && npm test`（或 `npm run test:coverage`）。
 - **CI**：[`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml) 在 push / PR 时于 Node 18 / 20 跑 `npm ci` → JS 语法检查 → 带**覆盖率门禁**（行 ≥ 80%）的测试（仓库托管 Gitee，镜像到 GitHub 即自动运行）。
 
