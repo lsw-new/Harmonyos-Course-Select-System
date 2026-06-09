@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 // 邮箱验证码存储（进程内存）。验证码短时有效，单实例 pm2 用内存足够；
 // 进程重启即清空属可接受（验证码本就一次性、短期）。
 const CODE_TTL_MS = 5 * 60 * 1000;       // 验证码有效期 5 分钟
@@ -25,7 +27,7 @@ function canIssue(email) {
 
 // 生成并存储 6 位验证码，返回明文（仅用于发邮件，不回传给客户端）。
 function issue(email) {
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const code = String(crypto.randomInt(100000, 1000000));
   store.set(normalize(email), {
     code,
     expiresAt: Date.now() + CODE_TTL_MS,

@@ -10,7 +10,9 @@
     "seed": "node seed.js",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "check:syntax": "node scripts/check-syntax.js"
+    "check:syntax": "node scripts/check-syntax.js",
+    "security:audit": "npm audit --registry=https://registry.npmjs.org/ --audit-level=low",
+    "security:audit:prod": "npm audit --registry=https://registry.npmjs.org/ --omit=dev --audit-level=low"
   },
   "engines": {
     "node": ">=18"
@@ -21,7 +23,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.14",
+    "nodemailer": "^8.0.10",
     "pg": "^8.12.0"
   },
   "devDependencies": {
@@ -50,7 +52,7 @@
         "lines": 80,
         "functions": 80,
         "statements": 79,
-        "branches": 62
+        "branches": 80
       }
     }
   }
