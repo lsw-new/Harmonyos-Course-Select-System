@@ -71,6 +71,9 @@ app.use(require('./routes/practice.routes'));
 // 全部端点已抽到 ./routes/admin.routes（permissionRequired 细粒度鉴权）
 app.use(require('./routes/admin.routes'));
 
+// ---- 数据库管理域（Web 控制台表级 CRUD，仅 system.config 权限）----
+app.use(require('./routes/db.routes'));
+
 const PORT = parseInt(process.env.PORT || '8090', 10);
 // 仅当作为主模块（node src/index.js / pm2）运行时才监听端口；
 // 被测试 require 时不监听，便于 supertest 直接挂载 app。

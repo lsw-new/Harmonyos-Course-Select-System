@@ -238,6 +238,29 @@ tr:hover td { background: #FFFAF5; }
 
 .empty { padding: 26px; text-align: center; color: var(--ink-mute); font-size: 13px; }
 
+/* ---------- 数据库管理 ---------- */
+.db-tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.db-table-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: box-shadow .15s;
+}
+.db-table-card:hover { box-shadow: var(--shadow-card); }
+.db-table-card .tname { font-size: 13px; font-weight: 600; color: var(--ink); font-family: Consolas, monospace; }
+.db-title { font-size: 15px; color: var(--rose-700); margin: 2px 0 10px; font-family: Consolas, monospace; }
+#db-rows td { max-width: 260px; overflow: hidden; text-overflow: ellipsis; font-family: Consolas, monospace; font-size: 12px; }
+#db-rows .pk-col { color: var(--rose-700); font-weight: 600; }
+.row-ops { white-space: nowrap; }
+.row-ops button { margin-right: 6px; padding: 4px 12px; font-size: 11px; }
+#db-editor label small { color: var(--ink-mute); font-weight: 400; margin-left: 6px; }
+#db-editor .editor-head { font-size: 14px; font-weight: 600; color: var(--rose-700); }
+
 @media (max-width: 760px) {
   .layout { flex-direction: column; }
   .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; gap: 10px; overflow-x: auto; }

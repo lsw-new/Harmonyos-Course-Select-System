@@ -122,7 +122,8 @@
     grades: loadGrades,
     approvals: loadApprovals,
     notice: () => undefined,
-    audit: loadAudit
+    audit: loadAudit,
+    db: loadDbTables
   };
 
   function switchSection(name) {
@@ -435,6 +436,187 @@
         <tbody>${rows}</tbody></table>`;
     } catch (e) {
       wrap.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+  }
+
+  // ---------- 数据库管理 ----------
+
+  const db = { table: '', columns: [], pk: [], offset: 0, limit: 50, total: 0, q: '' };
+
+  async function loadDbTables() {
+    $('#db-detail').hidden = true;
+    const wrap = $('#db-tables');
+    wrap.hidden = false;
+    wrap.innerHTML = '<div class="empty">表清单加载中…</div>';
+    try {
+      const tables = await api('/admin/db/tables');
+      wrap.innerHTML = tables.map((t) => `
+        <div class="db-table-card" data-table="${esc(t.name)}">
+          <span class="tname">${esc(t.name)}</span>
+          <span class="pill info">${t.rows} 行</span>
+        </div>`).join('');
+    } catch (e) {
+      wrap.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+  }
+
+  $('#db-tables').addEventListener('click', (ev) => {
+    const card = ev.target.closest('.db-table-card');
+    if (!card) { return; }
+    db.table = card.dataset.table;
+    db.offset = 0;
+    db.q = '';
+    $('#db-q').value = '';
+    openDbTable();
+  });
+
+  async function openDbTable() {
+    $('#db-tables').hidden = true;
+    $('#db-detail').hidden = false;
+    $('#db-editor').hidden = true;
+    $('#db-table-title').textContent = 'dtest2.' + db.table;
+    const wrap = $('#db-rows');
+    wrap.innerHTML = '<div class="empty">加载中…</div>';
+    try {
+      const params = `?limit=${db.limit}&offset=${db.offset}` + (db.q ? '&q=' + encodeURIComponent(db.q) : '');
+      const data = await api('/admin/db/tables/' + encodeURIComponent(db.table) + '/rows' + params);
+      db.columns = data.columns;
+      db.pk = data.pk;
+      db.total = data.total;
+      renderDbRows(data.rows);
+      const page = Math.floor(db.offset / db.limit) + 1;
+      const pages = Math.max(1, Math.ceil(db.total / db.limit));
+      $('#db-page').textContent = `共 ${db.total} 行 · 第 ${page}/${pages} 页`;
+      $('#db-prev').disabled = db.offset === 0;
+      $('#db-next').disabled = db.offset + db.limit >= db.total;
+    } catch (e) {
+      wrap.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+  }
+
+  function cellText(value) {
+    if (value === null || value === undefined) { return 'NULL'; }
+    if (typeof value === 'object') { return JSON.stringify(value); }
+    return String(value);
+  }
+
+  function renderDbRows(rows) {
+    const wrap = $('#db-rows');
+    if (rows.length === 0) {
+      wrap.innerHTML = '<div class="empty">无数据</div>';
+      return;
+    }
+    const head = db.columns.map((c) => `<th>${esc(c.name)}${c.pk ? ' 🔑' : ''}</th>`).join('');
+    const body = rows.map((row, idx) => {
+      const cells = db.columns.map((c) =>
+        `<td class="${c.pk ? 'pk-col' : ''}" title="${esc(cellText(row[c.name]))}">${esc(cellText(row[c.name]))}</td>`).join('');
+      return `<tr>${cells}<td class="row-ops">
+        <button class="btn" data-rop="edit" data-idx="${idx}">编辑</button>
+        <button class="btn btn-danger" data-rop="del" data-idx="${idx}">删除</button>
+      </td></tr>`;
+    }).join('');
+    wrap.innerHTML = `<table><thead><tr>${head}<th>操作</th></tr></thead><tbody>${body}</tbody></table>`;
+    wrap.dataset.rows = JSON.stringify(rows);
+  }
+
+  $('#db-back').addEventListener('click', loadDbTables);
+  $('#db-search').addEventListener('click', () => { db.q = $('#db-q').value.trim(); db.offset = 0; openDbTable(); });
+  $('#db-q').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { $('#db-search').click(); } });
+  $('#db-prev').addEventListener('click', () => { db.offset = Math.max(0, db.offset - db.limit); openDbTable(); });
+  $('#db-next').addEventListener('click', () => { db.offset += db.limit; openDbTable(); });
+  $('#db-add').addEventListener('click', () => openDbEditor(null));
+
+  $('#db-rows').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('button[data-rop]');
+    if (!btn) { return; }
+    const rows = JSON.parse($('#db-rows').dataset.rows || '[]');
+    const row = rows[Number(btn.dataset.idx)];
+    if (!row) { return; }
+    if (btn.dataset.rop === 'edit') { return openDbEditor(row); }
+    // 删除
+    const pkDesc = db.pk.map((k) => `${k}=${cellText(row[k])}`).join(', ');
+    if (!window.confirm(`确认删除该行？\n${pkDesc}\n此操作不可恢复。`)) { return; }
+    btn.disabled = true;
+    try {
+      const pkBody = {};
+      db.pk.forEach((k) => { pkBody[k] = row[k]; });
+      await api('/admin/db/tables/' + encodeURIComponent(db.table) + '/rows', { method: 'DELETE', body: { pk: pkBody } });
+      toast('已删除');
+      openDbTable();
+    } catch (e) {
+      toast(e.message);
+      btn.disabled = false;
+    }
+  });
+
+  // row=null 表示新增；编辑时主键列只读
+  function openDbEditor(row) {
+    if (db.pk.length === 0) { return toast('该表无主键，不支持行编辑'); }
+    const editor = $('#db-editor');
+    const isEdit = row !== null;
+    const fields = db.columns.map((c) => {
+      const raw = isEdit ? row[c.name] : null;
+      const value = raw === null || raw === undefined ? '' : (typeof raw === 'object' ? JSON.stringify(raw) : String(raw));
+      const readonly = isEdit && c.pk;
+      const hint = `${c.type}${c.pk ? ' · 主键' : ''}${c.nullable ? '' : ' · 必填'}${!isEdit && c.hasDefault ? ' · 留空走默认值' : ''}`;
+      return `<label>${esc(c.name)}<small>${esc(hint)}</small>
+        <input type="text" data-col="${esc(c.name)}" value="${esc(value)}" ${readonly ? 'readonly style="opacity:.6"' : ''}
+               data-wasnull="${raw === null || raw === undefined ? '1' : '0'}">
+      </label>`;
+    }).join('');
+    editor.innerHTML = `<div class="editor-head">${isEdit ? '编辑行' : '新增行'} · ${esc(db.table)}</div>
+      ${fields}
+      <p class="muted" style="margin:0">编辑时清空字段＝置 NULL；新增时留空＝走默认值/NULL；json 列填 JSON 文本。</p>
+      <div class="task-actions">
+        <button class="btn" id="db-editor-cancel">取消</button>
+        <button class="btn btn-primary" id="db-editor-save">${isEdit ? '保存修改' : '插入行'}</button>
+      </div>`;
+    editor.hidden = false;
+    editor.dataset.mode = isEdit ? 'edit' : 'insert';
+    editor.dataset.pkrow = isEdit ? JSON.stringify(db.pk.reduce((acc, k) => { acc[k] = row[k]; return acc; }, {})) : '';
+    $('#db-editor-cancel').addEventListener('click', () => { editor.hidden = true; });
+    $('#db-editor-save').addEventListener('click', saveDbEditor);
+  }
+
+  async function saveDbEditor() {
+    const editor = $('#db-editor');
+    const isEdit = editor.dataset.mode === 'edit';
+    const btn = $('#db-editor-save');
+    const values = {};
+    for (const input of editor.querySelectorAll('input[data-col]')) {
+      const col = db.columns.find((c) => c.name === input.dataset.col);
+      if (!col) { continue; }
+      if (isEdit && col.pk) { continue; }
+      const text = input.value;
+      if (text === '') {
+        if (isEdit) {
+          // 原本就是 NULL 且未填 → 不动；原本有值被清空 → 置 NULL
+          if (input.dataset.wasnull === '0') { values[col.name] = null; }
+        }
+        // 新增：留空＝不提交该列（走默认值/NULL）
+        continue;
+      }
+      values[col.name] = text;
+    }
+    if (Object.keys(values).length === 0) { return toast(isEdit ? '没有需要保存的修改' : '请至少填写一列'); }
+    btn.disabled = true;
+    try {
+      if (isEdit) {
+        await api('/admin/db/tables/' + encodeURIComponent(db.table) + '/rows', {
+          method: 'PUT', body: { pk: JSON.parse(editor.dataset.pkrow), values }
+        });
+        toast('已保存修改');
+      } else {
+        await api('/admin/db/tables/' + encodeURIComponent(db.table) + '/rows', {
+          method: 'POST', body: { values }
+        });
+        toast('已插入新行');
+      }
+      editor.hidden = true;
+      openDbTable();
+    } catch (e) {
+      toast(e.message);
+      btn.disabled = false;
     }
   }
 
