@@ -7,8 +7,12 @@
 export type RuntimeMode = 'mock' | 'local' | 'remote';
 
 export class AppConfig {
-  // 切换运行模式只改这一处。默认 mock 保持课堂演示零网络依赖。
-  static runtimeMode: RuntimeMode = 'mock';
+  // 切换运行模式只改这一处。
+  // 2026-06-10 默认改为 remote：班级同学已开始真实注册使用，注册/登录必须走后端
+  //（名册白名单、真实姓名/班级资料、按班级课表与评教任务均为后端能力；
+  //  mock 模式下注册只在本机建号、登录恒显示内置演示资料「李仕炜」，会出现张冠李戴）。
+  // 离线课堂演示时改回 'mock' 即可。
+  static runtimeMode: RuntimeMode = 'remote';
 
   // 经 nginx 反向代理 + Let's Encrypt 证书的 HTTPS 域名（不再写死公网 HTTP IP）。
   // 2026-06-09 起域名由 lsw666.duckdns.org 迁移为 lsw666.dns.army（旧域名证书已失效，TLS 握手失败）。

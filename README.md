@@ -38,8 +38,8 @@
 
 应用采用分层架构，UI 与数据解耦，支持**本地优先 + 可选远程后端**双模式：
 
-- **本地模式（默认，`AppConfig.useRemote = false`）**：数据来自本地 mock + Preferences 持久化 + 本地 RDB（RelationalStore，courses / selections 表），可完全离线演示；
-- **远程模式（`AppConfig.useRemote = true`）**：认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践及管理端各域改走 **Track B 后端**（`AppConfig.baseUrl = https://lsw666.dns.army/api`，经 nginx 反代 + Let's Encrypt 的 **HTTPS**），读失败回退本地、写失败显式报错。
+- **本地模式（`runtimeMode = 'mock' | 'local'`）**：数据来自本地 mock + Preferences 持久化 + 本地 RDB（RelationalStore，courses / selections 表），可完全离线演示；
+- **远程模式（默认，`runtimeMode = 'remote'`，2026-06-10 起）**：认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践及管理端各域走 **Track B 后端**（`AppConfig.baseUrl = https://lsw666.dns.army/api`，经 nginx 反代 + Let's Encrypt 的 **HTTPS**），读失败回退本地、写失败显式报错。**注册/登录走后端**：注册受班级名册白名单约束，登录下发本人真实姓名/班级资料（不再显示内置演示账号资料）。离线课堂演示时把 `AppConfig.runtimeMode` 改回 `'mock'` 即可。
 
 > 邮箱验证码（注册 / 找回密码）始终联网走后端真实发送，不受 `useRemote` 开关影响。详见下文「后端服务（Track B）」与「安全与鉴权」。
 
