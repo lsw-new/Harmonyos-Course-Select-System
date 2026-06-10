@@ -97,6 +97,8 @@ router.post('/api/auth/verify-email-code', authLimiter, (req, res) => {
 // ---- 注册（公开）：校验邮箱验证码 + 建账号 + 建学生资料（重复学号拒绝）----
 // P1-01：注册真正落库（accounts + student_profiles）。注册仅收集 学号/姓名/邮箱，
 // student_profiles 其余 NOT NULL 字段先占位「待完善」，由学生登录后在「编辑资料」补全。
+// 名册白名单：学号必须存在于 dtest2.class_students（班级学生名册）且姓名一致才允许注册；
+// 名册校验放在验证码校验之前，避免不合名册的请求白白消耗一次有效验证码。
 router.post('/api/auth/register', authLimiter, async (req, res) => {
   const b = req.body || {};
   const studentId = ((b.studentId) || '').trim();
@@ -109,6 +111,22 @@ router.post('/api/auth/register', authLimiter, async (req, res) => {
   }
   if (password.length < 6) {
     return res.status(400).json(fail('密码至少 6 位'));
+  }
+  let rosterRow;
+  try {
+    const roster = await pool.query(
+      'SELECT student_id, name, class_name FROM dtest2.class_students WHERE student_id=$1',
+      [studentId]
+    );
+    if (roster.rowCount === 0) {
+      return res.status(403).json(fail('该学号不在班级学生名册中，无法注册'));
+    }
+    rosterRow = roster.rows[0];
+    if (rosterRow.name !== name) {
+      return res.status(400).json(fail('姓名与学号不匹配，请按学籍信息填写'));
+    }
+  } catch (e) {
+    return serverError(res, '注册失败', e);
   }
   const v = codeStore.verify(email, code);
   if (!v.ok) {
@@ -127,11 +145,13 @@ router.post('/api/auth/register', authLimiter, async (req, res) => {
       `INSERT INTO dtest2.accounts (account_id, role, password_hash, salt, status) VALUES ($1,'student',$2,$3,'active')`,
       [studentId, passwordHash, '']
     );
+    // 班级/年级直接取自名册（姓名已校验与名册一致），学院/专业仍待学生登录后补全
+    const grade = `${studentId.slice(0, 4)}级`;
     await client.query(
       `INSERT INTO dtest2.student_profiles (student_id, name, college, major, class_name, grade, email)
-       VALUES ($1,$2,'待完善','待完善','待完善','待完善',$3)
-       ON CONFLICT (student_id) DO UPDATE SET name=EXCLUDED.name, email=EXCLUDED.email`,
-      [studentId, name, email]
+       VALUES ($1,$2,'待完善','待完善',$3,$4,$5)
+       ON CONFLICT (student_id) DO UPDATE SET name=EXCLUDED.name, class_name=EXCLUDED.class_name, grade=EXCLUDED.grade, email=EXCLUDED.email`,
+      [studentId, rosterRow.name, rosterRow.class_name, grade, email]
     );
     await client.query('COMMIT');
     res.json(ok({ registered: true, accountId: studentId }));

@@ -19,13 +19,35 @@ beforeEach(() => {
 
 describe('POST /api/auth/register', () => {
   const body = { studentId: '2023307020999', name: '新同学', email: 'newbie@qq.com', emailCode: '123456', password: 'New@12345' };
+  // 名册白名单命中行：学号/姓名与 body 一致（注册前置校验 dtest2.class_students）
+  const rosterHit = {
+    match: /FROM dtest2\.class_students/,
+    result: [{ student_id: body.studentId, name: body.name, class_name: '23计算机科学与技术U9' }]
+  };
 
   test('信息不完整 → 400', async () => {
     const res = await request(app).post('/api/auth/register').send({ studentId: '', name: '', email: 'x', emailCode: '', password: '' });
     expect(res.status).toBe(400);
   });
 
+  test('学号不在班级名册 → 403 拒绝注册', async () => {
+    __mock.setRoutes([{ match: /FROM dtest2\.class_students/, result: [] }]);
+    const res = await request(app).post('/api/auth/register').send(body);
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain('名册');
+  });
+
+  test('姓名与名册不符 → 400', async () => {
+    __mock.setRoutes([
+      { match: /FROM dtest2\.class_students/, result: [{ student_id: body.studentId, name: '名册姓名', class_name: '23计算机科学与技术U9' }] }
+    ]);
+    const res = await request(app).post('/api/auth/register').send(body);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('姓名');
+  });
+
   test('验证码错误 → 400', async () => {
+    __mock.setRoutes([rosterHit]);
     codeStore.verify.mockReturnValue({ ok: false, reason: '验证码错误或已过期' });
     const res = await request(app).post('/api/auth/register').send(body);
     expect(res.status).toBe(400);
@@ -33,14 +55,15 @@ describe('POST /api/auth/register', () => {
   });
 
   test('学号已注册 → 409 且回滚', async () => {
-    __mock.setRoutes([{ match: /SELECT 1 FROM dtest2\.accounts/, result: [{ exists: 1 }] }]);
+    __mock.setRoutes([rosterHit, { match: /SELECT 1 FROM dtest2\.accounts/, result: [{ exists: 1 }] }]);
     const res = await request(app).post('/api/auth/register').send(body);
     expect(res.status).toBe(409);
     expect(__mock.executed('ROLLBACK')).toBe(true);
   });
 
-  test('注册成功 → 200 落库并提交', async () => {
+  test('注册成功 → 200 落库并提交（班级/年级取自名册）', async () => {
     __mock.setRoutes([
+      rosterHit,
       { match: /SELECT 1 FROM dtest2\.accounts/, result: [] },
       { match: /INSERT INTO dtest2\.accounts/, result: [] },
       { match: /INSERT INTO dtest2\.student_profiles/, result: [] }
@@ -49,7 +72,9 @@ describe('POST /api/auth/register', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.registered).toBe(true);
     expect(__mock.executed('COMMIT')).toBe(true);
-    expect(__mock.executed('INSERT INTO dtest2.student_profiles')).toBe(true);
+    const profileInsert = __mock.getLog().find((e) => e.sql.indexOf('INSERT INTO dtest2.student_profiles') >= 0);
+    expect(profileInsert.params).toContain('23计算机科学与技术U9');
+    expect(profileInsert.params).toContain('2023级');
   });
 });
 
