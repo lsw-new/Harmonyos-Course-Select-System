@@ -33,6 +33,9 @@ export class HttpError extends Error {
     if (status === 404) {
       return new HttpError('notFound', message ?? '请求的资源不存在', status);
     }
+    if (status === 429) {
+      return new HttpError('business', message ?? '操作过于频繁，请稍后再试', status);
+    }
     if (status >= 500) {
       return new HttpError('server', message ?? '服务暂不可用，请稍后再试', status);
     }

@@ -83,19 +83,20 @@ export class HttpClient {
       });
 
       const status = response.responseCode;
+      const raw = typeof response.result === 'string'
+        ? response.result
+        : JSON.stringify(response.result);
       if (status === 401) {
         if (this.onUnauthorized) {
           this.onUnauthorized();
         }
-        throw HttpError.fromStatus(401);
+        throw HttpError.fromStatus(401, HttpClient.extractError(raw));
       }
       if (status < 200 || status >= 300) {
-        throw HttpError.fromStatus(status);
+        // 优先用后端信封里的精确错误文案（如限流「发送过于频繁」），而非笼统的状态码默认提示
+        throw HttpError.fromStatus(status, HttpClient.extractError(raw));
       }
 
-      const raw = typeof response.result === 'string'
-        ? response.result
-        : JSON.stringify(response.result);
       const parsed = JSON.parse(raw) as ApiResponse<T>;
       if (!parsed.success) {
         throw new HttpError('business', parsed.error ?? parsed.message ?? '业务异常', status);
@@ -109,6 +110,22 @@ export class HttpClient {
     } finally {
       httpRequest.destroy();
     }
+  }
+
+  // 非 2xx 时尝试解析响应体信封，取后端给出的错误文案；响应体非 JSON（如网关错误页）则回退状态码默认文案。
+  private static extractError(raw: string): string | undefined {
+    try {
+      const parsed = JSON.parse(raw) as ApiResponse<Object>;
+      if (typeof parsed.error === 'string' && parsed.error.length > 0) {
+        return parsed.error;
+      }
+      if (typeof parsed.message === 'string' && parsed.message.length > 0) {
+        return parsed.message;
+      }
+    } catch (e) {
+      // 忽略解析失败，走默认文案
+    }
+    return undefined;
   }
 
   get<T>(path: string, query?: Record<string, string | number | boolean>): Promise<T> {

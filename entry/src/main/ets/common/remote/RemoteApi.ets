@@ -2,6 +2,7 @@
 // 仅当 AppConfig.useRemote=true 时被仓储调用；apiClient 已自动拆 ApiResponse 信封并附带 token。
 // 说明：ArkTS 禁 Record 对象字面量，故 GET 查询参数内联进 path、POST/DELETE body 用具名接口。
 import { apiClient } from '../http/ApiClient';
+import { HttpRequestOptions } from '../http/HttpClient';
 
 export interface RemoteCourse {
   id: string;
@@ -304,10 +305,13 @@ export class RemoteApi {
     return apiClient.post<RemoteLoginResult>('/auth/login', body);
   }
 
-  // 发送邮箱验证码（公开端点，无需登录态）
+  // 发送邮箱验证码（公开端点，无需登录态）。
+  // 后端同步等 SMTP 发完邮件才响应（常超过默认 10s），超时放宽到 30s，
+  // 避免「邮件实际已发出、App 端却先超时报网络错误」。
   static async sendEmailCode(email: string): Promise<void> {
     const body: EmailCodeBody = { email: email };
-    await apiClient.post<Object>('/auth/email-code', body);
+    const opts: HttpRequestOptions = { method: 'POST', body: body, timeoutMs: 30000 };
+    await apiClient.request<Object>('/auth/email-code', opts);
   }
 
   // 校验邮箱验证码（公开端点，成功即被后端消费）

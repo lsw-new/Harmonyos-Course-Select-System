@@ -21,6 +21,8 @@ struct ForgotPage {
   @State successMsg: string = '';
   @State submitting: boolean = false;
   @State codeCountdown: number = 0;
+  // 验证码请求飞行中：按钮显示「发送中…」并禁用，防止重复点击触发后端 60s 重发节流
+  @State codeSending: boolean = false;
 
   private countdownTimer: number = -1;
 
@@ -37,7 +39,7 @@ struct ForgotPage {
   }
 
   private sendCode(): void {
-    if (this.codeCountdown > 0) {
+    if (this.codeCountdown > 0 || this.codeSending) {
       return;
     }
     const r = ValidatorUtils.email(this.email);
@@ -46,9 +48,14 @@ struct ForgotPage {
       return;
     }
     this.errorMsg = '';
+    this.successMsg = '';
+    this.codeSending = true;
     AuthRepository.get().sendEmailCode(this.email).then((_res: boolean) => {
+      this.codeSending = false;
+      this.successMsg = '验证码已发送，请查收邮箱（5 分钟内有效）';
       this.startCountdown();
     }).catch((e: object) => {
+      this.codeSending = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '发送失败';
     });
   }
@@ -130,13 +137,16 @@ struct ForgotPage {
                 ElysiaInput({ placeholder: $r('app.string.forgot_email'), value: $email })
                 Row({ space: 8 }) {
                   Column() { ElysiaInput({ placeholder: $r('app.string.common_code6'), value: $code }) }.layoutWeight(1)
-                  Button(this.codeCountdown > 0 ? `${this.codeCountdown}s` : $r('app.string.forgot_get_code'))
+                  Button(this.codeCountdown > 0
+                    ? `${this.codeCountdown}s`
+                    : (this.codeSending ? $r('app.string.common_code_sending') : $r('app.string.forgot_get_code')))
                     .height(46).fontSize(11)
                     .backgroundColor(ElysiaTheme.glass())
-                    .fontColor(this.codeCountdown > 0 ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
+                    .fontColor(this.codeCountdown > 0 || this.codeSending ? ElysiaTheme.INK_SOFT : ElysiaTheme.ROSE_700)
                     .border({ width: 1, color: ElysiaTheme.hairline() })
                     .borderRadius(14)
                     .padding({ left: 12, right: 12 })
+                    .enabled(this.codeCountdown === 0 && !this.codeSending)
                     .onClick(() => { this.sendCode(); })
                 }
                 ElysiaInput({ placeholder: $r('app.string.forgot_new_pwd'), value: $newPwd, secure: true })

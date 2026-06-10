@@ -247,6 +247,7 @@
     { "name": "eval_closed_title", "value": "评教暂未开放" },
     { "name": "eval_closed_sub", "value": "管理员尚未开放本学期评教，开放后即可在此进行课程评教" },
     { "name": "eval_closed_refresh", "value": "刷新看看" },
+    { "name": "common_code_sending", "value": "发送中…" },
     { "name": "eval_hero_title", "value": "玫瑰之声" },
     { "name": "eval_hero_sub", "value": "每一份诚挚的反馈，都是花瓣般温柔的力量。" },
     { "name": "eval_done", "value": "  已完成" },
