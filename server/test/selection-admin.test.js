@@ -74,6 +74,17 @@ describe('PUT /api/admin/selection/rounds/:id/status', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.status).toBe('running');
   });
+
+  test('并发竞态：条件更新未命中（状态已被他人改掉）→ 409', async () => {
+    __mock.setRoutes([
+      PERM_GRANT,
+      { match: /SELECT status FROM dtest2\.selection_rounds WHERE round_id/, result: [{ status: 'running' }] },
+      { match: /UPDATE dtest2\.selection_rounds/, result: [] }
+    ]);
+    const res = await putStatus(adm, 'paused');
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain('刷新');
+  });
 });
 
 describe('PUT /api/admin/selection/rounds/:id/time', () => {
@@ -86,6 +97,19 @@ describe('PUT /api/admin/selection/rounds/:id/time', () => {
   test('开始不早于结束 → 400', async () => {
     __mock.setRoutes([PERM_GRANT]);
     const res = await putTime({ startTime: '2026-06-30 22:00', endTime: '2026-06-01 09:00' });
+    expect(res.status).toBe(400);
+  });
+
+  test('格式合法但日历不存在的日期（2026-02-30）→ 400 不触库', async () => {
+    __mock.setRoutes([PERM_GRANT]);
+    const res = await putTime({ startTime: '2026-02-30 10:00', endTime: '2026-07-02 17:37' });
+    expect(res.status).toBe(400);
+    expect(__mock.executed('UPDATE dtest2.selection_rounds')).toBe(false);
+  });
+
+  test('不存在的时刻（25:00）→ 400', async () => {
+    __mock.setRoutes([PERM_GRANT]);
+    const res = await putTime({ startTime: '2026-06-01 25:00', endTime: '2026-07-02 17:37' });
     expect(res.status).toBe(400);
   });
 

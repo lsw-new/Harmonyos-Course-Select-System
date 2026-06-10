@@ -28,12 +28,16 @@ router.get('/api/courses', authRequired, async (req, res) => {
   }
 });
 
+// 选课开放判定（单一事实来源）：轮次 status='running' 且当前时刻落在起止时间窗口内。
+// 管理员暂停/结束轮次、或到达 end_time，三者任一即全局关闭选课（选课与退课同口径）。
+const ACTIVE_ROUND_WHERE = `status='running' AND now() >= start_time AND now() <= end_time`;
+
 // ---- 当前进行中的选课轮次 ----
 router.get('/api/selection-rounds/active', authRequired, async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT round_id, name, status, start_time, end_time, credit_limit
-       FROM dtest2.selection_rounds WHERE status='running'
+       FROM dtest2.selection_rounds WHERE ${ACTIVE_ROUND_WHERE}
        ORDER BY start_time DESC LIMIT 1`
     );
     if (r.rowCount === 0) {
@@ -86,7 +90,7 @@ router.post('/api/selections', authRequired, async (req, res) => {
   try {
     await client.query('BEGIN');
     const round = await client.query(
-      `SELECT round_id, credit_limit FROM dtest2.selection_rounds WHERE status='running' ORDER BY start_time DESC LIMIT 1`
+      `SELECT round_id, credit_limit FROM dtest2.selection_rounds WHERE ${ACTIVE_ROUND_WHERE} ORDER BY start_time DESC LIMIT 1`
     );
     if (round.rowCount === 0) {
       await client.query('ROLLBACK');
@@ -168,7 +172,7 @@ router.post('/api/selections', authRequired, async (req, res) => {
   }
 });
 
-// ---- 退课（软删除 status=dropped）----
+// ---- 退课（软删除 status=dropped；与选课同口径：选课关闭后退课同样关闭）----
 router.delete('/api/selections', authRequired, async (req, res) => {
   const studentId = currentStudentId(req);
   const courseId = ((req.body && req.body.courseId) || '').trim();
@@ -176,6 +180,12 @@ router.delete('/api/selections', authRequired, async (req, res) => {
     return res.status(400).json(fail('缺少 studentId 或 courseId'));
   }
   try {
+    const round = await pool.query(
+      `SELECT round_id FROM dtest2.selection_rounds WHERE ${ACTIVE_ROUND_WHERE} LIMIT 1`
+    );
+    if (round.rowCount === 0) {
+      return res.status(409).json(fail('当前不在选课时间，暂不能退课'));
+    }
     const r = await pool.query(
       `UPDATE dtest2.selections SET status='dropped', dropped_at=now()
        WHERE student_id=$1 AND course_id=$2 AND status='selected'`,

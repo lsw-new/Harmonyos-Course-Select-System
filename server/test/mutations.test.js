@@ -14,17 +14,28 @@ const oneRow = [{}]; // rowCount=1，用于模拟 UPDATE/DELETE 命中
 beforeEach(() => __mock.reset());
 
 describe('学生写操作', () => {
+  // 退课与选课同口径：须有 running 且在时间窗口内的轮次
+  const ROUND_OPEN = { match: /FROM dtest2\.selection_rounds/, result: [{ round_id: 'r1' }] };
+
   test('DELETE /api/selections 命中 → 200', async () => {
-    __mock.setRoutes([{ match: /UPDATE dtest2\.selections SET status='dropped'/, result: oneRow }]);
+    __mock.setRoutes([ROUND_OPEN, { match: /UPDATE dtest2\.selections SET status='dropped'/, result: oneRow }]);
     const res = await request(app).delete('/api/selections').set('Authorization', stu).send({ courseId: 'c1' });
     expect(res.status).toBe(200);
     expect(res.body.data.dropped).toBe(true);
   });
 
   test('DELETE /api/selections 未选 → 404', async () => {
-    __mock.setRoutes([{ match: /UPDATE dtest2\.selections SET status='dropped'/, result: [] }]);
+    __mock.setRoutes([ROUND_OPEN, { match: /UPDATE dtest2\.selections SET status='dropped'/, result: [] }]);
     const res = await request(app).delete('/api/selections').set('Authorization', stu).send({ courseId: 'c1' });
     expect(res.status).toBe(404);
+  });
+
+  test('DELETE /api/selections 选课关闭期 → 409 且不触发 UPDATE', async () => {
+    __mock.setRoutes([{ match: /FROM dtest2\.selection_rounds/, result: [] }]);
+    const res = await request(app).delete('/api/selections').set('Authorization', stu).send({ courseId: 'c1' });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain('退课');
+    expect(__mock.executed("UPDATE dtest2.selections SET status='dropped'")).toBe(false);
   });
 
   test('POST /api/notices/:id/read → 200', async () => {

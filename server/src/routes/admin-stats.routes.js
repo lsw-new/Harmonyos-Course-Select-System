@@ -123,7 +123,24 @@ router.get('/api/admin/selection/stats', permissionRequired('selection.manage:vi
 
 // ---- 选课轮次状态流转（启动/暂停/结束）：结束或暂停即全局关闭选课 ----
 // 学生端 POST /api/selections 仅认 status='running' 的轮次，这里改状态即权威开关。
-const ROUND_TIME_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
+const ROUND_TIME_RE = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/;
+
+// 形状 + 真实日历校验（2026-02-30 / 25:00 这类「格式合法但不存在」的时刻拒绝，避免落到 PG cast 抛 500）
+function isRealDateTime(text) {
+  const m = ROUND_TIME_RE.exec(text);
+  if (!m) {
+    return false;
+  }
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const hour = Number(m[4]);
+  const minute = Number(m[5]);
+  if (month < 1 || month > 12 || hour > 23 || minute > 59) {
+    return false;
+  }
+  const daysInMonth = new Date(Date.UTC(Number(m[1]), month, 0)).getUTCDate();
+  return day >= 1 && day <= daysInMonth;
+}
 
 function canTransitionRound(from, to) {
   if (to === 'running') {
@@ -173,14 +190,18 @@ router.put('/api/admin/selection/rounds/:id/status', permissionRequired('selecti
     if (!canTransitionRound(cur.rows[0].status, to)) {
       return res.status(409).json(fail(roundTransitionError(to)));
     }
+    // 条件更新带期望状态：并发下读到的旧状态若已被他人改掉（如已置终态 ended），不盲目覆写
     const updated = await pool.query(
       `UPDATE dtest2.selection_rounds SET status=$2
-       WHERE round_id=$1
+       WHERE round_id=$1 AND status=$3
        RETURNING round_id, name, status,
                  to_char(start_time AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS start_time,
                  to_char(end_time AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS end_time`,
-      [req.params.id, to]
+      [req.params.id, to, cur.rows[0].status]
     );
+    if (updated.rowCount === 0) {
+      return res.status(409).json(fail('轮次状态已被其他操作修改，请刷新后重试'));
+    }
     res.json(ok(mapRoundLite(updated.rows[0])));
   } catch (e) {
     serverError(res, '更新轮次状态失败', e);
@@ -192,8 +213,8 @@ router.put('/api/admin/selection/rounds/:id/time', permissionRequired('selection
   const b = req.body || {};
   const start = String(b.startTime || '').trim();
   const end = String(b.endTime || '').trim();
-  if (!ROUND_TIME_RE.test(start) || !ROUND_TIME_RE.test(end)) {
-    return res.status(400).json(fail('起止时间需形如 2026-05-20 09:00'));
+  if (!isRealDateTime(start) || !isRealDateTime(end)) {
+    return res.status(400).json(fail('起止时间需为真实存在的时刻，形如 2026-05-20 09:00'));
   }
   if (start >= end) {
     return res.status(400).json(fail('开始时间必须早于结束时间'));
