@@ -83,9 +83,9 @@ struct ExamDetailPage {
         TopBar({ title: $r('app.string.examdetail_title'), subtitle: $r('app.string.examdetail_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({})
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.aboutToAppear() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.aboutToAppear() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.exam !== null) {
           Scroll() {
             Column({ space: 14 }) {

@@ -394,9 +394,9 @@ struct EvalPage {
         }.width('100%').padding({ left: 18, right: 18, top: 16, bottom: 10 })
 
         if (this.qLoading) {
-          LoadingState({ tip: $r('app.string.eval_q_loading') })
+          Column() { LoadingState({ tip: $r('app.string.eval_q_loading') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.questionnaire === undefined) {
-          ErrorState({ message: this.qError.length > 0 ? this.qError : '问卷加载失败', onRetry: () => this.loadQuestionnaire() })
+          Column() { ErrorState({ message: this.qError.length > 0 ? this.qError : '问卷加载失败', onRetry: () => this.loadQuestionnaire() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           Scroll() {
             Column({ space: 14 }) {

@@ -103,9 +103,9 @@ struct SelectionPage {
         TopBar({ title: $r('app.string.selection_title'), subtitle: $r('app.string.selection_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          SkeletonList({ count: 5 })
+          Column() { SkeletonList({ count: 5 }) }.layoutWeight(1).width('100%')
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           List() {
             ListItem() {

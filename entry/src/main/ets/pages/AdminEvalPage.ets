@@ -256,9 +256,9 @@ struct AdminEvalPage {
         TopBar({ title: $r('app.string.admineval_title'), subtitle: $r('app.string.admineval_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({})
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.stats !== null) {
           Scroll() {
             Column({ space: 14 }) {

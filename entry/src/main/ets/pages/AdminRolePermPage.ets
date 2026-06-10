@@ -215,7 +215,7 @@ struct AdminRolePermPage {
         Column().height(8)
         this.SectionHeader('star', '我的权限', `${this.myPerms.length} 项`)
         if (this.myPerms.length === 0) {
-          EmptyState({ icon: 'lock', title: $r('app.string.adminroleperm_empty_my'), hint: '当前账号未分配任何权限' })
+          Column() { EmptyState({ icon: 'lock', title: $r('app.string.adminroleperm_empty_my'), hint: '当前账号未分配任何权限' }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           ForEach(this.groupByModule(this.myPerms), (group: PermModuleGroup) => {
             this.MyPermGroup(group)
@@ -238,11 +238,11 @@ struct AdminRolePermPage {
         TopBar({ title: $r('app.string.adminroleperm_title'), subtitle: $r('app.string.adminroleperm_subtitle'), onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {
-          LoadingState({})
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadAll() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadAll() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.roles.length === 0) {
-          EmptyState({ title: $r('app.string.adminroleperm_empty_roles') })
+          Column() { EmptyState({ title: $r('app.string.adminroleperm_empty_roles') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           this.Body()
         }

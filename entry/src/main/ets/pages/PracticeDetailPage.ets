@@ -139,11 +139,11 @@ struct PracticeDetailPage {
         TopBar({ title: $r('app.string.practice_title'), subtitle: $r('app.string.practicedetail_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({ tip: $r('app.string.practicedetail_loading') })
+          Column() { LoadingState({ tip: $r('app.string.practicedetail_loading') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.detail === undefined) {
-          EmptyState({ icon: 'practice', title: $r('app.string.practicedetail_empty') })
+          Column() { EmptyState({ icon: 'practice', title: $r('app.string.practicedetail_empty') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           this.DetailBody(this.detail!)
         }

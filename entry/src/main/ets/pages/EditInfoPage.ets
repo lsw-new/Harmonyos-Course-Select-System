@@ -112,7 +112,7 @@ struct EditInfoPage {
         TopBar({ title: $r('app.string.editinfo_title'), subtitle: $r('app.string.editinfo_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({})
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           Scroll() {
             Column({ space: 14 }) {

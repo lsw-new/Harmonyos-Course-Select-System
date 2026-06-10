@@ -82,9 +82,9 @@ struct AccountPage {
         TopBar({ title: $r('app.string.account_title'), subtitle: $r('app.string.account_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({ tip: $r('app.string.account_loading') })
+          Column() { LoadingState({ tip: $r('app.string.account_loading') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           Scroll() {
             Column() {

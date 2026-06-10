@@ -248,11 +248,11 @@ struct AdminGradesPage {
         }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).padding({ left: 16, right: 16 }).margin({ top: 8 })
 
         if (this.loading) {
-          LoadingState({})
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => { this.loadData(); } })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => { this.loadData(); } }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.items.length === 0) {
-          EmptyState({ title: $r('app.string.admingrades_empty') })
+          Column() { EmptyState({ title: $r('app.string.admingrades_empty') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           if (this.formErrorMsg.length > 0) {
             Text(this.formErrorMsg).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)

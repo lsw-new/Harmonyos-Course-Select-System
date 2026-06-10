@@ -81,9 +81,9 @@ struct PracticeSignupPage {
         TopBar({ title: $r('app.string.practicesignup_title'), subtitle: $r('app.string.practicesignup_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({})
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.aboutToAppear() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.aboutToAppear() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.detail !== null) {
           Scroll() {
             Column({ space: 14 }) {

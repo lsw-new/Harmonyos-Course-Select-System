@@ -180,11 +180,11 @@ struct AdminSelectionPage {
         TopBar({ title: $r('app.string.adminselection_title'), subtitle: $r('app.string.adminselection_subtitle'), onBack: () => { AppRoute.back(); } })
 
         if (this.loading) {
-          LoadingState({})
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.error.length > 0) {
-          ErrorState({ message: this.error, onRetry: () => { this.load(); } })
+          Column() { ErrorState({ message: this.error, onRetry: () => { this.load(); } }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.rounds.length === 0) {
-          EmptyState({ title: $r('app.string.adminselection_empty') })
+          Column() { EmptyState({ title: $r('app.string.adminselection_empty') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           Scroll() {
             Column({ space: 12 }) {

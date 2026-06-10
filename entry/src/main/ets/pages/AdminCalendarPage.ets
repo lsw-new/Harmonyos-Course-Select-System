@@ -216,11 +216,11 @@ struct AdminCalendarPage {
         }
 
         if (this.loading) {
-          LoadingState({})
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.events.length === 0) {
-          EmptyState({ title: $r('app.string.admincalendar_empty'), hint: '点击右上角新增' })
+          Column() { EmptyState({ title: $r('app.string.admincalendar_empty'), hint: '点击右上角新增' }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           List() {
             ForEach(this.events, (item: CalendarEvent) => {

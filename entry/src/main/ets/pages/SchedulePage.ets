@@ -257,9 +257,9 @@ struct SchedulePage {
         .padding({ left: 16, right: 16 })
 
         if (this.loading) {
-          LoadingState({ tip: $r('app.string.schedule_loading') })
+          Column() { LoadingState({ tip: $r('app.string.schedule_loading') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadSchedule() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadSchedule() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           // 课表网格
           Scroll() {

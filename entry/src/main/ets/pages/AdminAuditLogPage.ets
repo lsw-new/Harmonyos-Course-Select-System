@@ -129,11 +129,11 @@ struct AdminAuditLogPage {
         this.FilterChips()
 
         if (this.loading) {
-          SkeletonList({ count: 6 })
+          Column() { SkeletonList({ count: 6 }) }.layoutWeight(1).width('100%')
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadLogs() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadLogs() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.logs.length === 0) {
-          EmptyState({ icon: 'file', title: $r('app.string.adminauditlog_empty'), hint: '该筛选条件下没有记录' })
+          Column() { EmptyState({ icon: 'file', title: $r('app.string.adminauditlog_empty'), hint: '该筛选条件下没有记录' }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           List() {
             LazyForEach(this.logsDs, (log: AuditLogEntry) => {

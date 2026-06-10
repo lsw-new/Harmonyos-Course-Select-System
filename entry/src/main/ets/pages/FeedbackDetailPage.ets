@@ -105,9 +105,9 @@ struct FeedbackDetailPage {
         TopBar({ title: $r('app.string.feedbackdetail_title'), subtitle: $r('app.string.feedbackdetail_subtitle'), onBack: () => AppRoute.back() })
 
         if (this.loading) {
-          LoadingState({})
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.aboutToAppear() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.aboutToAppear() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.feedback !== null) {
           Scroll() {
             Column({ space: 14 }) {

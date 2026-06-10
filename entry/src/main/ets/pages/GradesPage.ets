@@ -89,9 +89,9 @@ struct GradesPage {
         .padding({ left: 16, right: 16, bottom: 12 })
 
         if (this.loading) {
-          LoadingState({ tip: $r('app.string.grades_loading') })
+          Column() { LoadingState({ tip: $r('app.string.grades_loading') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           Scroll() {
             Column() {
