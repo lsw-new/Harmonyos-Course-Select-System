@@ -267,4 +267,4 @@ export function SettingsPageBuilder() {
   }
   .hideTitleBar(true)
 
-}}
+}
