@@ -443,6 +443,49 @@
 
   const db = { table: '', columns: [], pk: [], offset: 0, limit: 50, total: 0, q: '' };
 
+  // 表的中文名与所属分类（未登记的表自动归入「未分类」）
+  const TABLE_META = {
+    accounts: ['登录账号', '账号与学籍'],
+    student_profiles: ['学生资料', '账号与学籍'],
+    admin_profiles: ['管理员资料', '账号与学籍'],
+    class_students: ['班级学生名册', '账号与学籍'],
+    courses: ['课程目录', '课程与课表'],
+    class_schedule_items: ['班级课表', '课程与课表'],
+    course_teachers: ['课程教师绑定', '课程与课表'],
+    schedule_items: ['个人课表项', '课程与课表'],
+    selection_rounds: ['选课轮次', '课程与课表'],
+    selections: ['选课记录', '课程与课表'],
+    grade_tasks: ['成绩录入任务', '成绩'],
+    grades: ['学生成绩', '成绩'],
+    evaluation_templates: ['评教问卷模板', '评教'],
+    evaluation_tasks: ['评教任务', '评教'],
+    evaluation_submissions: ['评教答卷', '评教'],
+    notices: ['通知公告', '通知与消息'],
+    notice_reads: ['通知已读记录', '通知与消息'],
+    message_templates: ['消息模板', '通知与消息'],
+    leave_requests: ['请假申请', '请假与审批'],
+    approval_instances: ['审批单', '请假与审批'],
+    approval_steps: ['审批步骤', '请假与审批'],
+    approval_flow_nodes: ['审批流程节点', '请假与审批'],
+    feedback_items: ['意见反馈', '反馈与实践'],
+    practice_projects: ['实践项目', '反馈与实践'],
+    practice_signups: ['实践报名', '反馈与实践'],
+    roles: ['角色', '权限与安全'],
+    permissions: ['权限项', '权限与安全'],
+    role_permissions: ['角色权限关系', '权限与安全'],
+    audit_logs: ['审计日志', '权限与安全'],
+    security_policy: ['安全策略', '权限与安全'],
+    app_settings: ['应用设置', '系统与其他'],
+    calendar_events: ['教学日历事件', '系统与其他'],
+    attachments: ['附件', '系统与其他'],
+    schema_migrations: ['数据库迁移记录', '系统与其他']
+  };
+  const CATEGORY_ORDER = ['账号与学籍', '课程与课表', '成绩', '评教', '通知与消息', '请假与审批', '反馈与实践', '权限与安全', '系统与其他', '未分类'];
+
+  function tableLabel(name) {
+    return (TABLE_META[name] && TABLE_META[name][0]) || name;
+  }
+
   async function loadDbTables() {
     $('#db-detail').hidden = true;
     const wrap = $('#db-tables');
@@ -450,11 +493,27 @@
     wrap.innerHTML = '<div class="empty">表清单加载中…</div>';
     try {
       const tables = await api('/admin/db/tables');
-      wrap.innerHTML = tables.map((t) => `
-        <div class="db-table-card" data-table="${esc(t.name)}">
-          <span class="tname">${esc(t.name)}</span>
-          <span class="pill info">${t.rows} 行</span>
-        </div>`).join('');
+      const groups = new Map();
+      for (const t of tables) {
+        const cat = (TABLE_META[t.name] && TABLE_META[t.name][1]) || '未分类';
+        if (!groups.has(cat)) { groups.set(cat, []); }
+        groups.get(cat).push(t);
+      }
+      let html = '';
+      for (const cat of CATEGORY_ORDER) {
+        const list = groups.get(cat);
+        if (!list || list.length === 0) { continue; }
+        const cards = list.map((t) => `
+          <div class="db-table-card" data-table="${esc(t.name)}">
+            <span>
+              <span class="tlabel">${esc(tableLabel(t.name))}</span>
+              <span class="tname">${esc(t.name)}</span>
+            </span>
+            <span class="pill info">${t.rows} 行</span>
+          </div>`).join('');
+        html += `<h3 class="db-cat">${esc(cat)}<small>${list.length} 张表</small></h3><div class="db-cat-grid">${cards}</div>`;
+      }
+      wrap.innerHTML = html || '<div class="empty">无数据表</div>';
     } catch (e) {
       wrap.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
     }
@@ -474,7 +533,7 @@
     $('#db-tables').hidden = true;
     $('#db-detail').hidden = false;
     $('#db-editor').hidden = true;
-    $('#db-table-title').textContent = 'dtest2.' + db.table;
+    $('#db-table-title').textContent = `${tableLabel(db.table)}（dtest2.${db.table}）`;
     const wrap = $('#db-rows');
     wrap.innerHTML = '<div class="empty">加载中…</div>';
     try {
