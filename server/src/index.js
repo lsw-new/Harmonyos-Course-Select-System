@@ -1,6 +1,7 @@
 // 景德镇艺术职业大学教务 App 后端 API · Track B 垂直切片（认证 / 课程 / 选课）
 // 返回 App 端 ApiResponse 信封 { success, data, error }；连本地 Postgres(dtest2 schema)。
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { pool } = require('./db');
@@ -21,6 +22,9 @@ app.set('trust proxy', 'loopback');
 const CORS_ORIGINS = (process.env.CORS_ORIGINS || '')
   .split(',').map((s) => s.trim()).filter((s) => s.length > 0);
 app.use(cors({ origin: CORS_ORIGINS.length > 0 ? CORS_ORIGINS : false, credentials: true }));
+
+// 后端管理控制台（纯静态单页，数据全部经 /api 管理端点，JWT + 细粒度权限由后端校验）
+app.use('/admin', express.static(path.join(__dirname, '..', 'public', 'admin')));
 
 app.use(globalLimiter);
 app.use(express.json());

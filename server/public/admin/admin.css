@@ -1,0 +1,246 @@
+/* 教学管理系统 · 后端管理控制台 —— Elysia 玫瑰学院风（与 App 同主题） */
+:root {
+  --rose-500: #F2709C;
+  --rose-700: #A93C68;
+  --rose-100: #FFE9F1;
+  --rose-soft: #FFF6FA;
+  --cream-50: #FFFBF6;
+  --surface: #FFFDFB;
+  --lav-500: #B589FF;
+  --gold-500: #D9B675;
+  --ink: #4B2A38;
+  --ink-soft: #7A5266;
+  --ink-mute: #B294A4;
+  --success: #3FAE7A;
+  --danger: #E2566B;
+  --hairline: #F5D6E2;
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --shadow-card: 0 6px 24px rgba(242, 112, 156, 0.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", "HarmonyOS Sans SC", sans-serif;
+  background: linear-gradient(180deg, var(--rose-soft) 0%, var(--cream-50) 40%, #FFF4EC 100%);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+button { font: inherit; cursor: pointer; }
+input, select, textarea {
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 9px 12px;
+  outline: none;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--rose-500); }
+
+/* ---------- 登录 ---------- */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.login-card {
+  width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
+  padding: 34px 30px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.login-brand { text-align: center; margin-bottom: 8px; }
+.login-brand h1 { font-size: 22px; color: var(--rose-700); font-style: italic; }
+.login-brand p { font-size: 11px; color: var(--ink-mute); letter-spacing: 3px; margin-top: 4px; }
+.brand-dot {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--rose-500), var(--lav-500));
+  box-shadow: 0 0 0 4px var(--rose-100);
+  margin-bottom: 10px;
+}
+.login-card label { font-size: 12px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 6px; }
+.login-card button[type="submit"] {
+  margin-top: 6px;
+  background: linear-gradient(135deg, var(--rose-500), #F08FB4);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 11px;
+  font-size: 15px;
+  letter-spacing: 6px;
+}
+.login-card button[type="submit"]:disabled { opacity: .6; cursor: wait; }
+.login-foot { font-size: 11px; color: var(--ink-mute); text-align: center; }
+.form-error { font-size: 12px; color: var(--danger); }
+
+/* ---------- 布局 ---------- */
+.layout { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 216px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  padding: 22px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.side-brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 18px; }
+.side-brand .brand-dot { margin: 0; }
+.side-brand strong { display: block; font-size: 15px; color: var(--rose-700); }
+.side-brand small { font-size: 10px; color: var(--ink-mute); letter-spacing: 2px; }
+
+#nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item {
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  transition: background .15s;
+}
+.nav-item:hover { background: var(--rose-soft); }
+.nav-item.active { background: var(--rose-100); color: var(--rose-700); font-weight: 600; }
+
+.side-foot { border-top: 1px solid var(--hairline); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.admin-info { font-size: 11px; color: var(--ink-soft); line-height: 1.6; padding: 0 8px; }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  color: var(--rose-700);
+  border-radius: var(--radius-pill);
+  padding: 8px;
+  font-size: 12px;
+}
+.btn-ghost:hover { background: var(--rose-soft); }
+
+.content { flex: 1; padding: 30px 34px 60px; max-width: 1080px; }
+.section h2 { font-size: 19px; color: var(--rose-700); margin-bottom: 14px; }
+.muted { font-size: 12px; color: var(--ink-mute); margin: 8px 0 14px; }
+
+/* ---------- 通用组件 ---------- */
+.btn {
+  background: var(--rose-100);
+  color: var(--rose-700);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 8px 18px;
+  font-size: 12px;
+}
+.btn:hover { filter: brightness(.97); }
+.btn-primary { background: var(--rose-500); color: #fff; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-danger { background: #FFF0F0; color: var(--danger); }
+.btn:disabled { opacity: .55; cursor: wait; }
+
+.toolbar { display: flex; gap: 10px; margin-bottom: 14px; }
+.toolbar input, .toolbar select { max-width: 320px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-top: 6px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 18px;
+}
+.stat-card .num { font-size: 28px; font-weight: 700; color: var(--rose-700); }
+.stat-card .lbl { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+.stat-card.alt .num { color: var(--lav-500); }
+.stat-card.gold .num { color: var(--gold-500); }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-card); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rose-soft); white-space: nowrap; }
+th { background: var(--rose-soft); color: var(--ink-soft); font-size: 12px; font-weight: 600; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #FFFAF5; }
+
+.pill {
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  padding: 3px 11px;
+  font-size: 11px;
+  background: var(--rose-soft);
+  color: var(--rose-700);
+}
+.pill.warn { color: var(--gold-500); }
+.pill.ok { color: var(--success); }
+.pill.bad { color: var(--danger); }
+.pill.info { color: var(--lav-500); }
+
+/* ---------- 成绩 / 审批卡片 ---------- */
+.task-card, .approval-card, .form-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.task-head { display: flex; align-items: center; gap: 10px; }
+.task-head .title { font-size: 15px; font-weight: 600; flex: 1; }
+.task-sub { font-size: 12px; color: var(--ink-soft); margin: 6px 0 10px; }
+.progress { height: 6px; background: var(--rose-100); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+.progress > i { display: block; height: 100%; background: var(--rose-500); border-radius: 3px; }
+.task-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.score-panel { margin-top: 14px; border-top: 1px dashed var(--hairline); padding-top: 12px; }
+.score-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+.score-row .name { width: 110px; font-size: 13px; }
+.score-row .sid { flex: 1; font-size: 11px; color: var(--ink-mute); }
+.score-row input { width: 88px; text-align: center; padding: 6px 8px; }
+
+.approval-card .title { font-size: 14px; font-weight: 600; }
+.approval-card .meta { font-size: 12px; color: var(--ink-soft); margin: 6px 0 10px; }
+.approval-card textarea { margin-bottom: 10px; }
+
+.form-card { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+.form-card label { font-size: 12px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 6px; }
+.form-row { display: flex; gap: 12px; }
+.form-row label { flex: 1; }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  border-radius: var(--radius-pill);
+  padding: 10px 22px;
+  box-shadow: 0 8px 30px rgba(75, 42, 56, .25);
+  z-index: 99;
+}
+
+.empty { padding: 26px; text-align: center; color: var(--ink-mute); font-size: 13px; }
+
+@media (max-width: 760px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; gap: 10px; overflow-x: auto; }
+  #nav { flex-direction: row; }
+  .side-foot { border: none; padding: 0; flex-direction: row; }
+  .admin-info { display: none; }
+  .content { padding: 20px 16px 50px; }
+  .form-row { flex-direction: column; }
+}

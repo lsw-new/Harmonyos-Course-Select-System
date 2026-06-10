@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>教学管理系统 · 后端管理</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- 登录视图 -->
+  <section id="view-login" class="login-wrap">
+    <form id="login-form" class="login-card" autocomplete="off">
+      <div class="login-brand">
+        <span class="brand-dot"></span>
+        <h1>教学管理系统</h1>
+        <p>ADMIN · 后端管理控制台</p>
+      </div>
+      <label>管理员工号
+        <input id="login-account" type="text" placeholder="如 A20251001" required>
+      </label>
+      <label>密码
+        <input id="login-password" type="password" placeholder="登录密码" required>
+      </label>
+      <p id="login-error" class="form-error" hidden></p>
+      <button id="login-btn" type="submit">登 录</button>
+      <p class="login-foot">仅限管理员账号 · 数据经 HTTPS 直连 dtest2 后端</p>
+    </form>
+  </section>
+
+  <!-- 主控制台 -->
+  <div id="view-main" class="layout" hidden>
+    <aside class="sidebar">
+      <div class="side-brand">
+        <span class="brand-dot"></span>
+        <div>
+          <strong>教学管理</strong>
+          <small>后端控制台</small>
+        </div>
+      </div>
+      <nav id="nav">
+        <button class="nav-item active" data-section="overview">概览</button>
+        <button class="nav-item" data-section="students">学生管理</button>
+        <button class="nav-item" data-section="grades">成绩打分</button>
+        <button class="nav-item" data-section="approvals">审批中心</button>
+        <button class="nav-item" data-section="notice">通知发布</button>
+        <button class="nav-item" data-section="audit">审计日志</button>
+      </nav>
+      <div class="side-foot">
+        <div id="admin-info" class="admin-info"></div>
+        <button id="logout-btn" class="btn-ghost">退出登录</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div id="toast" class="toast" hidden></div>
+
+      <!-- 概览 -->
+      <section id="section-overview" class="section">
+        <h2>概览</h2>
+        <div id="overview-cards" class="cards"></div>
+        <p class="muted">数据为实时统计：学生=已注册学生资料数；成绩=班级课程成绩任务；审批=待处理审批。</p>
+      </section>
+
+      <!-- 学生管理 -->
+      <section id="section-students" class="section" hidden>
+        <h2>学生管理</h2>
+        <div class="toolbar">
+          <input id="student-q" type="text" placeholder="按姓名 / 学号 / 班级搜索">
+          <button id="student-search" class="btn">搜索</button>
+        </div>
+        <div id="students-table" class="table-wrap"></div>
+      </section>
+
+      <!-- 成绩打分 -->
+      <section id="section-grades" class="section" hidden>
+        <h2>成绩打分</h2>
+        <p class="muted">为本班已注册学生录入 0-100 分（留空＝暂不打分）；全部打完自动转待审核，审核通过后学生端可见。</p>
+        <div id="grades-list"></div>
+      </section>
+
+      <!-- 审批中心 -->
+      <section id="section-approvals" class="section" hidden>
+        <h2>审批中心</h2>
+        <div class="toolbar">
+          <select id="approval-status">
+            <option value="">全部状态</option>
+            <option value="pending" selected>待处理</option>
+            <option value="approved">已通过</option>
+            <option value="rejected">已驳回</option>
+          </select>
+          <button id="approval-refresh" class="btn">刷新</button>
+        </div>
+        <div id="approvals-list"></div>
+      </section>
+
+      <!-- 通知发布 -->
+      <section id="section-notice" class="section" hidden>
+        <h2>通知发布</h2>
+        <form id="notice-form" class="form-card">
+          <label>标题
+            <input id="notice-title" type="text" maxlength="80" placeholder="通知标题" required>
+          </label>
+          <label>正文
+            <textarea id="notice-content" rows="6" placeholder="通知正文内容" required></textarea>
+          </label>
+          <div class="form-row">
+            <label>分类
+              <input id="notice-category" type="text" value="教学通知">
+            </label>
+            <label>紧急程度
+              <select id="notice-urgency">
+                <option value="normal" selected>普通</option>
+                <option value="important">重要</option>
+                <option value="urgent">紧急</option>
+              </select>
+            </label>
+            <label>接收范围
+              <select id="notice-receiver">
+                <option value="all" selected>全部</option>
+                <option value="students">学生</option>
+                <option value="teachers">教师</option>
+              </select>
+            </label>
+          </div>
+          <p id="notice-msg" class="form-error" hidden></p>
+          <button type="submit" class="btn btn-primary">发布通知</button>
+        </form>
+      </section>
+
+      <!-- 审计日志 -->
+      <section id="section-audit" class="section" hidden>
+        <h2>审计日志</h2>
+        <div id="audit-table" class="table-wrap"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
