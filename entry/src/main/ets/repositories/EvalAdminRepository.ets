@@ -12,6 +12,7 @@ import { AuthorizationService } from '../common/security/AuthorizationService';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppConfig } from '../app/AppConfig';
 import { RemoteApi, RemoteTemplate } from '../common/remote/RemoteApi';
+// RatingBucket 远程形状与本地一致，映射时逐字段复制即可
 
 const KEY_EVAL_PERIOD = 'local.evalPeriod.v1';
 const KEY_EVAL_TEMPLATES = 'local.evalTemplates.v1';
@@ -177,7 +178,27 @@ export class EvalAdminRepository extends BaseRepository {
   // ===== 对外接口 =====
 
   async getStats(): Promise<EvalAdminStats> {
+    // 评教期开关始终取本地（跨端开关键 local.evalPeriod.v1）；统计数字远程模式走后端实时聚合
     const periodOpen = await this.getPeriodOpen();
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminEvalStats();
+        const stats: EvalAdminStats = {
+          term: remote.term,
+          periodOpen: periodOpen,
+          participationRate: remote.participationRate,
+          completionRate: remote.completionRate,
+          averageScore: remote.averageScore,
+          ratingDistribution: remote.ratingDistribution.map((b): RatingBucket => {
+            const bucket: RatingBucket = { star: b.star, count: b.count };
+            return bucket;
+          })
+        };
+        return this.delayCopy<EvalAdminStats>(stats);
+      } catch (e) {
+        // 远程失败回退本地 mock 统计
+      }
+    }
     const buckets: RatingBucket[] = mockEvalAdminStats.ratingDistribution.map((b: RatingBucket) => {
       const copy: RatingBucket = { star: b.star, count: b.count };
       return copy;

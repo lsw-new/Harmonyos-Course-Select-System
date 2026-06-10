@@ -71,6 +71,12 @@ app.use(require('./routes/practice.routes'));
 // 全部端点已抽到 ./routes/admin.routes（permissionRequired 细粒度鉴权）
 app.use(require('./routes/admin.routes'));
 
+// ---- 管理端统计域（仪表盘 / 选课统计 / 评教统计，实时聚合）----
+app.use(require('./routes/admin-stats.routes'));
+
+// ---- 管理端课程管理域（课程目录 CRUD，与选课中心同源）----
+app.use(require('./routes/admin-courses.routes'));
+
 // ---- 数据库管理域（Web 控制台表级 CRUD，仅 system.config 权限）----
 app.use(require('./routes/db.routes'));
 

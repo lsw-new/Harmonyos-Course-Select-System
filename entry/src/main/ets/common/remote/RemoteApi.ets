@@ -247,6 +247,67 @@ export interface RemoteGradeTask {
   rejectReason?: string;
 }
 
+export interface RemoteStatCard {
+  key: string;
+  label: string;
+  value: number;
+  color?: string;
+}
+
+export interface RemoteTrendPoint {
+  label: string;
+  value: number;
+}
+
+export interface RemoteDistributionItem {
+  name: string;
+  value: number;
+}
+
+export interface RemoteDashboard {
+  statCards: RemoteStatCard[];
+  selectionTrend: RemoteTrendPoint[];
+  courseTypeDistribution: RemoteDistributionItem[];
+  pendingApprovals: RemoteApproval[];
+}
+
+export interface RemoteAdminRound {
+  id: string;
+  name: string;
+  status: string;
+  startTime: string;
+  endTime: string;
+  progressPercent: number;
+  participantCount: number;
+  selectionCount: number;
+  averageCredit: number;
+  conflictCount: number;
+}
+
+export interface RemoteRatingBucket {
+  star: number;
+  count: number;
+}
+
+export interface RemoteEvalStats {
+  term: string;
+  participationRate: number;
+  completionRate: number;
+  averageScore: number;
+  ratingDistribution: RemoteRatingBucket[];
+}
+
+export interface AdminCourseBody {
+  code: string;
+  name: string;
+  teacher: string;
+  category: string;
+  credit: number;
+  timeText: string;
+  capacity: number;
+  status: string;
+}
+
 export interface RemoteGradeScoreRow {
   studentId: string;
   name: string;
@@ -492,6 +553,38 @@ export class RemoteApi {
     }
     const path = params.length > 0 ? '/admin/students?' + params.join('&') : '/admin/students';
     return apiClient.get<RemoteStudent[]>(path);
+  }
+
+  // 仪表盘：注册/名册/课程/审批/成绩/评教实时计数 + 近7天选课趋势 + 课程类型分布 + 待审批前5条
+  static async adminDashboard(): Promise<RemoteDashboard> {
+    return apiClient.get<RemoteDashboard>('/admin/dashboard');
+  }
+
+  // 管理端课程目录（全部状态）
+  static async adminListCourses(): Promise<RemoteCourse[]> {
+    return apiClient.get<RemoteCourse[]>('/admin/courses');
+  }
+
+  static async adminCreateCourse(body: AdminCourseBody): Promise<RemoteCourse> {
+    return apiClient.post<RemoteCourse>('/admin/courses', body);
+  }
+
+  static async adminUpdateCourse(id: string, body: AdminCourseBody): Promise<RemoteCourse> {
+    return apiClient.put<RemoteCourse>('/admin/courses/' + encodeURIComponent(id), body);
+  }
+
+  static async adminDeleteCourse(id: string): Promise<void> {
+    await apiClient.delete<Object>('/admin/courses/' + encodeURIComponent(id), undefined);
+  }
+
+  // 选课轮次统计（参与人数/选课数/均学分/时间进度，实时聚合）
+  static async adminSelectionStats(): Promise<RemoteAdminRound[]> {
+    return apiClient.get<RemoteAdminRound[]>('/admin/selection/stats');
+  }
+
+  // 评教统计（参与率/完成率/平均分/星级分布，实时聚合）
+  static async adminEvalStats(): Promise<RemoteEvalStats> {
+    return apiClient.get<RemoteEvalStats>('/admin/eval/stats');
   }
 
   static async adminListGrades(status?: string): Promise<RemoteGradeTask[]> {

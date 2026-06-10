@@ -2,7 +2,8 @@
 
 import { BaseRepository } from './BaseRepository';
 import {
-  AdminDashboardSummary, StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound,
+  AdminDashboardSummary, DashboardStatCard, TrendPoint, DistributionItem,
+  StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound, SelectionRoundStatus,
   GradeAuditItem, GradeInputPayload, GradeRejectPayload, GradeScoreRow, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
   AdminPermissionAction
 } from '../models/Admin';
@@ -16,7 +17,8 @@ import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AuthorizationService } from '../common/security/AuthorizationService';
 import { NoticeStore } from '../common/services/NoticeStore';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, GradeScoreEntry } from '../common/remote/RemoteApi';
+import { RemoteApi, GradeScoreEntry, AdminCourseBody, RemoteAdminRound } from '../common/remote/RemoteApi';
+import { CourseLogic } from './CourseLogic';
 import { AdminLogic } from './AdminLogic';
 import { AdminRdbStore } from './AdminRdbStore';
 
@@ -187,6 +189,29 @@ export class AdminRepository extends BaseRepository {
 
 
   async getDashboard(): Promise<AdminDashboardSummary> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminDashboard();
+        const summary: AdminDashboardSummary = {
+          statCards: remote.statCards.map((s): DashboardStatCard => {
+            const card: DashboardStatCard = { key: s.key, label: s.label, value: s.value, color: s.color };
+            return card;
+          }),
+          selectionTrend: remote.selectionTrend.map((t): TrendPoint => {
+            const p: TrendPoint = { label: t.label, value: t.value };
+            return p;
+          }),
+          courseTypeDistribution: remote.courseTypeDistribution.map((d): DistributionItem => {
+            const item: DistributionItem = { name: d.name, value: d.value };
+            return item;
+          }),
+          pendingApprovals: remote.pendingApprovals.map((a) => AdminLogic.remoteToApproval(a))
+        };
+        return this.delayCopy<AdminDashboardSummary>(summary);
+      } catch (e) {
+        // 远程失败回退本地汇总，保证仪表盘可用
+      }
+    }
     const approvals = await this.getApprovalItems();
     const summary: AdminDashboardSummary = {
       statCards: mockAdminDashboard.statCards,
@@ -225,7 +250,41 @@ export class AdminRepository extends BaseRepository {
     return this.delayCopy<StudentAdminItem[]>(items);
   }
 
+  // 课程写入载荷 → 远程请求体（远程模式下后端为课程目录单一事实来源）
+  private toCourseBody(payload: AdminCourseWritePayload): AdminCourseBody {
+    const body: AdminCourseBody = {
+      code: payload.code,
+      name: payload.name,
+      teacher: payload.teacher,
+      category: payload.category,
+      credit: payload.credit,
+      timeText: payload.timeText,
+      capacity: payload.capacity,
+      status: payload.status
+    };
+    return body;
+  }
+
   async getCourses(query?: string, category?: string): Promise<AdminCourseItem[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminListCourses();
+        let items = remote.map((r) => CourseLogic.remoteToAdminCourse(r));
+        if (query && query.length > 0) {
+          const q = query.toLowerCase();
+          items = items.filter((c) =>
+            c.name.toLowerCase().includes(q) ||
+            c.code.toLowerCase().includes(q) ||
+            c.teacher.toLowerCase().includes(q));
+        }
+        if (category && category !== '全部') {
+          items = items.filter((c) => c.category === category);
+        }
+        return this.delayCopy<AdminCourseItem[]>(items);
+      } catch (e) {
+        // 远程失败回退本地 RDB 课程目录
+      }
+    }
     let items = await this.getCourseItems();
     if (query && query.length > 0) {
       const q = query.toLowerCase();
@@ -281,6 +340,15 @@ export class AdminRepository extends BaseRepository {
     if (!this.hasCourseWritePermission('create')) {
       return this.rejectUnauthorized();
     }
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminCreateCourse(this.toCourseBody(payload));
+        return this.delayCopy<AdminCourseItem>(CourseLogic.remoteToAdminCourse(remote));
+      } catch (e) {
+        // 写操作不静默回退本地，显式报错避免两端数据分叉
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
     const items = await this.getCourseItems();
     const normalized = AdminLogic.normalizeCoursePayload(payload);
     const error = AdminLogic.validateCoursePayload(normalized, items);
@@ -307,6 +375,14 @@ export class AdminRepository extends BaseRepository {
   async updateCourse(id: string, payload: AdminCourseWritePayload): Promise<AdminCourseItem> {
     if (!this.hasCourseWritePermission('update')) {
       return this.rejectUnauthorized();
+    }
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminUpdateCourse(id, this.toCourseBody(payload));
+        return this.delayCopy<AdminCourseItem>(CourseLogic.remoteToAdminCourse(remote));
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
     }
     const items = await this.getCourseItems();
     const target = items.find((item) => item.id === id);
@@ -339,6 +415,14 @@ export class AdminRepository extends BaseRepository {
     if (!this.hasCourseWritePermission('delete')) {
       return this.rejectUnauthorized();
     }
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.adminDeleteCourse(id);
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
     const items = await this.getCourseItems();
     const target = items.find((item) => item.id === id);
     if (!target) {
@@ -352,7 +436,32 @@ export class AdminRepository extends BaseRepository {
     return this.delay<boolean>(true);
   }
 
+  // 远程轮次统计 → 本地 SelectionRound（状态词表两端一致）
+  private remoteToSelectionRound(r: RemoteAdminRound): SelectionRound {
+    const round: SelectionRound = {
+      id: r.id,
+      name: r.name,
+      status: r.status as SelectionRoundStatus,
+      startTime: r.startTime,
+      endTime: r.endTime,
+      progressPercent: r.progressPercent,
+      participantCount: r.participantCount,
+      selectionCount: r.selectionCount,
+      averageCredit: r.averageCredit,
+      conflictCount: r.conflictCount
+    };
+    return round;
+  }
+
   async getSelectionRounds(): Promise<SelectionRound[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminSelectionStats();
+        return this.delayCopy<SelectionRound[]>(remote.map((r) => this.remoteToSelectionRound(r)));
+      } catch (e) {
+        // 远程失败回退本地 mock 统计
+      }
+    }
     return this.delayCopy<SelectionRound[]>(mockSelectionRounds);
   }
 
