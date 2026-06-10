@@ -206,6 +206,7 @@ struct RegisterPage {
         }
         .scrollBar(BarState.Off)
         .layoutWeight(1)
+        .align(Alignment.Top)
       }
       .width('100%')
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })

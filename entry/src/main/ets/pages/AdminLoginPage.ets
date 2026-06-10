@@ -115,8 +115,8 @@ struct AdminLoginPage {
             })
 
             SafeBottom()
-          }.padding({ left: 24, right: 24 })
-        }.scrollBar(BarState.Off).layoutWeight(1)
+          }.padding({ left: 24, right: 24, top: 8 })
+        }.scrollBar(BarState.Off).layoutWeight(1).align(Alignment.Top)
       }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
   }
