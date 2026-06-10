@@ -196,7 +196,15 @@ struct HomePage {
       SafeTop()
       Row() {
         Row() {
-          Monogram({ iconSize: 44 })
+          // 有自定义头像时显示真实头像，否则回退品牌徽章（与「我的」页同口径）
+          if ((p.avatarUrl ?? '').length > 0) {
+            Image(p.avatarUrl)
+              .width(44).height(44).borderRadius(22)
+              .objectFit(ImageFit.Cover)
+              .border({ width: 1.5, color: ElysiaTheme.ROSE_100 })
+          } else {
+            Monogram({ iconSize: 44 })
+          }
           Column() {
             Text($r('app.string.home_hello')).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).letterSpacing(2)
             Text(`${p.name} · ${p.studentId}`)

@@ -7,7 +7,8 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AuthRepository } from '../repositories/AuthRepository';
-import { AccountInfo, LoginHistoryItem } from '../models/User';
+import { ProfileRepository } from '../repositories/ProfileRepository';
+import { AccountInfo, LoginHistoryItem, UserProfile } from '../models/User';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
@@ -18,6 +19,8 @@ struct AccountPage {
   @State errorMsg: string = '';
   @State account: AccountInfo | null = null;
   @State history: LoginHistoryItem[] = [];
+  // 自定义头像（与首页/我的页同源 ProfileRepository；为空回退品牌徽章）
+  @State avatarUrl: string = '';
   @State showLogoutConfirm: boolean = false;
 
   aboutToAppear(): void {
@@ -42,6 +45,12 @@ struct AccountPage {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
         this.loading = false;
       });
+    // 头像独立加载：失败不影响账户主信息展示
+    ProfileRepository.get().getProfile().then((p: UserProfile) => {
+      this.avatarUrl = p.avatarUrl ?? '';
+    }).catch(() => {
+      this.avatarUrl = '';
+    });
   }
 
   private statusLabel(s: string): string {
@@ -91,7 +100,14 @@ struct AccountPage {
               // Account hero card
               Column() {
                 Row() {
-                  Monogram({ iconSize: 56 })
+                  if (this.avatarUrl.length > 0) {
+                    Image(this.avatarUrl)
+                      .width(56).height(56).borderRadius(28)
+                      .objectFit(ImageFit.Cover)
+                      .border({ width: 2, color: ElysiaTheme.ROSE_100 })
+                  } else {
+                    Monogram({ iconSize: 56 })
+                  }
                   Blank().layoutWeight(1)
                   Pill({
                     text: this.statusLabel(this.account?.status ?? 'pending'),
