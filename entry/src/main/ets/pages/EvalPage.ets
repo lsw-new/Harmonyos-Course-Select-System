@@ -9,6 +9,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { EvaluationRepository } from '../repositories/EvaluationRepository';
+import { EvalAdminRepository } from '../repositories/EvalAdminRepository';
 import {
   EvaluationTask, EvaluationQuestionnaire, EvaluationQuestion,
   EvaluationOption, EvaluationAnswer
@@ -30,6 +31,8 @@ struct EvalPage {
   @State tasks: EvaluationTask[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  // 评教期总开关：管理员在评教管理中关闭后，本页显示「未开放」整页状态
+  @State periodOpen: boolean = true;
 
   // 内联问卷弹层
   @State sheetOpen: boolean = false;
@@ -52,10 +55,22 @@ struct EvalPage {
     this.loading = true;
     AppRoute.showLoading();
     this.errorMsg = '';
-    EvaluationRepository.get().getTasks()
-      .then((list: EvaluationTask[]) => {
-        this.tasks = list;
-        this.loading = false;
+    // 先查评教期总开关：未开放时不拉任务，直接进入「未开放」整页状态
+    EvalAdminRepository.get().isPeriodOpen()
+      .then((open: boolean): Promise<EvaluationTask[] | undefined> => {
+        this.periodOpen = open;
+        if (!open) {
+          this.tasks = [];
+          this.loading = false;
+          return Promise.resolve<EvaluationTask[] | undefined>(undefined);
+        }
+        return EvaluationRepository.get().getTasks();
+      })
+      .then((list: EvaluationTask[] | undefined) => {
+        if (list !== undefined) {
+          this.tasks = list;
+          this.loading = false;
+        }
       })
       .catch((e: object) => {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
@@ -223,6 +238,8 @@ struct EvalPage {
             LoadingState({ tip: $r('app.string.eval_loading') })
           } else if (this.errorMsg.length > 0) {
             ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          } else if (!this.periodOpen) {
+            this.ClosedState()
           } else {
             Scroll() {
               Column() {
@@ -262,6 +279,39 @@ struct EvalPage {
       }
     }
     .width('100%').height('100%')
+  }
+
+  // 评教期未开放：整页提示态（管理员在「评教管理」开放评教期后，刷新即可进入）
+  @Builder ClosedState() {
+    Column() {
+      Stack() {
+        AppIcon({ name: 'evaluation', iconSize: 34, dim: true })
+      }
+      .width(84).height(84).borderRadius(42)
+      .backgroundColor(ElysiaTheme.glassSoft())
+      .border({ width: 1, color: ElysiaTheme.hairline() })
+
+      Text($r('app.string.eval_closed_title'))
+        .fontSize(16).fontWeight(FontWeight.Bold)
+        .fontColor(ElysiaTheme.INK).margin({ top: 16 })
+      Text($r('app.string.eval_closed_sub'))
+        .fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+        .textAlign(TextAlign.Center).lineHeight(20)
+        .margin({ top: 8 }).padding({ left: 32, right: 32 })
+
+      Button($r('app.string.eval_closed_refresh'))
+        .height(36).fontSize(12).fontWeight(FontWeight.Medium)
+        .padding({ left: 20, right: 20 })
+        .fontColor(ElysiaTheme.ROSE_700)
+        .backgroundColor(ElysiaTheme.glassSoft())
+        .border({ width: 1, color: ElysiaTheme.hairline() })
+        .borderRadius(999)
+        .margin({ top: 18 })
+        .onClick(() => this.loadData())
+    }
+    .width('100%').layoutWeight(1)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
   }
 
   @Builder ProgressHero() {

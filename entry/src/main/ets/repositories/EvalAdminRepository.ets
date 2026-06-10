@@ -193,6 +193,13 @@ export class EvalAdminRepository extends BaseRepository {
     return this.delayCopy<EvalAdminStats>(stats);
   }
 
+  // 学生端读取评教期是否开放（只读，无需管理员权限）：
+  // 管理员在评教管理中关闭后，学生端评教入口与提交据此拦截。
+  async isPeriodOpen(): Promise<boolean> {
+    const open = await this.getPeriodOpen();
+    return this.delay<boolean>(open);
+  }
+
   async setPeriodOpen(open: boolean): Promise<boolean> {
     if (!AuthorizationService.hasAdminPermission('evaluation.manage', 'update')) {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');

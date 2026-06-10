@@ -7,6 +7,7 @@ import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppConfig } from '../app/AppConfig';
 import { RemoteApi, RemoteEvalTask } from '../common/remote/RemoteApi';
+import { EvalAdminRepository } from './EvalAdminRepository';
 
 const KEY_EVALUATION_TASKS = 'local.evaluationTasks.v1';
 const EVALUATION_STATUSES: string[] = ['open', 'submitted', 'closed'];
@@ -177,6 +178,11 @@ export class EvaluationRepository extends BaseRepository {
   }
 
   async getQuestionnaire(taskId: string): Promise<EvaluationQuestionnaire> {
+    // 评教期总开关：管理员未开放时不下发问卷（与页面整页拦截互为双保险）
+    const periodOpen = await EvalAdminRepository.get().isPeriodOpen();
+    if (!periodOpen) {
+      return this.reject('管理员未开放评教，暂不能填写问卷');
+    }
     const tasks = await this.getTaskItems();
     const task = tasks.find((t) => t.id === taskId);
     if (!task) {
@@ -189,6 +195,11 @@ export class EvaluationRepository extends BaseRepository {
   }
 
   async submit(taskId: string, answers: EvaluationAnswer[]): Promise<boolean> {
+    // 评教期总开关：管理员未开放时拒绝提交（覆盖 mock/local/remote 全部路径）
+    const periodOpen = await EvalAdminRepository.get().isPeriodOpen();
+    if (!periodOpen) {
+      return this.reject('管理员未开放评教，暂不能提交');
+    }
     if (AppConfig.useRemote) {
       const student = SessionStorage.get().getStudent();
       if (student) {
