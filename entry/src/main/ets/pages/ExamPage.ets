@@ -10,12 +10,16 @@ import { AcademicRepository } from '../repositories/AcademicRepository';
 import { ExamArrangement } from '../models/Academic';
 import { DateUtils } from '../common/utils/DateUtils';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { SysConfigRepository } from '../repositories/SysConfigRepository';
+import { CalendarEvent } from '../models/SysConfigModels';
 
 @Component
 struct ExamPage {
   @State exams: ExamArrangement[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  // 校历节点（真实校历：期末考试/假期/实践周等，取今天起的前 4 条）
+  @State calEvents: CalendarEvent[] = [];
   @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
@@ -38,6 +42,27 @@ struct ExamPage {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
         this.loading = false;
       });
+    // 校历节点独立加载，失败静默（不影响考试列表）
+    SysConfigRepository.get().getCalendarEvents().then((events: CalendarEvent[]) => {
+      const today = DateUtils.today();
+      this.calEvents = events
+        .filter((ev) => ev.date >= today)
+        .sort((a, b) => a.date < b.date ? -1 : 1)
+        .slice(0, 4);
+    }).catch(() => undefined);
+  }
+
+  private calTypeColor(type: string): string {
+    if (type === 'exam') {
+      return '#D9B675';
+    }
+    if (type === 'holiday') {
+      return '#3FAE7A';
+    }
+    if (type === 'term') {
+      return '#F2709C';
+    }
+    return '#B589FF';
   }
 
   // Pick the soonest upcoming exam (date >= today), fallback to exams[0]
@@ -98,6 +123,35 @@ struct ExamPage {
         } else {
           Scroll() {
             Column() {
+              // 校历 · 学期节点（真实校历横滑卡：期末考试/假期/实践周）
+              if (this.calEvents.length > 0) {
+                Column() {
+                  Text($r('app.string.exam_calendar_section'))
+                    .fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+                    .width('100%').margin({ bottom: 8 })
+                  Scroll() {
+                    Row({ space: 10 }) {
+                      ForEach(this.calEvents, (ev: CalendarEvent) => {
+                        Column() {
+                          Text(ev.date.substring(5))
+                            .fontSize(15).fontWeight(FontWeight.Bold)
+                            .fontColor(this.calTypeColor(ev.type))
+                          Text(ev.title)
+                            .fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
+                            .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+                            .margin({ top: 4 })
+                        }
+                        .width(132).padding(12)
+                        .alignItems(HorizontalAlign.Start)
+                        .backgroundColor(ElysiaTheme.SURFACE)
+                        .borderRadius(14)
+                        .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+                      }, (ev: CalendarEvent) => ev.id)
+                    }
+                  }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).width('100%')
+                }.width('100%').margin({ bottom: 14 })
+              }
+
               // Hero 卡片：最近即将到来的考试
               Column() {
                 Pill({ text: `距下场 · ${DateUtils.daysBetween(DateUtils.today(), this.heroExam().date)} 天` })

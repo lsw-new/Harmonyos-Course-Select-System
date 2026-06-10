@@ -159,6 +159,7 @@
     { "name": "editinfo_avatar", "value": "头像" },
     { "name": "editinfo_picked", "value": "已选择" },
     { "name": "editinfo_unpicked", "value": "未选择" },
+    { "name": "exam_calendar_section", "value": "校历 · 学期节点" },
     { "name": "editinfo_pick_hint", "value": "从相册选择，自动压缩并同步到服务器" },
     { "name": "editinfo_picking", "value": "处理中..." },
     { "name": "editinfo_pick_avatar", "value": "更换头像" },

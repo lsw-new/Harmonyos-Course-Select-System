@@ -2,7 +2,7 @@
 const express = require('express');
 const { pool } = require('../db');
 const { ok, fail } = require('../envelope');
-const { adminRequired } = require('../auth');
+const { adminRequired, authRequired } = require('../auth');
 const { serverError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
 const { mapApproval } = require('../mappers');
@@ -167,7 +167,7 @@ router.get('/api/admin/eval/stats', permissionRequired('evaluations.manage:view'
 const CALENDAR_TYPES = ['term', 'exam', 'holiday', 'selection', 'makeup', 'other'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-router.get('/api/admin/calendar', permissionRequired('system.config:view', 'system.config:update'), async (req, res) => {
+async function listCalendar(req, res) {
   try {
     const r = await pool.query(
       `SELECT event_id, to_char(event_date, 'YYYY-MM-DD') AS date, title, type
@@ -177,7 +177,11 @@ router.get('/api/admin/calendar', permissionRequired('system.config:view', 'syst
   } catch (e) {
     serverError(res, '查询教学日历失败', e);
   }
-});
+}
+
+// 校历为公开信息：登录学生/管理员均可读取；写操作仍限 system.config 权限
+router.get('/api/calendar', authRequired, listCalendar);
+router.get('/api/admin/calendar', permissionRequired('system.config:view', 'system.config:update'), listCalendar);
 
 router.post('/api/admin/calendar', permissionRequired('system.config:create', 'system.config:update'), async (req, res) => {
   const b = req.body || {};

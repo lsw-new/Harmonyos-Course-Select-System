@@ -17,7 +17,7 @@ import common from '@ohos.app.ability.common';
 
 function generateWeekNumbers(): number[] {
   let weeks: number[] = [];
-  for (let i = 1; i <= 18; i++) {
+  for (let i = 1; i <= TermUtils.TERM_WEEKS; i++) {
     weeks.push(i);
   }
   return weeks;
@@ -211,7 +211,7 @@ struct SchedulePage {
               .margin({ left: 6 })
               .accessibilityText($r('app.string.schedule_next_week'))
               .onClick(() => {
-                if (this.currentWeek < 18) {
+                if (this.currentWeek < TermUtils.TERM_WEEKS) {
                   this.currentWeek++;
                   this.loadSchedule();
                 }

@@ -142,7 +142,8 @@ export class SysConfigRepository extends BaseRepository {
   async getCalendarEvents(): Promise<CalendarEvent[]> {
     if (AppConfig.useRemote) {
       try {
-        const remote = await RemoteApi.adminCalendarEvents();
+        // \u516c\u5171\u7aef\u70b9\uff1a\u5b66\u751f\u7aef\uff08\u8003\u8bd5\u9875\u6821\u5386\u8282\u70b9\uff09\u4e0e\u7ba1\u7406\u7aef\u65e5\u5386\u9875\u5171\u7528
+        const remote = await RemoteApi.calendarEvents();
         return this.delayCopy<CalendarEvent[]>(remote.map((r) => this.remoteToCalendarEvent(r)));
       } catch (e) {
         // \u8fdc\u7a0b\u5931\u8d25\u56de\u9000\u672c\u5730\u6821\u5386

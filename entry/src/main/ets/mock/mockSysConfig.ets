@@ -2,13 +2,19 @@
 
 import { CalendarEvent, ApprovalNode, MsgTemplate, SecurityPolicy } from '../models/SysConfigModels';
 
+// 真实校历：《景德镇艺术职业大学 2025-2026 学年校历》第二学期（与后端 calendar_events 同源）
 export const mockCalendarEvents: CalendarEvent[] = [
-  { id: 'cal-1', date: '2026-02-23', title: '春季学期开学', type: 'term' },
-  { id: 'cal-2', date: '2026-03-02', title: '春季选课开放', type: 'selection' },
-  { id: 'cal-3', date: '2026-04-05', title: '清明假期', type: 'holiday' },
-  { id: 'cal-4', date: '2026-05-01', title: '劳动节假期', type: 'holiday' },
-  { id: 'cal-5', date: '2026-06-22', title: '期末考试周', type: 'exam' },
-  { id: 'cal-6', date: '2026-09-08', title: '补缓考报名', type: 'makeup' }
+  { id: 'sc2-01', date: '2026-03-05', title: '教工开学', type: 'term' },
+  { id: 'sc2-02', date: '2026-03-06', title: '学生开学报到及教材发放（3月6日-8日）', type: 'term' },
+  { id: 'sc2-03', date: '2026-03-09', title: '正式上课（第二学期）', type: 'term' },
+  { id: 'sc2-04', date: '2026-03-09', title: '集中教学检查（3月9日-13日）', type: 'other' },
+  { id: 'sc2-05', date: '2026-04-05', title: '清明节假期', type: 'holiday' },
+  { id: 'sc2-06', date: '2026-05-01', title: '劳动节假期', type: 'holiday' },
+  { id: 'sc2-07', date: '2026-06-19', title: '端午节假期', type: 'holiday' },
+  { id: 'sc2-08', date: '2026-06-29', title: '期末集中考试（6月29日-7月1日）', type: 'exam' },
+  { id: 'sc2-09', date: '2026-07-02', title: '校外实践教学周（7月2日-10日）', type: 'other' },
+  { id: 'sc2-10', date: '2026-07-11', title: '学生暑假开始', type: 'holiday' },
+  { id: 'sc2-11', date: '2026-07-18', title: '教工暑假开始', type: 'holiday' }
 ];
 
 export const mockApprovalNodes: ApprovalNode[] = [

@@ -603,9 +603,9 @@ export class RemoteApi {
     return apiClient.get<RemoteDashboard>('/admin/dashboard');
   }
 
-  // 教学日历（calendar_events 实库）
-  static async adminCalendarEvents(): Promise<RemoteCalendarEvent[]> {
-    return apiClient.get<RemoteCalendarEvent[]>('/admin/calendar');
+  // 教学日历（calendar_events 实库；校历为公开信息，学生/管理员登录即可读）
+  static async calendarEvents(): Promise<RemoteCalendarEvent[]> {
+    return apiClient.get<RemoteCalendarEvent[]>('/calendar');
   }
 
   static async adminAddCalendarEvent(body: CalendarEventBody): Promise<RemoteCalendarEvent> {
