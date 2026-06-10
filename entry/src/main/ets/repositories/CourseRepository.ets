@@ -12,7 +12,7 @@ import { NoticeStore } from '../common/services/NoticeStore';
 import { SelectionAdminRepository } from './SelectionAdminRepository';
 import { AdminRepository } from './AdminRepository';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi } from '../common/remote/RemoteApi';
+import { RemoteApi, RemoteRound, RemoteCourse } from '../common/remote/RemoteApi';
 import { CourseLogic } from './CourseLogic';
 import { TermUtils } from '../common/utils/TermUtils';
 
@@ -64,8 +64,10 @@ export class CourseRepository extends BaseRepository {
   }
 
   private async remoteSelectionCourses(query?: string, category?: string): Promise<SelectionCourse[]> {
-    const openRemote = await RemoteApi.listOpenCourses();
-    const mineRemote = await RemoteApi.mySelections(this.currentStudentId());
+    // 开放课程与我的已选互不依赖：并行拉取（Promise.all 同时消费两个结果，省一个网络往返）
+    const pair = await Promise.all([RemoteApi.listOpenCourses(), RemoteApi.mySelections(this.currentStudentId())]);
+    const openRemote = pair[0];
+    const mineRemote = pair[1];
     const mineIds: string[] = mineRemote.map((c) => c.id);
     const base: SelectionCourse[] = openRemote.map((r) => {
       const course = CourseLogic.toStudentCourse(CourseLogic.remoteToAdminCourse(r));
@@ -89,8 +91,11 @@ export class CourseRepository extends BaseRepository {
   }
 
   private async remoteSelectionRound(): Promise<SelectionRoundInfo> {
-    const round = await RemoteApi.activeRound();
-    const mineRemote = await RemoteApi.mySelections(this.currentStudentId());
+    // 轮次与我的已选互不依赖：先同时发起，再依次消费（并行省一个网络往返）
+    const roundPromise: Promise<RemoteRound | null> = RemoteApi.activeRound();
+    const minePromise: Promise<RemoteCourse[]> = RemoteApi.mySelections(this.currentStudentId());
+    const round = await roundPromise;
+    const mineRemote = await minePromise;
     let selectedCredits = 0;
     mineRemote.forEach((c) => { selectedCredits += c.credit; });
     if (!round) {

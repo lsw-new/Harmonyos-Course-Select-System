@@ -17,6 +17,7 @@ import { AppConfig } from '../app/AppConfig';
 import { RemoteApi, RemoteLeave, RemoteFeedback, ProfileUpdateBody } from '../common/remote/RemoteApi';
 import { CourseRepository } from './CourseRepository';
 import { ScheduleItem } from '../models/Course';
+import { Notice } from '../models/Notice';
 import { TermInfo } from '../models/Home';
 
 const KEY_LOCAL_LEAVES = 'local.leaveRequests.v1';
@@ -324,15 +325,20 @@ export class ProfileRepository extends BaseRepository {
     // 今日课表改用与课表页同源的合并结果（导入课表 + 已选课程），按当前教学周 + 今日星期过滤，
     // 使导入课表/选课后首页今天课表立即跟随。
     const weekday = this.resolveTodayWeekday(summary.term);
-    const weekSchedule = await CourseRepository.get().getSchedule(undefined, summary.term.weekIndex);
+    // 课表与通知互不依赖：并行发起（联机模式省一个网络往返）。
+    // 通知失败就地吃掉换 undefined，确保两个 Promise 都会被消费，不产生未处理拒绝。
+    const schedulePromise: Promise<ScheduleItem[]> = CourseRepository.get().getSchedule(undefined, summary.term.weekIndex);
+    const noticesPromise: Promise<Notice[] | undefined> = CourseRepository.get().getNotices()
+      .catch((): Notice[] | undefined => undefined);
+    const weekSchedule = await schedulePromise;
     summary.todayCourses = weekSchedule.filter((s: ScheduleItem) => s.weekday === weekday);
-    // 未读角标与通知摘要与「通知列表页」同源（CourseRepository.getNotices：
-    // 联机走后端真实通知、本地走 NoticeStore），避免首页与通知页数字对不上。
-    try {
-      const notices = await CourseRepository.get().getNotices();
+    // 未读角标与通知摘要与「通知列表页」同源（联机走后端真实通知、本地走 NoticeStore），
+    // 避免首页与通知页数字对不上；通知拉取失败回退本地 NoticeStore。
+    const notices = await noticesPromise;
+    if (notices !== undefined) {
       summary.unreadNoticeCount = notices.filter((n) => !n.isRead).length;
       summary.noticeSummary = notices.slice(0, 3);
-    } catch (e) {
+    } else {
       const fallback = await NoticeStore.list(mockNotices);
       summary.unreadNoticeCount = fallback.filter((n) => !n.isRead).length;
       summary.noticeSummary = fallback.slice(0, 3);

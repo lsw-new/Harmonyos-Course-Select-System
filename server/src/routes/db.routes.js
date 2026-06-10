@@ -77,11 +77,11 @@ router.get('/api/admin/db/tables', GUARD, async (req, res) => {
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema='dtest2' AND table_type='BASE TABLE' ORDER BY table_name`
     );
-    const out = [];
-    for (const t of tables.rows) {
+    // 各表行数互不依赖：并行 COUNT（约 36 张表，串行等于 36 次往返）
+    const out = await Promise.all(tables.rows.map(async (t) => {
       const cnt = await pool.query(`SELECT count(*) AS n FROM dtest2.${qid(t.table_name)}`);
-      out.push({ name: t.table_name, rows: Number(cnt.rows[0].n) });
-    }
+      return { name: t.table_name, rows: Number(cnt.rows[0].n) };
+    }));
     res.json(ok(out));
   } catch (e) {
     serverError(res, '查询表清单失败', e);
