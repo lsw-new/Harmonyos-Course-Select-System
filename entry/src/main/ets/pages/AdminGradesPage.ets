@@ -2,7 +2,8 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
 import { AdminRepository } from '../repositories/AdminRepository';
-import { GradeAuditItem } from '../models/Admin';
+import { GradeAuditItem, GradeScoreRow } from '../models/Admin';
+import { GradeScoreEntry } from '../common/remote/RemoteApi';
 import { LoadingState, EmptyState, ErrorState } from '../common/widgets/StateViews';
 import { HttpError } from '../common/http/HttpError';
 import { AppRoute, Routes } from '../app/AppRoute';
@@ -10,6 +11,13 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
+
+// 打分编辑行：学生 + 可编辑分数文本（空串=暂不打分）
+interface ScoreEditRow {
+  studentId: string;
+  name: string;
+  scoreText: string;
+}
 
 @Component
 struct AdminGradesPage {
@@ -25,6 +33,11 @@ struct AdminGradesPage {
   @State rejectingId: string = '';
   @State rejectReason: string = '';
   @State submittingId: string = '';
+  // 按学生打分面板
+  @State scoringId: string = '';
+  @State scoreRows: ScoreEditRow[] = [];
+  @State scoresLoading: boolean = false;
+  @State savingScores: boolean = false;
   // 底部手势条避让（vp）：List 无 TabBar 兜底，需自行留出底部安全区。
   @StorageProp('safeBottom') safeBottom: number = 0;
   private statuses: string[] = ['全部', 'pendingAudit', 'inputting', 'rejected', 'published', 'appealed'];
@@ -132,6 +145,69 @@ struct AdminGradesPage {
     return item.status === 'inputting' || item.status === 'rejected' || item.status === 'appealed';
   }
 
+  // ---- 按学生打分 ----
+
+  private beginScoring(item: GradeAuditItem): void {
+    this.scoringId = item.id;
+    this.editingId = '';
+    this.rejectingId = '';
+    this.formErrorMsg = '';
+    this.scoreRows = [];
+    this.scoresLoading = true;
+    AdminRepository.get().getGradeScores(item.id).then((rows: GradeScoreRow[]) => {
+      this.scoreRows = rows.map((r): ScoreEditRow => {
+        const row: ScoreEditRow = { studentId: r.studentId, name: r.name, scoreText: r.score === null ? '' : `${r.score}` };
+        return row;
+      });
+      this.scoresLoading = false;
+    }).catch((e: object) => {
+      this.scoresLoading = false;
+      this.scoringId = '';
+      this.formErrorMsg = (e instanceof HttpError) ? (e as HttpError).message : '打分名单加载失败';
+      Toast.show(this.getUIContext(), this.formErrorMsg);
+    });
+  }
+
+  private cancelScoring(): void {
+    this.scoringId = '';
+    this.scoreRows = [];
+  }
+
+  private submitScores(id: string): void {
+    const entries: GradeScoreEntry[] = [];
+    for (let i = 0; i < this.scoreRows.length; i++) {
+      const text = this.scoreRows[i].scoreText.trim();
+      if (text.length === 0) {
+        continue;
+      }
+      const value = Number(text);
+      if (!Number.isFinite(value) || value < 0 || value > 100) {
+        this.formErrorMsg = `「${this.scoreRows[i].name}」的分数需为 0-100`;
+        return;
+      }
+      entries.push({ studentId: this.scoreRows[i].studentId, score: value });
+    }
+    if (entries.length === 0) {
+      this.formErrorMsg = '请先填写至少一名学生的分数';
+      return;
+    }
+    this.formErrorMsg = '';
+    this.savingScores = true;
+    AdminRepository.get().submitGradeScores(id, entries).then((updated: GradeAuditItem) => {
+      this.savingScores = false;
+      const idx = this.items.findIndex((it) => it.id === id);
+      if (idx >= 0) {
+        this.items.splice(idx, 1, updated);
+      }
+      Toast.show(this.getUIContext(), updated.inputProgress === 100
+        ? '打分完成，已转待审核（审核通过后学生可见）'
+        : `已保存 ${entries.length} 人分数（进度 ${updated.inputProgress}%）`);
+    }).catch((e: object) => {
+      this.savingScores = false;
+      this.formErrorMsg = (e instanceof HttpError) ? (e as HttpError).message : '保存打分失败';
+    });
+  }
+
   private statusColor(s: string): string {
     if (s === 'pendingAudit') return '#D9B675';
     if (s === 'inputting') return ElysiaTheme.ROSE_500;
@@ -203,11 +279,25 @@ struct AdminGradesPage {
                   }.width('100%').height(6).backgroundColor('#FFE9F1').borderRadius(3)
                   Row() {
                     Text(`录入 ${item.inputProgress}% · ${item.updatedAt}`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
+                    if (item.status !== 'published') {
+                      Text(this.scoringId === item.id ? $r('app.string.admingrades_score_collapse') : $r('app.string.admingrades_score_btn')).fontSize(11).fontColor(Color.White)
+                        .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+                        .backgroundColor(ElysiaTheme.ROSE_500)
+                        .borderRadius(999)
+                        .onClick(() => {
+                          if (this.scoringId === item.id) {
+                            this.cancelScoring();
+                          } else {
+                            this.beginScoring(item);
+                          }
+                        })
+                    }
                     if (this.canInput(item)) {
                       Text(this.editingId === item.id ? $r('app.string.admingrades_collapse_input') : $r('app.string.admingrades_input_grade')).fontSize(11).fontColor(ElysiaTheme.ROSE_700)
                         .padding({ left: 12, right: 12, top: 4, bottom: 4 })
                         .backgroundColor('#FFE9F1')
                         .borderRadius(999)
+                        .margin({ left: 6 })
                         .onClick(() => {
                           if (this.editingId === item.id) {
                             this.cancelInput();
@@ -232,6 +322,49 @@ struct AdminGradesPage {
                         .onClick(() => { this.approve(item.id); })
                     }
                   }.width('100%')
+
+                  if (this.scoringId === item.id) {
+                    Column({ space: 8 }) {
+                      if (this.scoresLoading) {
+                        Text($r('app.string.admingrades_score_loading')).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+                          .width('100%').textAlign(TextAlign.Center).padding({ top: 8, bottom: 8 })
+                      } else if (this.scoreRows.length === 0) {
+                        Text($r('app.string.admingrades_score_empty')).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+                          .width('100%').textAlign(TextAlign.Center).padding({ top: 8, bottom: 8 })
+                      } else {
+                        Text($r('app.string.admingrades_score_note')).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
+                        ForEach(this.scoreRows, (row: ScoreEditRow) => {
+                          Row({ space: 8 }) {
+                            Text(row.name).fontSize(12).fontColor(ElysiaTheme.INK).layoutWeight(1)
+                            Text(row.studentId).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
+                            TextInput({ placeholder: $r('app.string.admingrades_score_ph'), text: row.scoreText })
+                              .type(InputType.NUMBER_DECIMAL)
+                              .width(76)
+                              .height(34)
+                              .fontSize(12)
+                              .fontColor(ElysiaTheme.INK)
+                              .backgroundColor(ElysiaTheme.glass())
+                              .border({ width: 1, color: ElysiaTheme.hairline() })
+                              .borderRadius(10)
+                              .onChange((v: string) => { row.scoreText = v; })
+                          }.width('100%')
+                        }, (row: ScoreEditRow) => row.studentId)
+                        Row({ space: 8 }) {
+                          Text($r('app.string.common_cancel')).fontSize(11).fontColor(ElysiaTheme.ROSE_700)
+                            .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+                            .backgroundColor('#FFE9F1')
+                            .borderRadius(999)
+                            .onClick(() => { this.cancelScoring(); })
+                          Text(this.savingScores ? $r('app.string.admingrades_score_saving') : $r('app.string.admingrades_score_save')).fontSize(11).fontColor(Color.White)
+                            .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+                            .backgroundColor(this.savingScores ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_500)
+                            .borderRadius(999)
+                            .enabled(!this.savingScores)
+                            .onClick(() => { this.submitScores(item.id); })
+                        }.width('100%').justifyContent(FlexAlign.End)
+                      }
+                    }.width('100%').padding(10).backgroundColor(ElysiaTheme.glassSoft()).borderRadius(12)
+                  }
 
                   if (this.editingId === item.id) {
                     Column({ space: 8 }) {
@@ -287,7 +420,7 @@ struct AdminGradesPage {
                     }.width('100%').padding(10).backgroundColor(ElysiaTheme.glassSoft()).borderRadius(12)
                   }
 
-                  if (this.formErrorMsg.length > 0 && (this.editingId === item.id || this.rejectingId === item.id)) {
+                  if (this.formErrorMsg.length > 0 && (this.editingId === item.id || this.rejectingId === item.id || this.scoringId === item.id)) {
                     Text(this.formErrorMsg).fontSize(11).fontColor(ElysiaTheme.ROSE_ACCENT)
                   }
                 }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE).borderRadius(14)

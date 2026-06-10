@@ -22,7 +22,7 @@ router.get('/api/grades', authRequired, async (req, res) => {
               COALESCE(c.name, '') AS name, COALESCE(c.category, '') AS category, COALESCE(c.credit, 0) AS credit
        FROM dtest2.grades g
        LEFT JOIN dtest2.courses c ON c.course_id = g.course_id
-       WHERE g.student_id = $1 AND ($2::text IS NULL OR g.term = $2)
+       WHERE g.student_id = $1 AND g.published_at IS NOT NULL AND ($2::text IS NULL OR g.term = $2)
        ORDER BY g.published_at DESC`,
       [studentId, term]
     );

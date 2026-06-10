@@ -146,6 +146,13 @@ export interface GradeAuditItem {
   rejectReason?: string;
 }
 
+// 打分名单行：本班已注册学生 + 已录分数（null 表示未打分）
+export interface GradeScoreRow {
+  studentId: string;
+  name: string;
+  score: number | null;
+}
+
 export interface NoticeDraft {
   title: string;
   content: string;

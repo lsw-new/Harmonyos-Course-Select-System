@@ -79,23 +79,153 @@ router.post('/api/admin/grades/:id/input', permissionRequired('grades.input:upda
   }
 });
 
-// ---- 成绩审核通过 ----
-router.post('/api/admin/grades/:id/approve', permissionRequired('grades.approve:approve'), async (req, res) => {
+// ---- 成绩打分名单（任务对应班级的已注册学生 + 已录分数）----
+router.get('/api/admin/grades/:id/scores', permissionRequired('grades.input:view', 'grades.approve:view'), async (req, res) => {
   try {
-    const cur = await pool.query(`SELECT status, input_progress FROM dtest2.grade_tasks WHERE task_id=$1`, [req.params.id]);
+    const task = await pool.query(
+      `SELECT task_id, course_id, term, teaching_class_name FROM dtest2.grade_tasks WHERE task_id=$1`,
+      [req.params.id]
+    );
+    if (task.rowCount === 0) {
+      return res.status(404).json(fail('成绩任务不存在'));
+    }
+    const t = task.rows[0];
+    // 打分对象 = 名册中已注册（有 student_profiles，grades 外键要求）的本班学生
+    const r = await pool.query(
+      `SELECT cs.student_id, cs.name, g.score
+       FROM dtest2.class_students cs
+       JOIN dtest2.student_profiles sp ON sp.student_id = cs.student_id
+       LEFT JOIN dtest2.grades g ON g.student_id = cs.student_id AND g.course_id = $2 AND g.term = $3
+       WHERE cs.class_name = $1
+       ORDER BY cs.student_id`,
+      [t.teaching_class_name, t.course_id, t.term]
+    );
+    const students = r.rows.map((row) => {
+      return { studentId: row.student_id, name: row.name, score: row.score === null ? null : Number(row.score) };
+    });
+    res.json(ok({ taskId: t.task_id, students }));
+  } catch (e) {
+    serverError(res, '查询打分名单失败', e);
+  }
+});
+
+// 百分制 → 绩点（4.0 制常用换算：60 分 1.0 起步，每 10 分 +1，封顶 4.0）
+function gradePointOf(score) {
+  if (score < 60) {
+    return 0;
+  }
+  return Math.min(4.0, Math.round(((score - 50) / 10) * 10) / 10);
+}
+
+// ---- 成绩打分（按学生写真实分数；进度按已打分人数自动计算，满员转待审核）----
+router.post('/api/admin/grades/:id/scores', permissionRequired('grades.input:update', 'grades.input:create'), async (req, res) => {
+  const scores = (req.body || {}).scores;
+  if (!Array.isArray(scores) || scores.length === 0) {
+    return res.status(400).json(fail('请提供打分数据'));
+  }
+  for (const s of scores) {
+    const score = Number(s && s.score);
+    if (!s || typeof s.studentId !== 'string' || !s.studentId.trim() || !Number.isFinite(score) || score < 0 || score > 100) {
+      return res.status(400).json(fail('分数需为 0-100 的数字'));
+    }
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const task = await client.query(
+      `SELECT course_id, term, teaching_class_name, status FROM dtest2.grade_tasks WHERE task_id=$1 FOR UPDATE`,
+      [req.params.id]
+    );
+    if (task.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json(fail('成绩任务不存在'));
+    }
+    const t = task.rows[0];
+    if (t.status === 'published') {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail('成绩已发布，不可再打分'));
+    }
+    for (const s of scores) {
+      const sid = s.studentId.trim();
+      const score = Number(s.score);
+      await client.query(
+        `INSERT INTO dtest2.grades (grade_id, task_id, student_id, course_id, term, score, grade_point, rank, published_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 0, NULL)
+         ON CONFLICT (student_id, course_id, term) DO UPDATE
+           SET score=EXCLUDED.score, grade_point=EXCLUDED.grade_point, task_id=EXCLUDED.task_id, published_at=NULL`,
+        [`g-${t.course_id}-${sid}`, req.params.id, sid, t.course_id, t.term, score, gradePointOf(score)]
+      );
+    }
+    // 重算该课程本学期排名（同分同名次）
+    await client.query(
+      `UPDATE dtest2.grades g SET rank = r.rnk
+       FROM (SELECT grade_id, RANK() OVER (ORDER BY score DESC) AS rnk
+             FROM dtest2.grades WHERE course_id=$1 AND term=$2) r
+       WHERE g.grade_id = r.grade_id`,
+      [t.course_id, t.term]
+    );
+    // 进度 = 已打分人数 / 本班已注册人数；满 100 自动转待审核
+    const counts = await client.query(
+      `SELECT
+         (SELECT count(*) FROM dtest2.class_students cs
+            JOIN dtest2.student_profiles sp ON sp.student_id = cs.student_id
+            WHERE cs.class_name = $1) AS total,
+         (SELECT count(*) FROM dtest2.grades g
+            JOIN dtest2.class_students cs2 ON cs2.student_id = g.student_id AND cs2.class_name = $1
+            WHERE g.course_id = $2 AND g.term = $3) AS scored`,
+      [t.teaching_class_name, t.course_id, t.term]
+    );
+    const total = Number(counts.rows[0].total);
+    const scored = Number(counts.rows[0].scored);
+    const progress = total > 0 ? Math.min(100, Math.floor((scored / total) * 100)) : 0;
+    const nextStatus = progress === 100 ? 'pendingAudit' : 'inputting';
+    await client.query(
+      `UPDATE dtest2.grade_tasks SET input_progress=$2, status=$3, reject_reason=NULL, updated_at=now() WHERE task_id=$1`,
+      [req.params.id, progress, nextStatus]
+    );
+    await client.query('COMMIT');
+    const updated = await pool.query(
+      `SELECT gt.task_id, gt.teaching_class_name, gt.teacher_name, gt.input_progress, gt.status, gt.reject_reason, gt.updated_at,
+              COALESCE(c.name, '') AS course_name
+       FROM dtest2.grade_tasks gt LEFT JOIN dtest2.courses c ON c.course_id = gt.course_id WHERE gt.task_id=$1`,
+      [req.params.id]
+    );
+    res.json(ok(mapGradeTask(updated.rows[0])));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    serverError(res, '保存打分失败', e);
+  } finally {
+    client.release();
+  }
+});
+
+// ---- 成绩审核通过（同时发布该任务的全部成绩行，学生端即可见）----
+router.post('/api/admin/grades/:id/approve', permissionRequired('grades.approve:approve'), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const cur = await client.query(`SELECT status, input_progress FROM dtest2.grade_tasks WHERE task_id=$1 FOR UPDATE`, [req.params.id]);
     if (cur.rowCount === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json(fail('成绩任务不存在'));
     }
     if (cur.rows[0].status !== 'pendingAudit') {
+      await client.query('ROLLBACK');
       return res.status(409).json(fail('当前状态不可审核'));
     }
     if (cur.rows[0].input_progress !== 100) {
+      await client.query('ROLLBACK');
       return res.status(409).json(fail('录入进度达到 100% 后才能审核通过'));
     }
-    await pool.query(`UPDATE dtest2.grade_tasks SET status='published', updated_at=now() WHERE task_id=$1`, [req.params.id]);
+    await client.query(`UPDATE dtest2.grade_tasks SET status='published', updated_at=now() WHERE task_id=$1`, [req.params.id]);
+    await client.query(`UPDATE dtest2.grades SET published_at=now() WHERE task_id=$1 AND published_at IS NULL`, [req.params.id]);
+    await client.query('COMMIT');
     res.json(ok({ approved: true }));
   } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
     serverError(res, '审核成绩失败', e);
+  } finally {
+    client.release();
   }
 });
 

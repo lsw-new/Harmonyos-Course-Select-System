@@ -247,6 +247,26 @@ export interface RemoteGradeTask {
   rejectReason?: string;
 }
 
+export interface RemoteGradeScoreRow {
+  studentId: string;
+  name: string;
+  score: number | null;
+}
+
+export interface RemoteGradeScores {
+  taskId: string;
+  students: RemoteGradeScoreRow[];
+}
+
+export interface GradeScoreEntry {
+  studentId: string;
+  score: number;
+}
+
+interface GradeScoresBody {
+  scores: GradeScoreEntry[];
+}
+
 export interface RemoteApproval {
   id: string;
   type: string;
@@ -485,6 +505,17 @@ export class RemoteApi {
   static async adminGradeInput(taskId: string, inputProgress: number): Promise<RemoteGradeTask> {
     const body: InputProgressBody = { inputProgress: inputProgress };
     return apiClient.post<RemoteGradeTask>('/admin/grades/' + encodeURIComponent(taskId) + '/input', body);
+  }
+
+  // 打分名单：任务对应班级的已注册学生 + 已录分数
+  static async adminGradeScores(taskId: string): Promise<RemoteGradeScores> {
+    return apiClient.get<RemoteGradeScores>('/admin/grades/' + encodeURIComponent(taskId) + '/scores');
+  }
+
+  // 按学生打分：后端 UPSERT 成绩 + 重算排名 + 自动更新录入进度，返回更新后任务
+  static async adminSubmitGradeScores(taskId: string, scores: GradeScoreEntry[]): Promise<RemoteGradeTask> {
+    const body: GradeScoresBody = { scores: scores };
+    return apiClient.post<RemoteGradeTask>('/admin/grades/' + encodeURIComponent(taskId) + '/scores', body);
   }
 
   static async adminGradeApprove(taskId: string): Promise<void> {

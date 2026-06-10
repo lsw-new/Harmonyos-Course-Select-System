@@ -3,7 +3,7 @@
 import { BaseRepository } from './BaseRepository';
 import {
   AdminDashboardSummary, StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound,
-  GradeAuditItem, GradeInputPayload, GradeRejectPayload, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
+  GradeAuditItem, GradeInputPayload, GradeRejectPayload, GradeScoreRow, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
   AdminPermissionAction
 } from '../models/Admin';
 import { LeaveRequest, ApprovalState } from '../models/Misc';
@@ -16,7 +16,7 @@ import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AuthorizationService } from '../common/security/AuthorizationService';
 import { NoticeStore } from '../common/services/NoticeStore';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi } from '../common/remote/RemoteApi';
+import { RemoteApi, GradeScoreEntry } from '../common/remote/RemoteApi';
 import { AdminLogic } from './AdminLogic';
 import { AdminRdbStore } from './AdminRdbStore';
 
@@ -424,6 +424,51 @@ export class AdminRepository extends BaseRepository {
       });
     }
     return this.delay<boolean>(true);
+  }
+
+  // 打分名单：任务对应班级的已注册学生 + 已录分数（联机能力，后端为权威数据源）
+  async getGradeScores(taskId: string): Promise<GradeScoreRow[]> {
+    if (!this.hasGradeInputPermission()) {
+      return this.rejectUnauthorized();
+    }
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminGradeScores(taskId);
+        const rows: GradeScoreRow[] = remote.students.map((s): GradeScoreRow => {
+          const row: GradeScoreRow = { studentId: s.studentId, name: s.name, score: s.score };
+          return row;
+        });
+        return this.delayCopy<GradeScoreRow[]>(rows);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
+    return this.reject('按学生打分为联机功能，请在联机模式下使用');
+  }
+
+  // 按学生打分：后端 UPSERT 成绩 + 重算排名 + 自动更新录入进度（满员转待审核）
+  async submitGradeScores(taskId: string, entries: GradeScoreEntry[]): Promise<GradeAuditItem> {
+    if (!this.hasGradeInputPermission()) {
+      return this.rejectUnauthorized();
+    }
+    if (!entries || entries.length === 0) {
+      return this.reject('请先填写分数');
+    }
+    for (let i = 0; i < entries.length; i++) {
+      const score = entries[i].score;
+      if (!Number.isFinite(score) || score < 0 || score > 100) {
+        return this.reject('分数需为 0-100 的数字');
+      }
+    }
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminSubmitGradeScores(taskId, entries);
+        return this.delayCopy<GradeAuditItem>(AdminLogic.remoteToGradeTask(remote));
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
+    return this.reject('按学生打分为联机功能，请在联机模式下使用');
   }
 
   async inputGrade(payload: GradeInputPayload): Promise<GradeAuditItem> {
