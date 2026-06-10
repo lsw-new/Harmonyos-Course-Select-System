@@ -75,6 +75,8 @@ describe('POST /api/auth/register', () => {
     const profileInsert = __mock.getLog().find((e) => e.sql.indexOf('INSERT INTO dtest2.student_profiles') >= 0);
     expect(profileInsert.params).toContain('23计算机科学与技术U9');
     expect(profileInsert.params).toContain('2023级');
+    // 注册同事务按班级生成本班课程的评教任务
+    expect(__mock.executed('INSERT INTO dtest2.evaluation_tasks')).toBe(true);
   });
 });
 

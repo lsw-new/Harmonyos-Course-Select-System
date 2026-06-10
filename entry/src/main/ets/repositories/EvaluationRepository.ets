@@ -9,7 +9,8 @@ import { AppConfig } from '../app/AppConfig';
 import { RemoteApi, RemoteEvalTask } from '../common/remote/RemoteApi';
 import { EvalAdminRepository } from './EvalAdminRepository';
 
-const KEY_EVALUATION_TASKS = 'local.evaluationTasks.v1';
+// v2：评教任务换为班级课表真实课程/教师（2026-06-10），bump 让已装设备丢弃旧测试任务缓存
+const KEY_EVALUATION_TASKS = 'local.evaluationTasks.v2';
 const EVALUATION_STATUSES: string[] = ['open', 'submitted', 'closed'];
 const CONTROL_CHAR_PATTERN: RegExp = /[\r\n\u0000-\u001f\u007f]/;
 

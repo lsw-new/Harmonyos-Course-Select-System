@@ -1,29 +1,66 @@
 import { EvaluationTask, EvaluationQuestionnaire } from '../models/Evaluation';
 
+// 23计算机科学与技术U9 班级课表的 9 门真实课程与授课教师（与后端 course_teachers 同源）
 export const mockEvaluationTasks: EvaluationTask[] = [
   {
-    id: 'eval-1', term: '2025-2026-2',
-    courseCode: 'CS101', courseName: '数据结构与算法', courseCategory: '必修',
-    teacherName: '苏婉清', questionnaireName: '理工类课程通用评教问卷',
-    status: 'open', openTime: '2026-05-25 00:00', closeTime: '2026-06-10 23:59'
+    id: 'eval-VDZ02119204', term: '2025-2026-2',
+    courseCode: 'VDZ02119204', courseName: '鸿蒙应用开发初级认证', courseCategory: '必修',
+    teacherName: '方坚', questionnaireName: '教学质量评价问卷',
+    status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
   },
   {
-    id: 'eval-2', term: '2025-2026-2',
-    courseCode: 'LIT201', courseName: '中国古典文学赏析', courseCategory: '选修',
-    teacherName: '陆清和', questionnaireName: '人文社科类课程评教问卷',
-    status: 'submitted', openTime: '2026-05-25 00:00', closeTime: '2026-06-10 23:59'
+    id: 'eval-VDZ02119303', term: '2025-2026-2',
+    courseCode: 'VDZ02119303', courseName: '鸿蒙移动应用开发综合实践', courseCategory: '必修',
+    teacherName: '王鑫', questionnaireName: '教学质量评价问卷',
+    status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
   },
   {
-    id: 'eval-3', term: '2025-2026-2',
-    courseCode: 'ENG202', courseName: '大学英语 IV', courseCategory: '必修',
-    teacherName: '李安雅', questionnaireName: '语言类课程评教问卷',
-    status: 'closed', closedReason: '不在开放期'
+    id: 'eval-VDZ02114904', term: '2025-2026-2',
+    courseCode: 'VDZ02114904', courseName: '软件测试与管理', courseCategory: '必修',
+    teacherName: '胡晓春', questionnaireName: '教学质量评价问卷',
+    status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
+  },
+  {
+    id: 'eval-VDZ02115104', term: '2025-2026-2',
+    courseCode: 'VDZ02115104', courseName: '大型数据库管理与维护', courseCategory: '必修',
+    teacherName: '陈勇', questionnaireName: '教学质量评价问卷',
+    status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
+  },
+  {
+    id: 'eval-VDZ02112704', term: '2025-2026-2',
+    courseCode: 'VDZ02112704', courseName: '计算机组成原理', courseCategory: '必修',
+    teacherName: '孙连科', questionnaireName: '教学质量评价问卷',
+    status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
+  },
+  {
+    id: 'eval-VDZ02102903', term: '2025-2026-2',
+    courseCode: 'VDZ02102903', courseName: '软件工程', courseCategory: '必修',
+    teacherName: '黄卫东', questionnaireName: '教学质量评价问卷',
+    status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
+  },
+  {
+    id: 'eval-VDZ02103003', term: '2025-2026-2',
+    courseCode: 'VDZ02103003', courseName: '编译原理', courseCategory: '必修',
+    teacherName: '张毅恒', questionnaireName: '教学质量评价问卷',
+    status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
+  },
+  {
+    id: 'eval-VMK01100203', term: '2025-2026-2',
+    courseCode: 'VMK01100203', courseName: '中国近现代史纲要', courseCategory: '公选',
+    teacherName: '谢双明', questionnaireName: '教学质量评价问卷',
+    status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
+  },
+  {
+    id: 'eval-VJW01102302', term: '2025-2026-2',
+    courseCode: 'VJW01102302', courseName: '博物馆展览鉴赏', courseCategory: '公选',
+    teacherName: '汪芷晔', questionnaireName: '教学质量评价问卷',
+    status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
   }
 ];
 
 export const mockQuestionnaire: EvaluationQuestionnaire = {
-  taskId: 'eval-1',
-  title: '理工类课程通用评教问卷',
+  taskId: 'eval-VDZ02119204',
+  title: '教学质量评价问卷',
   description: '本问卷共 5 题，预计耗时 3 分钟。',
   questions: [
     {

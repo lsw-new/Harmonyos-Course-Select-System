@@ -153,6 +153,21 @@ router.post('/api/auth/register', authLimiter, async (req, res) => {
        ON CONFLICT (student_id) DO UPDATE SET name=EXCLUDED.name, class_name=EXCLUDED.class_name, grade=EXCLUDED.grade, email=EXCLUDED.email`,
       [studentId, rosterRow.name, rosterRow.class_name, grade, email]
     );
+    // 按班级生成本班课程的评教任务（教师绑定来自班级课表）；
+    // JOIN courses 与 EXISTS 模板守住外键——课表/模板未导入时静默跳过，不阻断注册
+    await client.query(
+      `INSERT INTO dtest2.evaluation_tasks
+         (task_id, template_id, student_id, course_id, term, teacher_name, status, open_time, close_time)
+       SELECT DISTINCT 'eval-' || csi.course_id || '-' || $1,
+              'qt-default', $1, csi.course_id, csi.term, csi.teacher, 'open',
+              now() - interval '1 day', timestamptz '2026-07-15 23:59:59+08'
+       FROM dtest2.class_schedule_items csi
+       JOIN dtest2.courses c ON c.course_id = csi.course_id
+       WHERE csi.class_name = $2
+         AND EXISTS (SELECT 1 FROM dtest2.evaluation_templates WHERE template_id = 'qt-default')
+       ON CONFLICT (task_id) DO NOTHING`,
+      [studentId, rosterRow.class_name]
+    );
     await client.query('COMMIT');
     res.json(ok({ registered: true, accountId: studentId }));
   } catch (e) {

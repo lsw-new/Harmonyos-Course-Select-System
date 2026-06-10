@@ -18,12 +18,20 @@ router.get('/api/evaluations', authRequired, async (req, res) => {
   }
   const term = req.query.term ? String(req.query.term) : null;
   try {
+    // 课程信息优先取选课目录，目录没有的班级课表课程回退 course_teachers / class_schedule_items
     const r = await pool.query(
       `SELECT et.task_id, et.term, et.teacher_name, et.status, et.open_time, et.close_time,
-              COALESCE(c.code, '') AS code, COALESCE(c.name, '') AS name, COALESCE(c.category, '') AS category,
+              COALESCE(c.code, et.course_id, '') AS code,
+              COALESCE(c.name, ct.course_name, '') AS name,
+              COALESCE(c.category, csi.course_type, '') AS category,
               COALESCE(tpl.name, '') AS questionnaire_name
        FROM dtest2.evaluation_tasks et
        LEFT JOIN dtest2.courses c ON c.course_id = et.course_id
+       LEFT JOIN dtest2.course_teachers ct ON ct.course_id = et.course_id
+       LEFT JOIN LATERAL (
+         SELECT course_type FROM dtest2.class_schedule_items
+         WHERE course_id = et.course_id LIMIT 1
+       ) csi ON true
        LEFT JOIN dtest2.evaluation_templates tpl ON tpl.template_id = et.template_id
        WHERE et.student_id = $1 AND ($2::text IS NULL OR et.term = $2)
        ORDER BY et.open_time DESC NULLS LAST`,
