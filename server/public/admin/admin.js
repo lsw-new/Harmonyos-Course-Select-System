@@ -119,6 +119,7 @@
   const loaders = {
     overview: loadOverview,
     students: () => loadStudents(''),
+    selection: loadSelection,
     grades: loadGrades,
     approvals: loadApprovals,
     notice: () => undefined,
@@ -190,6 +191,108 @@
   $('#student-search').addEventListener('click', () => loadStudents($('#student-q').value.trim()));
   $('#student-q').addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') { loadStudents($('#student-q').value.trim()); }
+  });
+
+  // ---------- 选课管理 ----------
+
+  const ROUND_LABEL = {
+    notStarted: ['未开始', 'info'],
+    running: ['进行中 · 选课开放', 'ok'],
+    paused: ['已暂停 · 选课关闭', 'warn'],
+    ended: ['已结束 · 选课关闭', 'bad']
+  };
+
+  async function loadSelection() {
+    const wrap = $('#selection-list');
+    wrap.innerHTML = '<div class="empty">加载中…</div>';
+    try {
+      const rounds = await api('/admin/selection/stats');
+      if (rounds.length === 0) {
+        wrap.innerHTML = '<div class="empty">暂无选课轮次（可在数据库管理的 selection_rounds 表新增）</div>';
+        return;
+      }
+      wrap.innerHTML = rounds.map((r) => roundCardHtml(r)).join('');
+    } catch (e) {
+      wrap.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+  }
+
+  function roundCardHtml(r) {
+    const st = ROUND_LABEL[r.status] || [r.status, 'info'];
+    const actions = [];
+    if (r.status === 'notStarted' || r.status === 'paused') {
+      actions.push(`<button class="btn btn-success" data-ract="running" data-id="${esc(r.id)}">${r.status === 'paused' ? '恢复开放选课' : '启动选课'}</button>`);
+    }
+    if (r.status === 'running') {
+      actions.push(`<button class="btn" data-ract="paused" data-id="${esc(r.id)}">暂停（关闭选课）</button>`);
+    }
+    if (r.status === 'running' || r.status === 'paused') {
+      actions.push(`<button class="btn btn-danger" data-ract="ended" data-id="${esc(r.id)}">结束（关闭选课）</button>`);
+    }
+    if (r.status !== 'ended') {
+      actions.push(`<button class="btn" data-ract="time" data-id="${esc(r.id)}">编辑起止时间</button>`);
+    }
+    return `<div class="task-card" id="round-${esc(r.id)}">
+      <div class="task-head">
+        <span class="title">${esc(r.name)}</span>
+        <span class="pill ${st[1]}">${esc(st[0])}</span>
+      </div>
+      <div class="task-sub">${esc(r.startTime)} ~ ${esc(r.endTime)} · 参与 ${r.participantCount} 人 · 选课 ${r.selectionCount} 条 · 人均 ${r.averageCredit} 学分</div>
+      <div class="progress"><i style="width:${r.progressPercent}%"></i></div>
+      <div class="task-actions">${actions.join('')}</div>
+      <div class="score-panel time-panel" hidden>
+        <div class="form-row">
+          <label>开始时间
+            <input type="text" data-tstart value="${esc(r.startTime)}" placeholder="2026-06-01 09:00">
+          </label>
+          <label>结束时间
+            <input type="text" data-tend value="${esc(r.endTime)}" placeholder="2026-06-30 22:00">
+          </label>
+        </div>
+        <div class="task-actions">
+          <button class="btn btn-primary" data-ract="save-time" data-id="${esc(r.id)}">保存时间</button>
+          <span class="muted" style="margin:0">格式：YYYY-MM-DD HH:mm（北京时间）</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  $('#selection-list').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('button[data-ract]');
+    if (!btn) { return; }
+    const id = btn.dataset.id;
+    const act = btn.dataset.ract;
+    if (act === 'time') {
+      const panel = document.querySelector(`#round-${CSS.escape(id)} .time-panel`);
+      if (panel) { panel.hidden = !panel.hidden; }
+      return;
+    }
+    if (act === 'save-time') {
+      const panel = document.querySelector(`#round-${CSS.escape(id)} .time-panel`);
+      const startTime = panel.querySelector('input[data-tstart]').value.trim();
+      const endTime = panel.querySelector('input[data-tend]').value.trim();
+      btn.disabled = true;
+      try {
+        await api('/admin/selection/rounds/' + encodeURIComponent(id) + '/time', {
+          method: 'PUT', body: { startTime, endTime }
+        });
+        toast('起止时间已更新');
+        loadSelection();
+      } catch (e) { toast(e.message); btn.disabled = false; }
+      return;
+    }
+    if (act === 'ended' && !window.confirm('结束为终态，不可重新开放；学生端将立即无法选课。确认结束该轮次？')) { return; }
+    btn.disabled = true;
+    try {
+      await api('/admin/selection/rounds/' + encodeURIComponent(id) + '/status', {
+        method: 'PUT', body: { status: act }
+      });
+      toast(act === 'running' ? '选课已开放' : (act === 'paused' ? '已暂停，选课关闭' : '轮次已结束，选课关闭'));
+      loadSelection();
+    } catch (e) {
+      toast(e.message);
+      btn.disabled = false;
+    }
   });
 
   // ---------- 成绩打分 ----------

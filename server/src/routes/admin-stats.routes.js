@@ -73,7 +73,10 @@ router.get('/api/admin/dashboard', adminRequired, async (req, res) => {
 router.get('/api/admin/selection/stats', permissionRequired('selection.manage:view'), async (req, res) => {
   try {
     const rounds = await pool.query(
-      `SELECT r.round_id, r.name, r.status, r.start_time, r.end_time,
+      `SELECT r.round_id, r.name, r.status,
+              to_char(r.start_time AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS start_time,
+              to_char(r.end_time AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS end_time,
+              r.start_time AS start_raw, r.end_time AS end_raw,
               COALESCE(agg.participants, 0)::int AS participants,
               COALESCE(agg.selections, 0)::int AS selections,
               COALESCE(agg.avg_credit, 0)::numeric(6,2) AS avg_credit
@@ -92,8 +95,8 @@ router.get('/api/admin/selection/stats', permissionRequired('selection.manage:vi
     );
     const now = Date.now();
     const data = rounds.rows.map((r) => {
-      const start = new Date(r.start_time).getTime();
-      const end = new Date(r.end_time).getTime();
+      const start = new Date(r.start_raw).getTime();
+      const end = new Date(r.end_raw).getTime();
       let progress = 0;
       if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
         progress = Math.round(Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100)));
@@ -115,6 +118,109 @@ router.get('/api/admin/selection/stats', permissionRequired('selection.manage:vi
     res.json(ok(data));
   } catch (e) {
     serverError(res, '查询选课统计失败', e);
+  }
+});
+
+// ---- 选课轮次状态流转（启动/暂停/结束）：结束或暂停即全局关闭选课 ----
+// 学生端 POST /api/selections 仅认 status='running' 的轮次，这里改状态即权威开关。
+const ROUND_TIME_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
+
+function canTransitionRound(from, to) {
+  if (to === 'running') {
+    return from === 'notStarted' || from === 'paused';
+  }
+  if (to === 'paused') {
+    return from === 'running';
+  }
+  if (to === 'ended') {
+    return from === 'running' || from === 'paused';
+  }
+  return false;
+}
+
+function roundTransitionError(to) {
+  if (to === 'running') {
+    return '仅未开始或已暂停的轮次可以启动';
+  }
+  if (to === 'paused') {
+    return '仅进行中的轮次可以暂停';
+  }
+  return '仅进行中或已暂停的轮次可以结束';
+}
+
+function mapRoundLite(row) {
+  return {
+    id: row.round_id,
+    name: row.name,
+    status: row.status,
+    startTime: row.start_time,
+    endTime: row.end_time
+  };
+}
+
+router.put('/api/admin/selection/rounds/:id/status', permissionRequired('selection.manage:update'), async (req, res) => {
+  const to = String((req.body && req.body.status) || '').trim();
+  if (to !== 'running' && to !== 'paused' && to !== 'ended') {
+    return res.status(400).json(fail('status 仅支持 running / paused / ended'));
+  }
+  try {
+    const cur = await pool.query(
+      `SELECT status FROM dtest2.selection_rounds WHERE round_id=$1`, [req.params.id]
+    );
+    if (cur.rowCount === 0) {
+      return res.status(404).json(fail('选课轮次不存在'));
+    }
+    if (!canTransitionRound(cur.rows[0].status, to)) {
+      return res.status(409).json(fail(roundTransitionError(to)));
+    }
+    const updated = await pool.query(
+      `UPDATE dtest2.selection_rounds SET status=$2
+       WHERE round_id=$1
+       RETURNING round_id, name, status,
+                 to_char(start_time AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS start_time,
+                 to_char(end_time AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS end_time`,
+      [req.params.id, to]
+    );
+    res.json(ok(mapRoundLite(updated.rows[0])));
+  } catch (e) {
+    serverError(res, '更新轮次状态失败', e);
+  }
+});
+
+// ---- 选课轮次起止时间编辑（已结束的轮次不可改）----
+router.put('/api/admin/selection/rounds/:id/time', permissionRequired('selection.manage:update'), async (req, res) => {
+  const b = req.body || {};
+  const start = String(b.startTime || '').trim();
+  const end = String(b.endTime || '').trim();
+  if (!ROUND_TIME_RE.test(start) || !ROUND_TIME_RE.test(end)) {
+    return res.status(400).json(fail('起止时间需形如 2026-05-20 09:00'));
+  }
+  if (start >= end) {
+    return res.status(400).json(fail('开始时间必须早于结束时间'));
+  }
+  try {
+    const cur = await pool.query(
+      `SELECT status FROM dtest2.selection_rounds WHERE round_id=$1`, [req.params.id]
+    );
+    if (cur.rowCount === 0) {
+      return res.status(404).json(fail('选课轮次不存在'));
+    }
+    if (cur.rows[0].status === 'ended') {
+      return res.status(409).json(fail('已结束的轮次不能修改起止时间'));
+    }
+    const updated = await pool.query(
+      `UPDATE dtest2.selection_rounds
+          SET start_time = ($2 || ':00')::timestamp AT TIME ZONE 'Asia/Shanghai',
+              end_time   = ($3 || ':00')::timestamp AT TIME ZONE 'Asia/Shanghai'
+       WHERE round_id=$1
+       RETURNING round_id, name, status,
+                 to_char(start_time AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS start_time,
+                 to_char(end_time AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS end_time`,
+      [req.params.id, start, end]
+    );
+    res.json(ok(mapRoundLite(updated.rows[0])));
+  } catch (e) {
+    serverError(res, '更新轮次时间失败', e);
   }
 });
 

@@ -304,6 +304,24 @@ export interface RemoteAdminRound {
   conflictCount: number;
 }
 
+// 轮次写操作回显（无聚合统计字段）
+export interface RemoteRoundLite {
+  id: string;
+  name: string;
+  status: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface RoundStatusBody {
+  status: string;
+}
+
+interface RoundTimeBody {
+  startTime: string;
+  endTime: string;
+}
+
 export interface RemoteRatingBucket {
   star: number;
   count: number;
@@ -644,6 +662,18 @@ export class RemoteApi {
   // 选课轮次统计（参与人数/选课数/均学分/时间进度，实时聚合）
   static async adminSelectionStats(): Promise<RemoteAdminRound[]> {
     return apiClient.get<RemoteAdminRound[]>('/admin/selection/stats');
+  }
+
+  // 选课轮次状态流转（启动/暂停/结束=关闭选课，仅选课管理权限）
+  static async adminSetRoundStatus(id: string, status: string): Promise<RemoteRoundLite> {
+    const body: RoundStatusBody = { status: status };
+    return apiClient.put<RemoteRoundLite>('/admin/selection/rounds/' + encodeURIComponent(id) + '/status', body);
+  }
+
+  // 选课轮次起止时间编辑（已结束轮次后端拒绝）
+  static async adminSetRoundTime(id: string, startTime: string, endTime: string): Promise<RemoteRoundLite> {
+    const body: RoundTimeBody = { startTime: startTime, endTime: endTime };
+    return apiClient.put<RemoteRoundLite>('/admin/selection/rounds/' + encodeURIComponent(id) + '/time', body);
   }
 
   // 评教统计（参与率/完成率/平均分/星级分布，实时聚合）

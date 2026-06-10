@@ -8,7 +8,7 @@ import { mockAdminRounds, mockRoundConflicts } from '../mock/mockSelectionAdmin'
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AuthorizationService } from '../common/security/AuthorizationService';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteAdminRound } from '../common/remote/RemoteApi';
+import { RemoteApi, RemoteAdminRound, RemoteRoundLite } from '../common/remote/RemoteApi';
 
 const KEY_ADMIN_ROUNDS = 'local.adminRounds.v1';
 const CONTROL_CHAR_PATTERN: RegExp = new RegExp("[\r\n\u0000-\u001f\u007f]");
@@ -171,8 +171,9 @@ export class SelectionAdminRepository extends BaseRepository {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
     }
     if (AppConfig.useRemote) {
-      // \u8fdc\u7a0b\u6a21\u5f0f\u4e0b\u8f6e\u6b21\u4e3a\u540e\u7aef\u6570\u636e\uff0c\u672c\u5730\u6539\u72b6\u6001\u4f1a\u4e0e\u670d\u52a1\u5668\u5206\u53c9\u2014\u2014\u6682\u4e0d\u652f\u6301\uff0c\u5f15\u5bfc\u8d70\u63a7\u5236\u53f0
-      return this.reject('\u8054\u673a\u6a21\u5f0f\u4e0b\u8f6e\u6b21\u72b6\u6001\u7531\u670d\u52a1\u5668\u7ba1\u7406\uff0c\u8bf7\u5728 Web \u7ba1\u7406\u63a7\u5236\u53f0\u7684\u6570\u636e\u5e93\u7ba1\u7406\u4e2d\u8c03\u6574 selection_rounds \u8868');
+      // \u8054\u673a\u6a21\u5f0f\uff1a\u72b6\u6001\u6d41\u8f6c\u7531\u540e\u7aef\u6743\u5a01\u6821\u9a8c\u5e76\u843d\u5e93\uff08\u7ed3\u675f/\u6682\u505c\u5373\u5168\u5c40\u5173\u95ed\u9009\u8bfe\uff09
+      const remote = await RemoteApi.adminSetRoundStatus(id, to);
+      return this.delayCopy<AdminRound>(this.liteToRound(remote));
     }
     const items = await this.getRoundItems();
     const target = items.find((item) => item.id === id);
@@ -201,6 +202,23 @@ export class SelectionAdminRepository extends BaseRepository {
       selectionCount: r.selectionCount,
       averageCredit: r.averageCredit,
       conflictCount: r.conflictCount
+    };
+    return round;
+  }
+
+  // 轮次写操作回显 → AdminRound（聚合统计字段补零；页面提交后会整页重载真实统计）
+  private liteToRound(r: RemoteRoundLite): AdminRound {
+    const round: AdminRound = {
+      id: r.id,
+      name: r.name,
+      status: r.status as RoundStatus,
+      startTime: r.startTime,
+      endTime: r.endTime,
+      progressPercent: r.status === 'ended' ? 100 : 0,
+      participantCount: 0,
+      selectionCount: 0,
+      averageCredit: 0,
+      conflictCount: 0
     };
     return round;
   }
@@ -254,9 +272,6 @@ export class SelectionAdminRepository extends BaseRepository {
     if (!AuthorizationService.hasAdminPermission('selection.manage', 'update')) {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
     }
-    if (AppConfig.useRemote) {
-      return this.reject('\u8054\u673a\u6a21\u5f0f\u4e0b\u8f6e\u6b21\u65f6\u95f4\u7531\u670d\u52a1\u5668\u7ba1\u7406\uff0c\u8bf7\u5728 Web \u7ba1\u7406\u63a7\u5236\u53f0\u7684\u6570\u636e\u5e93\u7ba1\u7406\u4e2d\u8c03\u6574 selection_rounds \u8868');
-    }
     const start = payload.startTime.trim();
     const end = payload.endTime.trim();
     if (!this.isValidTime(start) || !this.isValidTime(end)) {
@@ -264,6 +279,11 @@ export class SelectionAdminRepository extends BaseRepository {
     }
     if (start >= end) {
       return this.reject('开始时间必须早于结束时间');
+    }
+    if (AppConfig.useRemote) {
+      // 联机模式：时间编辑由后端权威校验并落库
+      const remote = await RemoteApi.adminSetRoundTime(payload.id, start, end);
+      return this.delayCopy<AdminRound>(this.liteToRound(remote));
     }
     const items = await this.getRoundItems();
     const target = items.find((item) => item.id === payload.id);
