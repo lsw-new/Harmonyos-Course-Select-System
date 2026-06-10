@@ -29,6 +29,33 @@ router.get('/api/admin/students', permissionRequired('students.manage:view'), as
   }
 });
 
+// ---- 学生详情（student_profiles 全字段，供管理端学籍详情页）----
+router.get('/api/admin/students/:id', permissionRequired('students.manage:view'), async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT student_id, name, college, major, class_name, grade, phone, email
+       FROM dtest2.student_profiles WHERE student_id=$1`,
+      [req.params.id]
+    );
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('学生不存在'));
+    }
+    const s = r.rows[0];
+    res.json(ok({
+      studentId: s.student_id,
+      name: s.name,
+      college: s.college,
+      major: s.major,
+      className: s.class_name,
+      grade: s.grade || '',
+      phone: s.phone || '',
+      email: s.email || ''
+    }));
+  } catch (e) {
+    serverError(res, '查询学生详情失败', e);
+  }
+});
+
 // ---- 成绩审核（列表）----
 router.get('/api/admin/grades', permissionRequired('grades.approve:view', 'grades.input:view'), async (req, res) => {
   const status = req.query.status ? String(req.query.status) : null;

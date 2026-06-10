@@ -70,6 +70,26 @@ describe('GET /api/admin/eval/stats', () => {
   });
 });
 
+describe('GET /api/admin/students/:id', () => {
+  test('学生不存在 → 404', async () => {
+    __mock.setRoutes([PERM_GRANT, { match: /FROM dtest2\.student_profiles WHERE student_id/, result: [] }]);
+    const res = await request(app).get('/api/admin/students/nosuch').set('Authorization', adm);
+    expect(res.status).toBe(404);
+  });
+
+  test('返回真实档案字段', async () => {
+    __mock.setRoutes([PERM_GRANT, { match: /FROM dtest2\.student_profiles WHERE student_id/, result: [{
+      student_id: '2023307020941', name: '李仕炜', college: '电子信息工程学院', major: '计算机科学与技术',
+      class_name: '23计算机科学与技术U9', grade: '2023级', phone: null, email: 'a@qq.com'
+    }] }]);
+    const res = await request(app).get('/api/admin/students/2023307020941').set('Authorization', adm);
+    expect(res.status).toBe(200);
+    expect(res.body.data.name).toBe('李仕炜');
+    expect(res.body.data.grade).toBe('2023级');
+    expect(res.body.data.phone).toBe('');
+  });
+});
+
 describe('课程管理 CRUD', () => {
   const courseRow = {
     course_id: 'ac-1', code: 'CS101', name: '测试课程', teacher: '张老师', category: 'required',

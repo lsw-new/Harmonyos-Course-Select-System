@@ -236,6 +236,17 @@ export interface RemoteStudent {
   educationLevel: string;
 }
 
+export interface RemoteStudentDetail {
+  studentId: string;
+  name: string;
+  college: string;
+  major: string;
+  className: string;
+  grade: string;
+  phone: string;
+  email: string;
+}
+
 export interface RemoteGradeTask {
   id: string;
   courseName: string;
@@ -553,6 +564,11 @@ export class RemoteApi {
     }
     const path = params.length > 0 ? '/admin/students?' + params.join('&') : '/admin/students';
     return apiClient.get<RemoteStudent[]>(path);
+  }
+
+  // 学生详情（student_profiles 真实档案）
+  static async adminStudentDetail(studentId: string): Promise<RemoteStudentDetail> {
+    return apiClient.get<RemoteStudentDetail>('/admin/students/' + encodeURIComponent(studentId));
   }
 
   // 仪表盘：注册/名册/课程/审批/成绩/评教实时计数 + 近7天选课趋势 + 课程类型分布 + 待审批前5条

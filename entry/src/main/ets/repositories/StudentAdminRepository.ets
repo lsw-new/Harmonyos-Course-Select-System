@@ -9,6 +9,8 @@ import { StudentDetail, StudentStatus } from '../models/StudentDetailModels';
 import { mockStudentDetails } from '../mock/mockStudentDetail';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AuthorizationService } from '../common/security/AuthorizationService';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteStudent, RemoteStudentDetail } from '../common/remote/RemoteApi';
 
 const KEY_ADMIN_STUDENTS = 'local.adminStudents.v1';
 const STUDENT_STATUSES: string[] = ['active', 'suspended', 'graduating', 'graduated'];
@@ -105,7 +107,54 @@ export class StudentAdminRepository extends BaseRepository {
     return item;
   }
 
+  // 远程列表行 → 学籍列表项（status/educationLevel 后端词表与本地一致）
+  private remoteToListItem(r: RemoteStudent): StudentAdminItem {
+    const item: StudentAdminItem = {
+      studentId: r.studentId,
+      name: r.name,
+      college: r.college,
+      major: r.major,
+      className: r.className,
+      status: r.status as StudentAdminStatus,
+      educationLevel: r.educationLevel as StudentEducationLevel
+    };
+    return item;
+  }
+
+  // 远程档案 → 学籍详情（后端暂无 GPA/学分/宿舍/导师等字段，以占位呈现）
+  private remoteToDetail(r: RemoteStudentDetail): StudentDetail {
+    const yearText = r.grade.replace('级', '').trim();
+    const detail: StudentDetail = {
+      studentId: r.studentId,
+      name: r.name,
+      gender: '—',
+      college: r.college,
+      major: r.major,
+      className: r.className,
+      grade: r.grade,
+      gpa: 0,
+      earnedCredits: 0,
+      totalCredits: 0,
+      phone: r.phone,
+      email: r.email,
+      dormitory: '—',
+      advisor: '—',
+      status: 'active',
+      enrollDate: yearText.length === 4 ? `${yearText}-09-01` : '—'
+    };
+    return detail;
+  }
+
   async getStudents(query?: string, college?: string): Promise<StudentAdminItem[]> {
+    if (AppConfig.useRemote) {
+      try {
+        // 后端 student_profiles 为唯一名单来源：只显示真实注册的学生
+        const remote = await RemoteApi.adminListStudents(query, college);
+        return this.delayCopy<StudentAdminItem[]>(remote.map((r) => this.remoteToListItem(r)));
+      } catch (e) {
+        // 远程失败回退本地名册
+      }
+    }
     const roster = await this.getRoster();
     let items: StudentAdminItem[] = roster.map((detail) => this.toListItem(detail));
     if (query && query.length > 0) {
@@ -123,6 +172,14 @@ export class StudentAdminRepository extends BaseRepository {
   }
 
   async getDetail(studentId: string): Promise<StudentDetail> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminStudentDetail(studentId);
+        return this.delayCopy<StudentDetail>(this.remoteToDetail(remote));
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e), 'notFound');
+      }
+    }
     const roster = await this.getRoster();
     const target = roster.find((s) => s.studentId === studentId);
     if (!target) {
@@ -151,6 +208,10 @@ export class StudentAdminRepository extends BaseRepository {
   async updateStatus(studentId: string, nextStatus: StudentStatus): Promise<StudentDetail> {
     if (!AuthorizationService.hasAdminPermission('students.manage', 'update')) {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
+    if (AppConfig.useRemote) {
+      // \u540e\u7aef student_profiles \u6682\u65e0\u5b66\u7c4d\u72b6\u6001\u5b57\u6bb5\uff0c\u672c\u5730\u6539\u52a8\u4f1a\u4e0e\u670d\u52a1\u5668\u5206\u53c9\u2014\u2014\u6682\u4e0d\u652f\u6301
+      return this.reject('\u8054\u673a\u6a21\u5f0f\u6682\u4e0d\u652f\u6301\u5b66\u7c4d\u72b6\u6001\u53d8\u66f4\uff08\u670d\u52a1\u5668\u6863\u6848\u65e0\u8be5\u5b57\u6bb5\uff09');
     }
     if (!this.isAllowedStatus(nextStatus)) {
       return this.reject('学籍状态不合法');
