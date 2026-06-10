@@ -5,10 +5,54 @@ const { pool } = require('../db');
 const { ok, fail } = require('../envelope');
 const { authRequired } = require('../auth');
 const { serverError } = require('../middleware/errorHandler');
+const { permissionRequired } = require('../middleware/permission');
 const { currentStudentId } = require('../identity');
 const { mapEval } = require('../mappers');
 
 const router = express.Router();
+
+// 评教期全局开关（system_settings key），无记录时默认开放
+const EVAL_PERIOD_KEY = 'eval.period.open';
+
+async function isEvalPeriodOpen() {
+  const r = await pool.query(
+    `SELECT value_json FROM dtest2.system_settings WHERE key = $1`,
+    [EVAL_PERIOD_KEY]
+  );
+  if (r.rowCount === 0) {
+    return true;
+  }
+  return r.rows[0].value_json === true;
+}
+
+// ---- 评教期开关：读（学生/管理员登录即可，学生端入口与提交按钮据此放行）----
+router.get('/api/eval-period', authRequired, async (req, res) => {
+  try {
+    const open = await isEvalPeriodOpen();
+    res.json(ok({ open }));
+  } catch (e) {
+    serverError(res, '查询评教开关失败', e);
+  }
+});
+
+// ---- 评教期开关：写（仅评教管理权限；管理员打开后学生才能评价）----
+router.put('/api/admin/eval-period', permissionRequired('evaluations.manage:update'), async (req, res) => {
+  const open = (req.body || {}).open;
+  if (typeof open !== 'boolean') {
+    return res.status(400).json(fail('open 需为布尔值'));
+  }
+  try {
+    await pool.query(
+      `INSERT INTO dtest2.system_settings (key, value_json, updated_at)
+       VALUES ($1, $2::jsonb, now())
+       ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = now()`,
+      [EVAL_PERIOD_KEY, JSON.stringify(open)]
+    );
+    res.json(ok({ open }));
+  } catch (e) {
+    serverError(res, '更新评教开关失败', e);
+  }
+});
 
 // ---- 评教任务 ----
 router.get('/api/evaluations', authRequired, async (req, res) => {
@@ -54,6 +98,14 @@ router.post('/api/evaluations/:taskId/submit', authRequired, async (req, res) =>
   }
   if (!Array.isArray(answers) || answers.length === 0) {
     return res.status(400).json(fail('答案为空'));
+  }
+  // 服务端权威校验：评教期未开放一律拒绝提交（不依赖客户端判断）
+  try {
+    if (!(await isEvalPeriodOpen())) {
+      return res.status(409).json(fail('管理员未开放评教，暂不能提交'));
+    }
+  } catch (e) {
+    return serverError(res, '提交评教失败', e);
   }
   const client = await pool.connect();
   try {

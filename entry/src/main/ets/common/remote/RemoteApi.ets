@@ -316,6 +316,14 @@ export interface RemoteCalendarEvent {
   type: string;
 }
 
+export interface RemoteEvalPeriod {
+  open: boolean;
+}
+
+interface EvalPeriodBody {
+  open: boolean;
+}
+
 export interface CalendarEventBody {
   date: string;
   title: string;
@@ -641,6 +649,17 @@ export class RemoteApi {
   // 评教统计（参与率/完成率/平均分/星级分布，实时聚合）
   static async adminEvalStats(): Promise<RemoteEvalStats> {
     return apiClient.get<RemoteEvalStats>('/admin/eval/stats');
+  }
+
+  // 评教期全局开关：读（学生/管理员登录即可），服务器为唯一事实来源
+  static async evalPeriod(): Promise<RemoteEvalPeriod> {
+    return apiClient.get<RemoteEvalPeriod>('/eval-period');
+  }
+
+  // 评教期全局开关：写（仅评教管理权限）——管理员打开后学生才可评价
+  static async adminSetEvalPeriod(open: boolean): Promise<RemoteEvalPeriod> {
+    const body: EvalPeriodBody = { open: open };
+    return apiClient.put<RemoteEvalPeriod>('/admin/eval-period', body);
   }
 
   static async adminListGrades(status?: string): Promise<RemoteGradeTask[]> {

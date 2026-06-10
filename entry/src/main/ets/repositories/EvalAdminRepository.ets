@@ -175,11 +175,28 @@ export class EvalAdminRepository extends BaseRepository {
     return this.periodOpen;
   }
 
+  // 评教期开关解析：联机以服务器为唯一事实来源（每次实时拉取，管理员切换即全局生效；
+  // 成功后回写本地作离线缓存），失败/本地模式回退本地 Preferences 值。
+  private async resolvePeriodOpen(): Promise<boolean> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.evalPeriod();
+        this.periodOpen = remote.open;
+        this.isPeriodLoaded = true;
+        await PreferenceStorage.get().putBoolean(KEY_EVAL_PERIOD, remote.open);
+        return remote.open;
+      } catch (e) {
+        // 网络异常回退本地缓存
+      }
+    }
+    return this.getPeriodOpen();
+  }
+
   // ===== 对外接口 =====
 
   async getStats(): Promise<EvalAdminStats> {
-    // 评教期开关始终取本地（跨端开关键 local.evalPeriod.v1）；统计数字远程模式走后端实时聚合
-    const periodOpen = await this.getPeriodOpen();
+    // 评教期开关与统计均以服务器为准（联机模式）；本地模式回退 Preferences
+    const periodOpen = await this.resolvePeriodOpen();
     if (AppConfig.useRemote) {
       try {
         const remote = await RemoteApi.adminEvalStats();
@@ -217,13 +234,22 @@ export class EvalAdminRepository extends BaseRepository {
   // 学生端读取评教期是否开放（只读，无需管理员权限）：
   // 管理员在评教管理中关闭后，学生端评教入口与提交据此拦截。
   async isPeriodOpen(): Promise<boolean> {
-    const open = await this.getPeriodOpen();
+    // 联机模式以服务器全局开关为准——管理员在任何设备上切换，全班学生即时生效
+    const open = await this.resolvePeriodOpen();
     return this.delay<boolean>(open);
   }
 
   async setPeriodOpen(open: boolean): Promise<boolean> {
     if (!AuthorizationService.hasAdminPermission('evaluation.manage', 'update')) {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
+    if (AppConfig.useRemote) {
+      try {
+        // 写操作以服务器为准（全局生效）；失败显式报错，避免本地开关与全局状态分叉
+        await RemoteApi.adminSetEvalPeriod(open);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
     }
     this.periodOpen = open;
     this.isPeriodLoaded = true;
