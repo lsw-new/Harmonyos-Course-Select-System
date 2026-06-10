@@ -145,6 +145,11 @@ router.post('/api/selections', authRequired, async (req, res) => {
         return res.status(409).json(fail(`与「${row.name}」时间冲突`));
       }
     }
+    // 限选规则：每名学生限选一门选修课程（选修课统一安排在周四晚，多门同台二选一）
+    if (selected.rows.length >= 1) {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail('每人限选一门选修课程，请先退选已选课程'));
+    }
     const selId = `sel-${studentId}-${courseId}-${roundId}`;
     await client.query(
       `INSERT INTO dtest2.selections (selection_id, student_id, course_id, round_id, status, created_at, dropped_at)

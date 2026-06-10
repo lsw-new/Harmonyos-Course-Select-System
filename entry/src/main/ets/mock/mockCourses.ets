@@ -321,14 +321,8 @@ export const mockSchedule: ScheduleItem[] = [
     weeks: [11, 12, 13, 14, 15],
     weekText: '11-15 周', courseType: '必修'
   },
-  {
-    id: 'imp-40', term: '2025-2026-2', type: 'normal', courseId: 'VJW01102302',
-    courseName: '博物馆展览鉴赏', teacher: '汪芷晔',
-    weekday: 4, periodStart: 9, periodEnd: 10,
-    startTime: '19:00', endTime: '20:35', classroom: '长芗苑教10栋202', campus: '芗苑校区',
-    weeks: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
-    weekText: '3-18 周', courseType: '选修'
-  },
+  // 注：博物馆展览鉴赏（VJW01102302）已转为选课中心选修课（周四晚 9-10 节），
+  // 不再属于全班必上课表；学生选上后经「已选课程合并」出现在课表中。
   {
     id: 'imp-11', term: '2025-2026-2', type: 'practice', courseId: 'VDZ02119303',
     courseName: '鸿蒙移动应用开发综合实践', teacher: '王鑫',

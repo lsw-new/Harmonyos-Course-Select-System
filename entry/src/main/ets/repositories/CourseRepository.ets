@@ -458,6 +458,10 @@ export class CourseRepository extends BaseRepository {
     if (memberIds.indexOf(courseId) >= 0) {
       return this.reject('已选该课程');
     }
+    // 限选规则：每人限选一门（与后端权威校验同口径；选修课统一周四晚，多门二选一）
+    if (memberIds.length >= 1) {
+      return this.reject('每人限选一门选修课程，请先退选已选课程');
+    }
     const cap = target.capacity;
     const cnt = target.selectedCount;
     if (cap !== undefined && cnt !== undefined && cnt >= cap) {

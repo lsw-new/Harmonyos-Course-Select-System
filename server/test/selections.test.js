@@ -45,6 +45,16 @@ describe('POST /api/selections', () => {
     expect(__mock.executed('ROLLBACK')).toBe(false);
   });
 
+  test('限选一门：已有任一已选课程（不超学分不冲突）→ 409 且回滚', async () => {
+    __mock.setRoutes(routes({
+      selected: [{ name: '陶瓷艺术赏析', credit: 2, weekday: 4, period_start: 9, period_end: 10, weeks_text: '1-16' }]
+    }));
+    const res = await selectCourse();
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain('限选一门');
+    expect(__mock.executed('ROLLBACK')).toBe(true);
+  });
+
   test('问题4：选课对课程行加 FOR UPDATE 行锁', async () => {
     __mock.setRoutes(routes());
     await selectCourse();
