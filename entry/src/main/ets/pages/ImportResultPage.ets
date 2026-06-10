@@ -111,7 +111,7 @@ struct ImportResultPage {
 
             // 操作按钮
             Row({ space: 12 }) {
-              GhostButton({ text: $r('app.string.importresult_reimport'), onTap: () => Toast.show(this.getUIContext(), '请重新上传文件') })
+              GhostButton({ text: $r('app.string.importresult_reimport'), onTap: () => AppRoute.back() })
               PrimaryButton({ text: $r('app.string.importresult_download_report'), onTap: () => Toast.show(this.getUIContext(), '报告下载功能敬请期待') })
             }.width('100%')
 

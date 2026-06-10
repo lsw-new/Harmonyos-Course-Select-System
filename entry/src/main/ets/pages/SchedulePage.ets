@@ -79,14 +79,23 @@ struct SchedulePage {
     }
     this.importing = true;
     this.showImportSheet = false;
+    let parsedCount: number = 0;
     load()
-      .then((items: ScheduleItem[]) => CourseRepository.get().saveImportedSchedule(items))
+      .then((items: ScheduleItem[]) => {
+        parsedCount = items.length;
+        return CourseRepository.get().saveImportedSchedule(items);
+      })
       .then((n: number) => {
         this.importing = false;
         this.currentWeek = TermUtils.teachingWeek();
         this.weekScroller.scrollToIndex(this.currentWeek - 1, true, ScrollAlign.CENTER);
         Toast.show(this.getUIContext(), `${okPrefix} · 共 ${n} 节`);
         this.loadSchedule();
+        // 导入结果页：成功=通过合法性校验落库的条目；失败=解析出但被校验拦下的条目
+        const failed: number = Math.max(0, parsedCount - n);
+        const rate: string = parsedCount > 0 ? `${Math.round((n / parsedCount) * 100)}%` : '—';
+        const resultParams: Record<string, Object> = { 'success': String(n), 'failed': String(failed), 'rate': rate };
+        AppRoute.go(Routes.ImportResult, { params: resultParams });
       })
       .catch((e: object) => {
         this.importing = false;
