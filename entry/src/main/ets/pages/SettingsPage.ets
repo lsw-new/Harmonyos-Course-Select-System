@@ -266,4 +266,4 @@ export function SettingsPageBuilder() {
     SettingsPage()
   }
   .hideTitleBar(true)
-}
+
