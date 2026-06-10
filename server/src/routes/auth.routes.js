@@ -76,6 +76,10 @@ router.post('/api/auth/email-code', authLimiter, async (req, res) => {
     await sendVerificationCode(email, code);
     res.json(ok({ sent: true, ttl: 300 }));
   } catch (e) {
+    // SMTP 550 = 收件人不存在/拒收：地址问题而非服务问题，给精确提示且不诱导重试
+    if (e && (e.responseCode === 550 || String(e.message || '').indexOf('550') >= 0)) {
+      return res.status(400).json(fail('该邮箱地址不存在或无法接收邮件，请检查邮箱是否填写正确'));
+    }
     serverError(res, '邮件发送失败', e);
   }
 });
