@@ -65,17 +65,19 @@ struct AdminLoginPage {
       Column().width('100%').height('100%')
         .linearGradient({ angle: 180, colors: ElysiaTheme.pageGradient() })
 
-      Column() {
-        SafeTop()
+      // 头部与表单同在一个 Scroll：内容不满屏时整组垂直居中（与学生登录页同构），
+      // 弹出键盘或小屏内容超高时可整体滚动。
+      Scroll() {
+        Column() {
+          SafeTop()
 
-        Column({ space: 6 }) {
-          Monogram({ iconSize: 56 })
-          Pill({ text: $r('app.string.adminlogin_role') })
-          Text($r('app.string.adminlogin_title'))
-            .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 8 }).padding({ bottom: 24 })
-        }.width('100%').alignItems(HorizontalAlign.Center)
+          Column({ space: 6 }) {
+            Monogram({ iconSize: 56 })
+            Pill({ text: $r('app.string.adminlogin_role') })
+            Text($r('app.string.adminlogin_title'))
+              .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 8 })
+          }.width('100%').alignItems(HorizontalAlign.Center).margin({ top: 16, bottom: 30 })
 
-        Scroll() {
           Column({ space: 14 }) {
             ElysiaInput({ placeholder: $r('app.string.common_workid'), value: $adminId, leadingIcon: 'students' })
             ElysiaInput({ placeholder: $r('app.string.common_password'), value: $password, secure: true, leadingIcon: 'lock' })
@@ -113,11 +115,16 @@ struct AdminLoginPage {
                 AppRoute.go(Routes.Login, { replace: true });
               }
             })
+          }.width('100%')
 
-            SafeBottom()
-          }.padding({ left: 24, right: 24, top: 8 })
-        }.scrollBar(BarState.Off).layoutWeight(1).align(Alignment.Top)
-      }.width('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
+          SafeBottom()
+        }
+        .padding({ left: 24, right: 24, bottom: 16 })
+        .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
+      }
+      .scrollBar(BarState.Off)
+      .width('100%')
+      .height('100%')
     }.width('100%').height('100%')
   }
 }
