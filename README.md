@@ -39,7 +39,7 @@
 应用采用分层架构，UI 与数据解耦，支持**本地优先 + 可选远程后端**双模式：
 
 - **本地模式（默认，`AppConfig.useRemote = false`）**：数据来自本地 mock + Preferences 持久化 + 本地 RDB（RelationalStore，courses / selections 表），可完全离线演示；
-- **远程模式（`AppConfig.useRemote = true`）**：认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践及管理端各域改走 **Track B 后端**（`AppConfig.baseUrl = https://lsw666.duckdns.org/api`，经 nginx 反代 + Let's Encrypt 的 **HTTPS**），读失败回退本地、写失败显式报错。
+- **远程模式（`AppConfig.useRemote = true`）**：认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践及管理端各域改走 **Track B 后端**（`AppConfig.baseUrl = https://lsw666.dns.army/api`，经 nginx 反代 + Let's Encrypt 的 **HTTPS**），读失败回退本地、写失败显式报错。
 
 > 邮箱验证码（注册 / 找回密码）始终联网走后端真实发送，不受 `useRemote` 开关影响。详见下文「后端服务（Track B）」与「安全与鉴权」。
 
@@ -199,7 +199,7 @@ entry/src/main/ets/
 
 - **技术栈**：Node.js 18 + Express + `pg`（CommonJS 免构建），直连 Postgres（`dtest2` schema），统一返回 `ApiResponse` 信封 `{ success, data, error }`。
 - **源码结构**：`src/index.js` 仅做装配（中间件 + `/health` + 按域 `app.use(require('./routes/*'))`，约 80 行）；各域路由拆到 `src/routes/*.routes.js`（认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践 / 管理端），公共件在 `src/middleware/`（限流 / 错误处理 / 细粒度鉴权）与 `src/repositories/`（profile 读取），纯映射与 SQL 常量在 `src/mappers.js`。
-- **部署**：服务器 `138.2.47.185`，pm2 进程 `dtest2-api` 监听 `:8090`；前置 **nginx 反向代理**终止 TLS（Let's Encrypt 证书），对外为 `https://lsw666.duckdns.org/api`。
+- **部署**：服务器 `138.2.47.185`，pm2 进程 `dtest2-api` 监听 `:8090`；前置 **nginx 反向代理**终止 TLS（Let's Encrypt 证书），对外为 `https://lsw666.dns.army/api`（2026-06-09 起由 `lsw666.duckdns.org` 迁移）。
 - **覆盖域**：认证（登录 / 注册 / 找回密码 / 邮箱验证码）、课程、选课（事务校验）、成绩、通知、请假、反馈、评教、实践，以及管理端的学生管理、成绩审核、审批、通知发布、角色权限、评教模板、审计日志。
 - **数据库迁移**：`server/migrations/` 权威建表脚本 + `npm run migrate` 幂等 runner。
 

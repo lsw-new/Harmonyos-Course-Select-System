@@ -11,7 +11,8 @@ export class AppConfig {
   static runtimeMode: RuntimeMode = 'mock';
 
   // 经 nginx 反向代理 + Let's Encrypt 证书的 HTTPS 域名（不再写死公网 HTTP IP）。
-  static baseUrl: string = 'https://lsw666.duckdns.org/api';
+  // 2026-06-09 起域名由 lsw666.duckdns.org 迁移为 lsw666.dns.army（旧域名证书已失效，TLS 握手失败）。
+  static baseUrl: string = 'https://lsw666.dns.army/api';
   // 数据加载延迟（ms）。全局「正在加载」遮罩由 AppRoute 统一控制，故此处保持较小值让页面快速就绪。
   static mockDelayMs: number = 60;
   static appName: string = '景德镇艺术职业大学教学管理系统';

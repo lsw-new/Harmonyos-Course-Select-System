@@ -1,24 +1,26 @@
-# HTTPS 反向代理部署说明（lsw666.duckdns.org）
+# HTTPS 反向代理部署说明（lsw666.dns.army）
 
 App 后端从「裸 IP + HTTP」改为「域名 + HTTPS」，收尾审计 P2-01「生产包不要写死公网 HTTP IP / 使用 HTTPS」。
+
+> 2026-06-09 起公网域名由 `lsw666.duckdns.org` 迁移为 `lsw666.dns.army`（旧域名证书失效，TLS 握手失败）；本文档已按新域名更新，旧域名测试证据见 `docs/TEST_REPORT_2026-06-08.md`。
 
 ## 架构
 
 ```
 HarmonyOS App
-  └─ https://lsw666.duckdns.org/api/...        (AppConfig.baseUrl)
+  └─ https://lsw666.dns.army/api/...        (AppConfig.baseUrl)
        └─ nginx :443  (Let's Encrypt 证书, TLSv1.2/1.3)
             └─ location /api/ → http://127.0.0.1:8090   (pm2: dtest2-api / Node+Express)
 ```
 
-- 域名 `lsw666.duckdns.org` → `138.2.47.185`（DuckDNS）。
+- 域名 `lsw666.dns.army` → `138.2.47.185`（dns.army / FreeDNS）。
 - 证书：Let's Encrypt（certbot 自动续期），与同机既有 `library`(:5000) 站点共用同一证书与 vhost。
 - 既有 `library` 站点 `location /` → `:5000` 不受影响；本后端独占 `location /api/`（`:5000` 不使用 `/api`）。
 - `:8090` 仍对外开放，旧版 App（http 直连）可继续使用；新版走 HTTPS。
 
 ## 服务器端 nginx 配置
 
-在 `/etc/nginx/sites-available/library` 的 `server { listen 443 ssl; server_name lsw666.duckdns.org; ... }` 块内新增：
+在 `/etc/nginx/sites-available/library` 的 `server { listen 443 ssl; server_name lsw666.dns.army; ... }` 块内新增：
 
 ```nginx
     # dtest2-api 后端（反代到 Node :8090）
@@ -41,11 +43,11 @@ HarmonyOS App
 
 ```bash
 # 经 nginx TLS → :8090（--resolve 避免 hairpin NAT，校验真实证书）
-curl --resolve lsw666.duckdns.org:443:127.0.0.1 -X POST \
-  https://lsw666.duckdns.org/api/auth/login \
+curl --resolve lsw666.dns.army:443:127.0.0.1 -X POST \
+  https://lsw666.dns.army/api/auth/login \
   -H 'content-type: application/json' \
   -d '{"account":"<账号>","password":"<密码>"}'      # 期望 200
-curl --resolve lsw666.duckdns.org:443:127.0.0.1 https://lsw666.duckdns.org/   # library 仍 200
+curl --resolve lsw666.dns.army:443:127.0.0.1 https://lsw666.dns.army/   # library 仍 200
 ```
 
 ## 证书续期
