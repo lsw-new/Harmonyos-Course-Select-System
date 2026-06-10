@@ -84,6 +84,8 @@ struct MinePage {
     if (!AppRoute.guard(Routes.Mine)) {
       return;
     }
+    // 快路径：会话内存资料同步种入，头像/姓名零等待渲染；loadData 随后刷新统计
+    this.profile = SessionStorage.get().getStudent() ?? null;
     this.loadData();
   }
 

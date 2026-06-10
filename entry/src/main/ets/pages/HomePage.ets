@@ -17,6 +17,7 @@ import { ScheduleItem } from '../models/Course';
 import { Notice } from '../models/Notice';
 import { UserProfile } from '../models/User';
 import { DateUtils } from '../common/utils/DateUtils';
+import { SessionStorage } from '../common/storage/SessionStorage';
 import { FileService } from '../common/services/FileService';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
@@ -45,6 +46,8 @@ struct HomePage {
     if (!AppRoute.guard(Routes.Home)) {
       return;
     }
+    // 快路径：会话内存资料同步种入，欢迎区（头像/姓名）在摘要网络请求回来前即可渲染
+    this.profile = SessionStorage.get().getStudent();
     this.loadData();
   }
 
@@ -147,9 +150,16 @@ struct HomePage {
       Column() {
         Column() {
           if (this.loading) {
+            // 欢迎区不等摘要：会话资料已同步种入，头像/姓名/铃铛先行渲染
+            if (this.profile !== undefined) {
+              this.WelcomeBlock(this.profile!, this.unreadBadge)
+            }
             Blank().height(80)
             LoadingState({ tip: $r('app.string.home_loading') })
           } else if (this.errorMsg.length > 0) {
+            if (this.profile !== undefined) {
+              this.WelcomeBlock(this.profile!, this.unreadBadge)
+            }
             Blank().height(80)
             ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
           } else if (this.summary !== undefined && this.profile !== undefined) {

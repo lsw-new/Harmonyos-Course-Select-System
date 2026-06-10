@@ -7,8 +7,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AuthRepository } from '../repositories/AuthRepository';
-import { ProfileRepository } from '../repositories/ProfileRepository';
-import { AccountInfo, LoginHistoryItem, UserProfile } from '../models/User';
+import { AccountInfo, LoginHistoryItem } from '../models/User';
 import { SafeTop } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 
@@ -19,7 +18,7 @@ struct AccountPage {
   @State errorMsg: string = '';
   @State account: AccountInfo | null = null;
   @State history: LoginHistoryItem[] = [];
-  // 自定义头像（与首页/我的页同源 ProfileRepository；为空回退品牌徽章）
+  // 自定义头像（会话内存同步读取，与首页/我的页同源；为空回退品牌徽章）
   @State avatarUrl: string = '';
   @State showLogoutConfirm: boolean = false;
 
@@ -45,12 +44,8 @@ struct AccountPage {
         this.errorMsg = e instanceof Error ? e.message : '加载失败';
         this.loading = false;
       });
-    // 头像独立加载：失败不影响账户主信息展示
-    ProfileRepository.get().getProfile().then((p: UserProfile) => {
-      this.avatarUrl = p.avatarUrl ?? '';
-    }).catch(() => {
-      this.avatarUrl = '';
-    });
+    // 头像走会话内存快路径（updateProfile 改头像时会同步回写会话，数据恒新鲜）
+    this.avatarUrl = SessionStorage.get().getStudent()?.avatarUrl ?? '';
   }
 
   private statusLabel(s: string): string {
