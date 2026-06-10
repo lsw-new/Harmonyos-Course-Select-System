@@ -21,6 +21,9 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* hidden 属性必须压过任何 display 规则（.login-wrap/.layout 的 flex 否则会盖掉它） */
+[hidden] { display: none !important; }
+
 body {
   font-family: "PingFang SC", "Microsoft YaHei", "HarmonyOS Sans SC", sans-serif;
   background: linear-gradient(180deg, var(--rose-soft) 0%, var(--cream-50) 40%, #FFF4EC 100%);
