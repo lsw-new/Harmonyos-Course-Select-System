@@ -126,4 +126,3 @@ export function AboutPageBuilder() {
     AboutPage()
   }
   .hideTitleBar(true)
-}
