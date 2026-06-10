@@ -44,6 +44,9 @@ app.use(require('./routes/selection.routes'));
 // ---- 成绩域（当前学生已发布成绩）已抽到 ./routes/grades.routes ----
 app.use(require('./routes/grades.routes'));
 
+// ---- 班级课表域（按学生所在班级返回本班课表，含课程-教师绑定）----
+app.use(require('./routes/schedule.routes'));
+
 // ---- 通知域（列表 / 详情 / 标记已读）已抽到 ./routes/notices.routes ----
 app.use(require('./routes/notices.routes'));
 

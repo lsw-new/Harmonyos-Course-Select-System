@@ -113,6 +113,30 @@ export interface RemoteGrade {
   publishedAt: string;
 }
 
+export interface RemoteScheduleItem {
+  id: string;
+  term: string;
+  type: string;
+  courseId: string;
+  courseName: string;
+  teacher: string;
+  weekday: number;
+  periodStart: number;
+  periodEnd: number;
+  startTime: string;
+  endTime: string;
+  classroom: string;
+  campus?: string;
+  weeks: number[];
+  weekText: string;
+  courseType: string;
+}
+
+export interface RemoteSchedule {
+  className: string;
+  items: RemoteScheduleItem[];
+}
+
 export interface RemoteNotice {
   id: string;
   title: string;
@@ -352,6 +376,11 @@ export class RemoteApi {
   static async drop(studentId: string, courseId: string): Promise<void> {
     const body: SelectionBody = { studentId: studentId, courseId: courseId };
     await apiClient.delete<Object>('/selections', body);
+  }
+
+  // 班级课表：后端按 JWT 学号查名册定位班级，返回本班课表（含课程-教师绑定）
+  static async classSchedule(): Promise<RemoteSchedule> {
+    return apiClient.get<RemoteSchedule>('/schedule');
   }
 
   static async listGrades(studentId: string, term?: string): Promise<RemoteGrade[]> {

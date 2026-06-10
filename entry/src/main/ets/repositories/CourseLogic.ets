@@ -6,7 +6,7 @@ import { Course, ScheduleItem, SelectionCourse } from '../models/Course';
 import { AdminCourseItem, AdminCourseCategory, AdminCourseStatus } from '../models/Admin';
 import { Notice } from '../models/Notice';
 import { mockCourses } from '../mock/mockCourses';
-import { RemoteCourse, RemoteNotice } from '../common/remote/RemoteApi';
+import { RemoteCourse, RemoteNotice, RemoteScheduleItem } from '../common/remote/RemoteApi';
 
 const CONTROL_CHAR_PATTERN: RegExp = new RegExp('[\\u0000-\\u001f\\u007f]');
 
@@ -112,6 +112,29 @@ export class CourseLogic {
       assessment: rich ? rich.assessment : undefined
     };
     return course;
+  }
+
+  // 远程班级课表项 → 本地 ScheduleItem（type 收敛为联合类型，weeks 复制为新数组）
+  static remoteToScheduleItem(r: RemoteScheduleItem): ScheduleItem {
+    const item: ScheduleItem = {
+      id: r.id,
+      term: r.term,
+      type: r.type === 'practice' ? 'practice' : 'normal',
+      courseId: r.courseId,
+      courseName: r.courseName,
+      teacher: r.teacher,
+      weekday: r.weekday,
+      periodStart: r.periodStart,
+      periodEnd: r.periodEnd,
+      startTime: r.startTime,
+      endTime: r.endTime,
+      classroom: r.classroom,
+      campus: r.campus,
+      weeks: r.weeks.slice(),
+      weekText: r.weekText,
+      courseType: r.courseType
+    };
+    return item;
   }
 
   static isValidScheduleItem(s: ScheduleItem): boolean {

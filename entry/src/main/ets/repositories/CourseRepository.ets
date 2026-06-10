@@ -35,6 +35,9 @@ export class CourseRepository extends BaseRepository {
   // 导入课表：非空时覆盖 mockSchedule，作为 Schedule/Home/Today 的数据源。
   private importedSchedule: ScheduleItem[] = [];
   private isImportedLoaded: boolean = false;
+  // 远程班级课表内存缓存（仅 useRemote 生效；拉取成功才置 loaded，失败下次重试）
+  private remoteSchedule: ScheduleItem[] = [];
+  private remoteScheduleLoaded: boolean = false;
 
   // ============ 已选成员关系（仅存 id，课程主数据以管理端为准） ============
 
@@ -207,14 +210,34 @@ export class CourseRepository extends BaseRepository {
     return adminCourses.map((a) => CourseLogic.toStudentCourse(a));
   }
 
-  // 当前生效课表：有导入课表则用导入，否则回退到内置 mockSchedule。
+  // 当前生效课表，优先级：用户导入课表 > 远程班级课表（按名册班级匹配）> 内置 mockSchedule。
+  // 远程结果成功后内存缓存；拉取失败不缓存（下次调用重试），当次回退本地。
   private async getActiveSchedule(): Promise<ScheduleItem[]> {
     if (!this.isImportedLoaded) {
       const stored = await LocalDataStore.loadArray<ScheduleItem>(this.scopedKey(KEY_IMPORTED_SCHEDULE), []);
       this.importedSchedule = stored.filter((s) => CourseLogic.isValidScheduleItem(s));
       this.isImportedLoaded = true;
     }
-    return this.importedSchedule.length > 0 ? this.importedSchedule : mockSchedule;
+    if (this.importedSchedule.length > 0) {
+      return this.importedSchedule;
+    }
+    if (this.useRemote()) {
+      if (!this.remoteScheduleLoaded) {
+        try {
+          const remote = await RemoteApi.classSchedule();
+          this.remoteSchedule = remote.items
+            .map((r) => CourseLogic.remoteToScheduleItem(r))
+            .filter((s) => CourseLogic.isValidScheduleItem(s));
+          this.remoteScheduleLoaded = true;
+        } catch (e) {
+          // 远程不可用回退本地内置课表，与其余远程读分支的容错策略一致
+        }
+      }
+      if (this.remoteScheduleLoaded && this.remoteSchedule.length > 0) {
+        return this.remoteSchedule;
+      }
+    }
+    return mockSchedule;
   }
 
   async saveImportedSchedule(items: ScheduleItem[]): Promise<number> {
