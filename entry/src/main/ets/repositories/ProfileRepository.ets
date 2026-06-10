@@ -14,7 +14,7 @@ import { AppDatabase } from '../common/storage/AppDatabase';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteLeave, RemoteFeedback } from '../common/remote/RemoteApi';
+import { RemoteApi, RemoteLeave, RemoteFeedback, ProfileUpdateBody } from '../common/remote/RemoteApi';
 import { CourseRepository } from './CourseRepository';
 import { ScheduleItem } from '../models/Course';
 import { TermInfo } from '../models/Home';
@@ -255,6 +255,34 @@ export class ProfileRepository extends BaseRepository {
   }
 
   async updateProfile(patch: ProfileEditPatch): Promise<UserProfile> {
+    // 联机模式：资料（含头像）先落服务器，失败显式报错不静默分叉
+    const sessionStudent = SessionStorage.get().getStudent();
+    if (AppConfig.useRemote && sessionStudent) {
+      const body: ProfileUpdateBody = {};
+      if (patch.avatarUrl !== undefined) {
+        body.avatarUrl = patch.avatarUrl;
+      }
+      if (patch.phone !== undefined) {
+        body.phone = patch.phone;
+      }
+      if (patch.email !== undefined) {
+        body.email = patch.email;
+      }
+      if (patch.address !== undefined) {
+        body.address = patch.address;
+      }
+      if (patch.emergencyContact !== undefined) {
+        body.emergencyContact = patch.emergencyContact;
+      }
+      if (patch.bio !== undefined) {
+        body.bio = patch.bio;
+      }
+      try {
+        await RemoteApi.updateProfile(body);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
     // 基于当前会话真实资料增量更新，避免把真实资料覆盖回 mock。
     const cur = this.getCurrentStudentProfile();
     const next: UserProfile = {

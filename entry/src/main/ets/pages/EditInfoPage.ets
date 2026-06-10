@@ -128,19 +128,35 @@ struct EditInfoPage {
 
               Column() {
                 Text($r('app.string.editinfo_avatar')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
-                Row() {
+                Row({ space: 14 }) {
+                  // 头像实时预览：base64 data URL / 网络地址直接渲染，无头像时显示首字徽章
+                  if (this.avatarUrl.length > 0) {
+                    Image(this.avatarUrl)
+                      .width(64).height(64).borderRadius(32)
+                      .objectFit(ImageFit.Cover)
+                      .border({ width: 2, color: ElysiaTheme.ROSE_100 })
+                  } else {
+                    Stack() {
+                      Text(this.name.length > 0 ? this.name.charAt(0) : '?')
+                        .fontSize(24).fontWeight(FontWeight.Bold).fontColor(Color.White)
+                    }
+                    .width(64).height(64).borderRadius(32)
+                    .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.ROSE_500, 1]] })
+                    .alignContent(Alignment.Center)
+                  }
                   Column() {
-                    Text(this.avatarUrl.length > 0 ? $r('app.string.editinfo_picked') : $r('app.string.editinfo_unpicked'))
-                      .fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700)
-                    Text(this.avatarUrl.length > 0 ? this.avatarUrl : $r('app.string.editinfo_pick_hint'))
+                    Text(this.name.length > 0 ? this.name : '—')
+                      .fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+                    Text($r('app.string.editinfo_pick_hint'))
                       .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 4 }).maxLines(2)
                   }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                   Text(this.pickingAvatar ? $r('app.string.editinfo_picking') : $r('app.string.editinfo_pick_avatar'))
                     .fontSize(12).fontColor(Color.White).fontWeight(FontWeight.Bold)
                     .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-                    .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
+                    .backgroundColor(this.pickingAvatar ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_500)
+                    .borderRadius(999)
                     .onClick(() => this.pickAvatar())
-                }
+                }.width('100%').alignItems(VerticalAlign.Center)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 

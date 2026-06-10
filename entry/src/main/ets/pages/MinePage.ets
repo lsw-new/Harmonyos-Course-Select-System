@@ -165,9 +165,16 @@ struct MinePage {
           .width('100%')
           .margin({ bottom: 18 })
 
-          // 头像 + 信息
+          // 头像 + 信息（有自定义头像时显示真实头像，否则回退品牌徽章）
           Row() {
-            Monogram({ iconSize: 72 })
+            if (this.profile !== null && (this.profile.avatarUrl ?? '').length > 0) {
+              Image(this.profile.avatarUrl)
+                .width(72).height(72).borderRadius(36)
+                .objectFit(ImageFit.Cover)
+                .border({ width: 2, color: ElysiaTheme.ROSE_100 })
+            } else {
+              Monogram({ iconSize: 72 })
+            }
             Column() {
               Text(this.profile !== null ? `${this.profile.name} · 同学` : '同学')
                 .fontSize(24)

@@ -27,7 +27,8 @@ app.use(cors({ origin: CORS_ORIGINS.length > 0 ? CORS_ORIGINS : false, credentia
 app.use('/admin', express.static(path.join(__dirname, '..', 'public', 'admin')));
 
 app.use(globalLimiter);
-app.use(express.json());
+// 300kb：兼容压缩后 base64 头像（默认 100kb 不够）
+app.use(express.json({ limit: '300kb' }));
 
 // ---- 健康检查 ----
 app.get('/health', async (req, res) => {
@@ -44,6 +45,9 @@ app.use(require('./routes/auth.routes'));
 
 // ---- 选课域（课程列表 / 选课轮次 / 我的已选 / 选课 / 退课）已抽到 ./routes/selection.routes ----
 app.use(require('./routes/selection.routes'));
+
+// ---- 个人资料域（学生更新本人头像/联系方式）----
+app.use(require('./routes/profile.routes'));
 
 // ---- 成绩域（当前学生已发布成绩）已抽到 ./routes/grades.routes ----
 app.use(require('./routes/grades.routes'));

@@ -3,6 +3,9 @@
 import common from '@ohos.app.ability.common';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { rcp } from '@kit.RemoteCommunicationKit';
+import fs from '@ohos.file.fs';
+import image from '@ohos.multimedia.image';
+import util from '@ohos.util';
 import { LocalDataStore } from '../storage/LocalDataStore';
 import { SessionStorage } from '../storage/SessionStorage';
 
@@ -40,6 +43,9 @@ export class FileService {
     return base;
   }
 
+  // 选择头像并压缩为可持久化的 base64 data URL：
+  // 相册 URI 仅本次进程有效、不可跨端，故选图后立即缩放至 256px + JPEG 80 压缩，
+  // 编码为 data:image/jpeg;base64,... 存档（联机模式随资料落服务器，全端同步显示）。
   static async pickAvatarImage(): Promise<string> {
     const options = new photoAccessHelper.PhotoSelectOptions();
     options.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
@@ -51,7 +57,40 @@ export class FileService {
     if (uri.length === 0) {
       throw new Error('未选择图片');
     }
-    return uri;
+    const file = fs.openSync(uri, fs.OpenMode.READ_ONLY);
+    let source: image.ImageSource | undefined = undefined;
+    let pixelMap: image.PixelMap | undefined = undefined;
+    let packer: image.ImagePacker | undefined = undefined;
+    try {
+      source = image.createImageSource(file.fd);
+      const info = await source.getImageInfo();
+      const maxSide = Math.max(info.size.width, info.size.height);
+      const ratio = maxSide > 256 ? 256 / maxSide : 1;
+      const decodeOpts: image.DecodingOptions = {
+        desiredSize: {
+          width: Math.max(1, Math.round(info.size.width * ratio)),
+          height: Math.max(1, Math.round(info.size.height * ratio))
+        }
+      };
+      pixelMap = await source.createPixelMap(decodeOpts);
+      packer = image.createImagePacker();
+      const packOpts: image.PackingOption = { format: 'image/jpeg', quality: 80 };
+      const buffer = await packer.packing(pixelMap, packOpts);
+      const helper = new util.Base64Helper();
+      const encoded = helper.encodeToStringSync(new Uint8Array(buffer));
+      return `data:image/jpeg;base64,${encoded}`;
+    } finally {
+      if (packer) {
+        packer.release();
+      }
+      if (pixelMap) {
+        pixelMap.release();
+      }
+      if (source) {
+        source.release();
+      }
+      fs.closeSync(file);
+    }
   }
 
   static async downloadFile(url: string, fileName: string): Promise<string> {

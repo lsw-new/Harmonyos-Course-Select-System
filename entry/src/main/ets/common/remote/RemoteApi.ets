@@ -58,6 +58,15 @@ export interface RemoteProfile {
   permissions?: RemoteAdminPermission[];
 }
 
+export interface ProfileUpdateBody {
+  avatarUrl?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  emergencyContact?: string;
+  bio?: string;
+}
+
 export interface RemoteLoginResult {
   token: string;
   accountId: string;
@@ -473,6 +482,11 @@ export class RemoteApi {
   // 班级课表：后端按 JWT 学号查名册定位班级，返回本班课表（含课程-教师绑定）
   static async classSchedule(): Promise<RemoteSchedule> {
     return apiClient.get<RemoteSchedule>('/schedule');
+  }
+
+  // 更新本人资料（头像/联系方式，仅提交的字段生效），返回更新后完整 profile
+  static async updateProfile(body: ProfileUpdateBody): Promise<RemoteProfile> {
+    return apiClient.put<RemoteProfile>('/profile', body);
   }
 
   static async listGrades(studentId: string, term?: string): Promise<RemoteGrade[]> {
