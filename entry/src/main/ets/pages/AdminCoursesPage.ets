@@ -321,11 +321,12 @@ struct AdminCoursesPage {
         }
 
         if (this.loading) {
-          SkeletonList({ count: 6 })
+          // 状态视图撑满内容区：避免加载期间底部 TabBar 上浮、布局跳动
+          Column() { SkeletonList({ count: 6 }) }.layoutWeight(1).width('100%')
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.courses.length === 0) {
-          EmptyState({ title: $r('app.string.admincourses_empty') })
+          Column() { EmptyState({ title: $r('app.string.admincourses_empty') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           List() {
             LazyForEach(this.coursesDs, (c: AdminCourseItem) => {

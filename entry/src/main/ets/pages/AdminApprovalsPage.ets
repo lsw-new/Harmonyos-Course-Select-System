@@ -131,9 +131,10 @@ struct AdminApprovalsPage {
           }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).padding({ left: 16, right: 16 }).margin({ top: 8 })
 
           if (this.loading) {
-            LoadingState({})
+            // 状态视图撑满内容区：避免加载期间底部 TabBar 上浮、布局跳动
+            Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
           } else if (this.approvals.length === 0) {
-            EmptyState({ title: $r('app.string.adminapprovals_empty') })
+            Column() { EmptyState({ title: $r('app.string.adminapprovals_empty') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
           } else {
             List() {
               ForEach(this.approvals, (a: ApprovalItem) => {

@@ -96,9 +96,10 @@ struct AdminDashboardPage {
         TopBar({ title: $r('app.string.admindash_title'), subtitle: $r('app.string.admindash_subtitle'), showBack: false })
 
         if (this.loading) {
-          LoadingState({})
+          // 状态视图撑满内容区：避免加载期间底部 TabBar 上浮、布局跳动
+          Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.dashboard !== null) {
           Scroll() {
             Column({ space: 14 }) {

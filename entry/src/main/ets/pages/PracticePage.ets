@@ -183,11 +183,12 @@ struct PracticePage {
         .margin({ bottom: 8 })
 
         if (this.loading) {
-          LoadingState({ tip: $r('app.string.practice_loading') })
+          // 状态视图撑满内容区：避免加载期间底部 TabBar 上浮、布局跳动
+          Column() { LoadingState({ tip: $r('app.string.practice_loading') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.projects.length === 0) {
-          EmptyState({ icon: 'practice', title: $r('app.string.practice_empty') })
+          Column() { EmptyState({ icon: 'practice', title: $r('app.string.practice_empty') }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           Scroll() {
             Column() {
