@@ -72,21 +72,32 @@ export const mockGradeSummary: GradeSummary[] = [
   { term: '2025-2026-2', earnedCredits: 16, weightedAverage: 86.4, termGpa: 3.6, totalGpa: 3.6 }
 ];
 
+// 考试安排与班级课表同源：23计算机科学与技术U9 本学期课程的期末考试（考试周 16-17 周）
 export const mockExams: ExamArrangement[] = [
   {
-    id: 'e-1', term: '2025-2026-2', courseName: '数据结构与算法',
-    examType: '期末闭卷', date: '2026-06-22', startTime: '09:00', endTime: '11:00',
-    classroom: '理工楼 305', seatNo: 'A-12', notice: '禁止携带电子设备。'
+    id: 'e-1', term: '2025-2026-2', courseName: '编译原理',
+    examType: '期末闭卷', date: '2026-06-29', startTime: '09:00', endTime: '11:00',
+    classroom: '上茶苑教8栋515', seatNo: 'A-12', notice: '禁止携带电子设备。'
   },
   {
-    id: 'e-2', term: '2025-2026-2', courseName: '高等数学（下）',
-    examType: '期末闭卷', date: '2026-06-25', startTime: '14:00', endTime: '16:00',
-    classroom: '理工楼 102', seatNo: 'B-08'
+    id: 'e-2', term: '2025-2026-2', courseName: '计算机组成原理',
+    examType: '期末闭卷', date: '2026-07-01', startTime: '14:00', endTime: '16:00',
+    classroom: '上茶苑教8栋513', seatNo: 'B-08'
   },
   {
-    id: 'e-3', term: '2025-2026-2', courseName: '中国古典文学赏析',
-    examType: '论文', date: '2026-06-15', startTime: '—', endTime: '—',
-    classroom: '线上提交'
+    id: 'e-3', term: '2025-2026-2', courseName: '软件测试与管理',
+    examType: '期末机考', date: '2026-06-26', startTime: '10:00', endTime: '11:30',
+    classroom: '上茶苑教9栋510', seatNo: 'C-21'
+  },
+  {
+    id: 'e-4', term: '2025-2026-2', courseName: '中国近现代史纲要',
+    examType: '开卷考试', date: '2026-06-24', startTime: '14:00', endTime: '15:30',
+    classroom: '长芗苑教13栋205', seatNo: 'D-05'
+  },
+  {
+    id: 'e-5', term: '2025-2026-2', courseName: '鸿蒙移动应用开发综合实践',
+    examType: '项目答辩', date: '2026-06-19', startTime: '—', endTime: '—',
+    classroom: '上茶苑教9栋401（软件工程实训室）', notice: '现场演示 + 代码答辩。'
   }
 ];
 

@@ -1,7 +1,7 @@
 // 管理端统计域路由：仪表盘聚合 / 选课轮次统计 / 评教统计——全部由数据库实时聚合。
 const express = require('express');
 const { pool } = require('../db');
-const { ok } = require('../envelope');
+const { ok, fail } = require('../envelope');
 const { adminRequired } = require('../auth');
 const { serverError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
@@ -160,6 +160,60 @@ router.get('/api/admin/eval/stats', permissionRequired('evaluations.manage:view'
     }));
   } catch (e) {
     serverError(res, '查询评教统计失败', e);
+  }
+});
+
+// ---- 教学日历（calendar_events 实库 CRUD，system.config 权限）----
+const CALENDAR_TYPES = ['term', 'exam', 'holiday', 'selection', 'makeup', 'other'];
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+router.get('/api/admin/calendar', permissionRequired('system.config:view', 'system.config:update'), async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT event_id, to_char(event_date, 'YYYY-MM-DD') AS date, title, type
+       FROM dtest2.calendar_events ORDER BY event_date, event_id`
+    );
+    res.json(ok(r.rows.map((row) => ({ id: row.event_id, date: row.date, title: row.title, type: row.type }))));
+  } catch (e) {
+    serverError(res, '查询教学日历失败', e);
+  }
+});
+
+router.post('/api/admin/calendar', permissionRequired('system.config:create', 'system.config:update'), async (req, res) => {
+  const b = req.body || {};
+  const date = String(b.date || '').trim();
+  const title = String(b.title || '').trim();
+  const type = String(b.type || '').trim();
+  if (!DATE_RE.test(date)) {
+    return res.status(400).json(fail('日期格式需为 YYYY-MM-DD'));
+  }
+  if (!title || title.length > 60) {
+    return res.status(400).json(fail('标题需为 1-60 字'));
+  }
+  if (CALENDAR_TYPES.indexOf(type) < 0) {
+    return res.status(400).json(fail('事件类型不合法'));
+  }
+  try {
+    const id = `cal-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO dtest2.calendar_events (event_id, event_date, title, type) VALUES ($1, $2, $3, $4)`,
+      [id, date, title, type]
+    );
+    res.json(ok({ id, date, title, type }));
+  } catch (e) {
+    serverError(res, '新增校历事件失败', e);
+  }
+});
+
+router.delete('/api/admin/calendar/:id', permissionRequired('system.config:delete', 'system.config:update'), async (req, res) => {
+  try {
+    const r = await pool.query(`DELETE FROM dtest2.calendar_events WHERE event_id=$1`, [req.params.id]);
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('校历事件不存在'));
+    }
+    res.json(ok({ deleted: true }));
+  } catch (e) {
+    serverError(res, '删除校历事件失败', e);
   }
 });
 

@@ -144,8 +144,55 @@ export class AcademicRepository extends BaseRepository {
     return this.delayCopy<GradeRecord[]>(items);
   }
 
+  // number|string 联合字段取数值（'合格' 等文字成绩返回 NaN 不参与计算）
+  private static asNumeric(value: number | string | undefined): number {
+    if (typeof value === 'number') {
+      return value;
+    }
+    return Number.NaN;
+  }
+
   async getGradeSummary(term?: string): Promise<GradeSummary> {
-    const t = term ?? '2025-2026-1';
+    // 联机模式：汇总由真实成绩单实时计算（学分/加权均分/绩点与成绩列表恒一致）
+    if (AppConfig.useRemote && SessionStorage.get().getStudent()) {
+      try {
+        const grades = await this.getGrades(term);
+        let credits = 0;
+        let weightedSum = 0;
+        let creditSum = 0;
+        let gpaSum = 0;
+        let gpaCredits = 0;
+        grades.forEach((g) => {
+          const score = AcademicRepository.asNumeric(g.finalScore ?? g.totalScore);
+          if (!Number.isFinite(score)) {
+            return;
+          }
+          if (score >= 60) {
+            credits += g.credit;
+          }
+          weightedSum += score * g.credit;
+          creditSum += g.credit;
+          const point = AcademicRepository.asNumeric(g.gradePoint);
+          if (Number.isFinite(point)) {
+            gpaSum += point * g.credit;
+            gpaCredits += g.credit;
+          }
+        });
+        const avg = creditSum > 0 ? Math.round((weightedSum / creditSum) * 10) / 10 : 0;
+        const gpa = gpaCredits > 0 ? Math.round((gpaSum / gpaCredits) * 100) / 100 : 0;
+        const computed: GradeSummary = {
+          term: term ?? '2025-2026-2',
+          earnedCredits: credits,
+          weightedAverage: avg,
+          termGpa: gpa,
+          totalGpa: gpa
+        };
+        return this.delayCopy<GradeSummary>(computed);
+      } catch (e) {
+        // 远程失败回退本地汇总
+      }
+    }
+    const t = term ?? '2025-2026-2';
     const found = mockGradeSummary.find((s) => s.term === t) ?? mockGradeSummary[0];
     return this.delayCopy<GradeSummary>(found);
   }
@@ -159,6 +206,23 @@ export class AcademicRepository extends BaseRepository {
   }
 
   async getStudentRecord(): Promise<StudentRecord> {
-    return this.delayCopy<StudentRecord>(mockStudentRecord);
+    // 基础学籍字段与会话真实资料同源（姓名/学号/学院/专业/班级/年级），
+    // 其余档案字段（学制/类别等）后端暂无，沿用演示模板。
+    const record = await this.delayCopy<StudentRecord>(mockStudentRecord);
+    const student = SessionStorage.get().getStudent();
+    if (student) {
+      record.studentId = student.studentId;
+      record.name = student.name;
+      record.college = student.college;
+      record.administrativeCollege = student.college;
+      record.major = student.major;
+      record.className = student.className;
+      record.grade = student.grade;
+      const year = student.grade.replace('级', '').trim();
+      if (year.length === 4) {
+        record.entranceDate = `${year}-09-01`;
+      }
+    }
+    return record;
   }
 }

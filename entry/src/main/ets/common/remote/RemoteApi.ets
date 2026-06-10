@@ -309,6 +309,19 @@ export interface RemoteRatingBucket {
   count: number;
 }
 
+export interface RemoteCalendarEvent {
+  id: string;
+  date: string;
+  title: string;
+  type: string;
+}
+
+export interface CalendarEventBody {
+  date: string;
+  title: string;
+  type: string;
+}
+
 export interface RemoteEvalStats {
   term: string;
   participationRate: number;
@@ -588,6 +601,19 @@ export class RemoteApi {
   // 仪表盘：注册/名册/课程/审批/成绩/评教实时计数 + 近7天选课趋势 + 课程类型分布 + 待审批前5条
   static async adminDashboard(): Promise<RemoteDashboard> {
     return apiClient.get<RemoteDashboard>('/admin/dashboard');
+  }
+
+  // 教学日历（calendar_events 实库）
+  static async adminCalendarEvents(): Promise<RemoteCalendarEvent[]> {
+    return apiClient.get<RemoteCalendarEvent[]>('/admin/calendar');
+  }
+
+  static async adminAddCalendarEvent(body: CalendarEventBody): Promise<RemoteCalendarEvent> {
+    return apiClient.post<RemoteCalendarEvent>('/admin/calendar', body);
+  }
+
+  static async adminDeleteCalendarEvent(id: string): Promise<void> {
+    await apiClient.delete<Object>('/admin/calendar/' + encodeURIComponent(id), undefined);
   }
 
   // 管理端课程目录（全部状态）

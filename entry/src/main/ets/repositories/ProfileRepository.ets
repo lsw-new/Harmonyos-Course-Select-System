@@ -326,10 +326,17 @@ export class ProfileRepository extends BaseRepository {
     const weekday = this.resolveTodayWeekday(summary.term);
     const weekSchedule = await CourseRepository.get().getSchedule(undefined, summary.term.weekIndex);
     summary.todayCourses = weekSchedule.filter((s: ScheduleItem) => s.weekday === weekday);
-    // 未读角标与通知摘要改为按通知仓储动态计算，反映已读状态（避免静态快照不刷新）
-    const notices = await NoticeStore.list(mockNotices);
-    summary.unreadNoticeCount = notices.filter((n) => !n.isRead).length;
-    summary.noticeSummary = notices.slice(0, 3);
+    // 未读角标与通知摘要与「通知列表页」同源（CourseRepository.getNotices：
+    // 联机走后端真实通知、本地走 NoticeStore），避免首页与通知页数字对不上。
+    try {
+      const notices = await CourseRepository.get().getNotices();
+      summary.unreadNoticeCount = notices.filter((n) => !n.isRead).length;
+      summary.noticeSummary = notices.slice(0, 3);
+    } catch (e) {
+      const fallback = await NoticeStore.list(mockNotices);
+      summary.unreadNoticeCount = fallback.filter((n) => !n.isRead).length;
+      summary.noticeSummary = fallback.slice(0, 3);
+    }
     return summary;
   }
 

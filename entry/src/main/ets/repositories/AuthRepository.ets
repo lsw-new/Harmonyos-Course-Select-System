@@ -264,7 +264,16 @@ export class AuthRepository extends BaseRepository {
   }
 
   async getAccount(): Promise<AccountInfo> {
-    return this.delayCopy<AccountInfo>(mockAccountInfo);
+    // 账户核心字段与会话真实资料同源（学号/姓名/邮箱）；
+    // 注册时间/登录次数等后端暂无统计，沿用演示模板。
+    const account = await this.delayCopy<AccountInfo>(mockAccountInfo);
+    const student = SessionStorage.get().getStudent();
+    if (student) {
+      account.studentId = student.studentId;
+      account.name = student.name;
+      account.email = student.email ?? account.email;
+    }
+    return account;
   }
 
   async getLoginHistory(): Promise<LoginHistoryItem[]> {

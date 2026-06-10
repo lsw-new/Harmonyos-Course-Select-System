@@ -12,6 +12,8 @@ import {
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { AuthorizationService } from '../common/security/AuthorizationService';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteCalendarEvent, CalendarEventBody } from '../common/remote/RemoteApi';
 
 const KEY_CALENDAR = 'local.calendar.v1';
 const KEY_APPROVAL_FLOW = 'local.approvalFlow.v1';
@@ -126,7 +128,26 @@ export class SysConfigRepository extends BaseRepository {
     await LocalDataStore.saveArray<CalendarEvent>(KEY_CALENDAR, next);
   }
 
+  // \u8fdc\u7a0b\u65e5\u5386\u4e8b\u4ef6 \u2192 \u672c\u5730\u6a21\u578b\uff08type \u8bcd\u8868\u4e24\u7aef\u4e00\u81f4\uff09
+  private remoteToCalendarEvent(r: RemoteCalendarEvent): CalendarEvent {
+    const event: CalendarEvent = {
+      id: r.id,
+      date: r.date,
+      title: r.title,
+      type: r.type as CalendarEventType
+    };
+    return event;
+  }
+
   async getCalendarEvents(): Promise<CalendarEvent[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.adminCalendarEvents();
+        return this.delayCopy<CalendarEvent[]>(remote.map((r) => this.remoteToCalendarEvent(r)));
+      } catch (e) {
+        // \u8fdc\u7a0b\u5931\u8d25\u56de\u9000\u672c\u5730\u6821\u5386
+      }
+    }
     const items = await this.getCalendarItems();
     return this.delayCopy<CalendarEvent[]>(items);
   }
@@ -134,6 +155,15 @@ export class SysConfigRepository extends BaseRepository {
   async addCalendarEvent(payload: CalendarEventPayload): Promise<CalendarEvent> {
     if (!AuthorizationService.hasAdminPermission('system.config', 'create')) {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
+    if (AppConfig.useRemote) {
+      try {
+        const body: CalendarEventBody = { date: payload.date, title: payload.title, type: payload.type };
+        const remote = await RemoteApi.adminAddCalendarEvent(body);
+        return this.delayCopy<CalendarEvent>(this.remoteToCalendarEvent(remote));
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
     }
     const date = (payload.date ?? '').trim();
     const title = (payload.title ?? '').trim();
@@ -161,6 +191,14 @@ export class SysConfigRepository extends BaseRepository {
   async deleteCalendarEvent(id: string): Promise<boolean> {
     if (!AuthorizationService.hasAdminPermission('system.config', 'delete')) {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
+    }
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.adminDeleteCalendarEvent(id);
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
     }
     const items = await this.getCalendarItems();
     const target = items.find((item) => item.id === id);
