@@ -327,7 +327,7 @@ export const mockSchedule: ScheduleItem[] = [
     weekday: 4, periodStart: 9, periodEnd: 10,
     startTime: '19:00', endTime: '20:35', classroom: '长芗苑教10栋202', campus: '芗苑校区',
     weeks: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
-    weekText: '3-18 周', courseType: '公选'
+    weekText: '3-18 周', courseType: '选修'
   },
   {
     id: 'imp-11', term: '2025-2026-2', type: 'practice', courseId: 'VDZ02119303',

@@ -52,7 +52,7 @@ export const mockEvaluationTasks: EvaluationTask[] = [
   },
   {
     id: 'eval-VJW01102302', term: '2025-2026-2',
-    courseCode: 'VJW01102302', courseName: '博物馆展览鉴赏', courseCategory: '公选',
+    courseCode: 'VJW01102302', courseName: '博物馆展览鉴赏', courseCategory: '选修',
     teacherName: '汪芷晔', questionnaireName: '教学质量评价问卷',
     status: 'open', openTime: '2026-06-01 00:00', closeTime: '2026-07-15 23:59'
   }

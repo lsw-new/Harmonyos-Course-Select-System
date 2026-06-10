@@ -62,7 +62,7 @@ export const mockGrades: GradeRecord[] = [
   {
     id: 'g-VJW01102302', term: '2025-2026-2',
     courseCode: 'VJW01102302', teachingClassNo: 'U9', courseName: '博物馆展览鉴赏',
-    courseCategory: '公选', credit: 2,
+    courseCategory: '选修', credit: 2,
     totalScore: '暂未发布',
     status: 'pendingAudit'
   }
