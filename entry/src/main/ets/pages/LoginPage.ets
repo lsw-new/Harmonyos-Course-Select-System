@@ -194,6 +194,7 @@ struct LoginPage {
         .padding({ left: 26, right: 26 })
       }
       .scrollBar(BarState.Off)
+      .height('100%')
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%')

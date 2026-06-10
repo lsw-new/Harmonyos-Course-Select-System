@@ -219,6 +219,7 @@ struct PracticePage {
         StudentTabBar({ active: 'prac', onTap: (id: string, route: string) => { AppRoute.go(route, { replace: true }); } })
       }
       .width('100%')
+      .height('100%')
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }
     .width('100%').height('100%')

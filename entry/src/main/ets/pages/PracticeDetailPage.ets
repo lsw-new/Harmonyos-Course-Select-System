@@ -149,6 +149,7 @@ struct PracticeDetailPage {
         }
       }
       .width('100%')
+      .height('100%')
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
 
       // 取消报名确认浮层
