@@ -110,10 +110,16 @@ struct PracticePage {
     const repo = PracticeRepository.get();
     const isCancel = project.signedUp;
     const action: Promise<PracticeProject> = isCancel ? repo.cancelSignUp(project.id) : repo.signUp(project.id);
-    action.then(() => {
+    action.then((updated: PracticeProject) => {
       this.busyId = '';
       Toast.show(this.getUIContext(), isCancel ? '已取消报名' : '报名成功');
-      this.reloadProjects();
+      // 只替换被操作的那一项：其余卡片 key 不变不重建，避免整列表刷新引起其他项按钮闪动
+      const idx = this.projects.findIndex((p: PracticeProject) => p.id === updated.id);
+      if (idx >= 0) {
+        this.projects.splice(idx, 1, updated);
+      } else {
+        this.reloadProjects();
+      }
     }).catch((e: object) => {
       this.busyId = '';
       const msg = (e instanceof HttpError) ? (e as HttpError).message : (isCancel ? '取消失败' : '报名失败');
@@ -237,7 +243,7 @@ struct PracticePage {
         .border({ width: 1, color: ElysiaTheme.hairline() })
         .borderRadius(999)
         .padding({ left: 14, right: 14 })
-        .enabled(this.busyId.length === 0)
+        .enabled(this.busyId !== project.id)
         .onClick(() => { this.toggleSignUp(project); })
     } else if (project.slotsTaken >= project.slotsTotal) {
       Button($r('app.string.practice_btn_full'))
@@ -256,7 +262,7 @@ struct PracticePage {
         .linearGradient({ angle: 135, colors: [['#FF9FBE', 0], [ElysiaTheme.ROSE_500, 1]] })
         .borderRadius(999)
         .padding({ left: 14, right: 14 })
-        .enabled(this.busyId.length === 0)
+        .enabled(this.busyId !== project.id)
         .onClick(() => { this.toggleSignUp(project); })
     }
   }

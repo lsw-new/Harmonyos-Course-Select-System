@@ -2,13 +2,17 @@ import { HomeSummary, QuickEntry, DownloadFile, RecentLogin, TermInfo } from '..
 import { ScheduleItem } from '../models/Course';
 import { mockSchedule } from './mockCourses';
 import { mockNotices } from './mockNotices';
+import { TermUtils } from '../common/utils/TermUtils';
+
+// 教学周/本周日期按真实日期动态计算（锚点在 TermUtils.termStart），不再写死某一周。
+const CURRENT_WEEK: number = TermUtils.teachingWeek();
 
 const term: TermInfo = {
   academicYear: '2025-2026',
   semester: '第二学期',
-  weekIndex: 14,
-  weekStartDate: '2026-06-01',
-  weekDates: ['06/01', '06/02', '06/03', '06/04', '06/05', '06/06', '06/07']
+  weekIndex: CURRENT_WEEK,
+  weekStartDate: TermUtils.weekStartDateText(CURRENT_WEEK),
+  weekDates: TermUtils.weekDatesOf(CURRENT_WEEK)
 };
 
 const quickEntries: QuickEntry[] = [

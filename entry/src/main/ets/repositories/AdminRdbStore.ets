@@ -9,7 +9,8 @@ import {
 import { mockAdminCourses } from '../mock/mockAdmin';
 import { AppDatabase } from '../common/storage/AppDatabase';
 
-const SEED_COURSES_FLAG = 'seed.courses.v1';
+// v2：内置课程排课时间改到晚间 9-10 节（避免与真实课表冲突），升版本让已种子的设备按新时间重新 UPSERT。
+const SEED_COURSES_FLAG = 'seed.courses.v2';
 
 export class AdminRdbStore {
   // 从 grade_tasks 表加载成绩审核任务列表

@@ -12,6 +12,7 @@ import { ScheduleItem } from '../models/Course';
 import { ScheduleImportService, DEFAULT_TERM } from '../common/services/ScheduleImportService';
 import { Toast } from '../common/widgets/Feedback';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
+import { TermUtils } from '../common/utils/TermUtils';
 import common from '@ohos.app.ability.common';
 
 function generateWeekNumbers(): number[] {
@@ -24,7 +25,9 @@ function generateWeekNumbers(): number[] {
 
 @Component
 struct SchedulePage {
-  @State currentWeek: number = 14;
+  @State currentWeek: number = TermUtils.teachingWeek();
+  // 周次滚动条控制器：进入页面时把当前周滚动到居中位置
+  private weekScroller: ListScroller = new ListScroller();
   @State schedule: ScheduleItem[] = [];
   @State loading: boolean = true;
   @State errorMsg: string = '';
@@ -80,7 +83,8 @@ struct SchedulePage {
       .then((items: ScheduleItem[]) => CourseRepository.get().saveImportedSchedule(items))
       .then((n: number) => {
         this.importing = false;
-        this.currentWeek = 1;
+        this.currentWeek = TermUtils.teachingWeek();
+        this.weekScroller.scrollToIndex(this.currentWeek - 1, true, ScrollAlign.CENTER);
         Toast.show(this.getUIContext(), `${okPrefix} · 共 ${n} 节`);
         this.loadSchedule();
       })
@@ -214,10 +218,10 @@ struct SchedulePage {
               })
           }
 
-          // 周次滚动条
-          Scroll() {
-            Row({ space: 5 }) {
-              ForEach(generateWeekNumbers(), (w: number) => {
+          // 周次滚动条：List + Scroller，进入页面/切周时把选中周滚动到居中位置
+          List({ space: 5, scroller: this.weekScroller }) {
+            ForEach(generateWeekNumbers(), (w: number) => {
+              ListItem() {
                 Button(`${w}`)
                   .height(28)
                   .padding({ left: 10, right: 10 })
@@ -234,14 +238,20 @@ struct SchedulePage {
                   .border({ width: w === this.currentWeek ? 0 : 1, color: ElysiaTheme.hairline() })
                   .onClick(() => {
                     this.currentWeek = w;
+                    this.weekScroller.scrollToIndex(w - 1, true, ScrollAlign.CENTER);
                     this.loadSchedule();
                   })
-              }, (w: number) => `week-${w}`)
-            }
+              }
+            }, (w: number) => `week-${w}`)
           }
-          .scrollable(ScrollDirection.Horizontal)
+          .listDirection(Axis.Horizontal)
           .scrollBar(BarState.Off)
+          .width('100%')
+          .height(28)
           .margin({ top: 10 })
+          .onAppear(() => {
+            this.weekScroller.scrollToIndex(this.currentWeek - 1, false, ScrollAlign.CENTER);
+          })
         }
         .width('100%')
         .padding({ left: 16, right: 16 })
@@ -388,16 +398,18 @@ struct SchedulePage {
     }
   }
 
-  // 课表表头日期：第 14 周周一锚定 2026-06-01，按 currentWeek 推算每列的「日」。
+  // 课表表头日期：按 TermUtils 学期锚点与 currentWeek 推算每列的「日」。
   private dayOfMonth(dayIndex: number): number {
-    const monday = new Date(2026, 5, 1);
-    monday.setDate(monday.getDate() + (this.currentWeek - 14) * 7 + dayIndex);
+    const monday = TermUtils.weekMonday(this.currentWeek);
+    monday.setDate(monday.getDate() + dayIndex);
     return monday.getDate();
   }
 
+  // 区间匹配：跨节次课程（如 1-4 节）在其覆盖的每个时段行都可见，
+  // 避免与已选课程同格时整门课从课表上消失。
   findLesson(period: number, weekday: number): ScheduleItem | undefined {
     return this.schedule.find(
-      (s: ScheduleItem) => s.weekday === weekday && s.periodStart === period
+      (s: ScheduleItem) => s.weekday === weekday && s.periodStart <= period && s.periodEnd >= period
     );
   }
 

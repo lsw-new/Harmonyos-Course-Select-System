@@ -211,6 +211,23 @@ export class CourseLogic {
     return out;
   }
 
+  // 课程与课表行是否时间冲突：同一星期、节次区间重叠、且周次有交集（集中实践等未排课课程不参与）
+  static courseConflictsWithScheduleItem(c: Course, s: ScheduleItem): boolean {
+    if (c.weekday < 1 || s.weekday < 1 || c.weekday !== s.weekday) {
+      return false;
+    }
+    if (c.periodStart > s.periodEnd || s.periodStart > c.periodEnd) {
+      return false;
+    }
+    const wc = CourseLogic.parseCourseWeeks(c.weeks);
+    for (let i = 0; i < wc.length; i++) {
+      if (s.weeks.indexOf(wc[i]) >= 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // 两门课是否时间冲突：同一星期、节次区间重叠、且周次有交集
   static coursesConflict(a: Course, b: Course): boolean {
     if (a.weekday < 1 || b.weekday < 1) {

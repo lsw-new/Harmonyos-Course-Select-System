@@ -43,9 +43,11 @@ struct SelectionConfirmPage {
       return;
     }
     this.submitting = true;
+    const noSchedule: boolean = this.course!.weekday < 1;
     CourseRepository.get().selectCourse(this.course!.id).then(() => {
       this.submitting = false;
-      Toast.show(this.getUIContext(), '选课成功');
+      // 集中实践类课程无固定排课，不会出现在课表网格中，明确告知避免误以为选课未生效
+      Toast.show(this.getUIContext(), noSchedule ? '选课成功（集中实践类课程无固定排课，不在课表中显示）' : '选课成功，已加入我的课表');
       // 通知选课中心重新拉取，保证返回后已选学分/按钮状态同步
       AppStorage.setOrCreate('selection.refreshTick', Date.now());
       AppRoute.back();

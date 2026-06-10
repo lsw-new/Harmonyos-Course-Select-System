@@ -9,15 +9,16 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { ScheduleItem } from '../models/Course';
+import { TermUtils } from '../common/utils/TermUtils';
 
 // Convert JS getDay() (0=Sun..6=Sat) to mock weekday encoding (1=Mon..7=Sun)
 function toWeekday(jsDay: number): number {
   return jsDay === 0 ? 7 : jsDay;
 }
 
-// 当前教学周：与 CourseRepository 默认周 / 首页 term.weekIndex 一致，
+// 当前教学周：按真实日期动态计算，与 CourseRepository 默认周 / 首页 term.weekIndex 同口径，
 // 使“今天/明天/本周”三个 tab 取自同一合并课表（导入课表 + 已选课程）。
-const CURRENT_TEACHING_WEEK: number = 14;
+const CURRENT_TEACHING_WEEK: number = TermUtils.teachingWeek();
 
 @Component
 struct TodayPage {

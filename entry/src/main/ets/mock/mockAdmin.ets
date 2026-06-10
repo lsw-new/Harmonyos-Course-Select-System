@@ -69,12 +69,14 @@ export const mockAdminStudents: StudentAdminItem[] = [
   { studentId: '202321099001', name: '岳明远', college: '音乐舞蹈学院', major: '音乐表演', className: '音乐2301', gpa: 3.40, status: 'active', educationLevel: 'postgraduate' }
 ];
 
+// 排课时间统一放在内置课表（mockSchedule）全学期空闲的晚间 9-10 节，
+// 避免演示账号选课后与真实课表（如 鸿蒙实践 周一 1-4 节）产生时间冲突。
 export const mockAdminCourses: AdminCourseItem[] = [
-  { id: 'ac-1', code: 'CS101', name: '数据结构与算法', teacher: '苏婉清', category: 'required', credit: 4, timeText: '周一 1-2 节', capacity: 60, selectedCount: 58, status: 'open' },
-  { id: 'ac-2', code: 'LIT201', name: '中国古典文学赏析', teacher: '陆清和', category: 'elective', credit: 2, timeText: '周二 3-4 节', capacity: 80, selectedCount: 80, status: 'open' },
-  { id: 'ac-3', code: 'ART303', name: '视觉传达基础', teacher: '林婉如', category: 'public', credit: 2, timeText: '周三 5-6 节', capacity: 40, selectedCount: 32, status: 'open' },
+  { id: 'ac-1', code: 'CS101', name: '数据结构与算法', teacher: '苏婉清', category: 'required', credit: 4, timeText: '周一 9-10 节', capacity: 60, selectedCount: 58, status: 'open' },
+  { id: 'ac-2', code: 'LIT201', name: '中国古典文学赏析', teacher: '陆清和', category: 'elective', credit: 2, timeText: '周二 9-10 节', capacity: 80, selectedCount: 80, status: 'open' },
+  { id: 'ac-3', code: 'ART303', name: '视觉传达基础', teacher: '林婉如', category: 'public', credit: 2, timeText: '周三 9-10 节', capacity: 40, selectedCount: 32, status: 'open' },
   { id: 'ac-4', code: 'PR101', name: '社会实践 I', teacher: '李辰', category: 'practice', credit: 1, timeText: '集中实践', capacity: 200, selectedCount: 165, status: 'open' },
-  { id: 'ac-5', code: 'CS401', name: '操作系统原理', teacher: '韩予', category: 'required', credit: 4, timeText: '周四 1-2 节', capacity: 60, selectedCount: 60, status: 'closed' }
+  { id: 'ac-5', code: 'CS401', name: '操作系统原理', teacher: '韩予', category: 'required', credit: 4, timeText: '周五 9-10 节', capacity: 60, selectedCount: 60, status: 'closed' }
 ];
 
 export const mockSelectionRounds: SelectionRound[] = [

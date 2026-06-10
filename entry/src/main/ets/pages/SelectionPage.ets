@@ -11,6 +11,7 @@ import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { SelectionCourse, SelectionRoundInfo } from '../models/Course';
 import { SafeTop } from '../common/widgets/SafeArea';
+import { Toast } from '../common/widgets/Feedback';
 
 const CATEGORIES: string[] = ['全部', '必修', '选修', '公选'];
 
@@ -248,8 +249,13 @@ struct SelectionPage {
                           .borderRadius(999)
                           .padding({ left: 14, right: 14 })
                           .onClick(() => {
+                            const noSchedule: boolean = c.course.weekday < 1;
                             CourseRepository.get().selectCourse(c.course.id)
-                              .then(() => { this.reloadCourses(); })
+                              .then(() => {
+                                // 集中实践类课程无固定排课，不会出现在课表网格中，明确告知避免误以为选课未生效
+                                Toast.show(this.getUIContext(), noSchedule ? '选课成功（集中实践类课程无固定排课，不在课表中显示）' : '选课成功，已加入我的课表');
+                                this.reloadCourses();
+                              })
                               .catch((e: object) => {
                                 this.actionError = e instanceof Error ? e.message : '选课失败';
                               });

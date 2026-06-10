@@ -14,12 +14,11 @@ import { AdminRepository } from './AdminRepository';
 import { AppConfig } from '../app/AppConfig';
 import { RemoteApi } from '../common/remote/RemoteApi';
 import { CourseLogic } from './CourseLogic';
+import { TermUtils } from '../common/utils/TermUtils';
 
 const CREDIT_LIMIT: number = 28; // 学分上限：选课事务据此校验，超出则拒绝
 const KEY_SELECTED_IDS = 'local.selectedCourseIds.v1';
 const KEY_IMPORTED_SCHEDULE = 'local.importedSchedule.v1';
-// 默认教学周：与首页 mockHome term.weekIndex / 课表页默认周一致，用于今日页今天/明天 tab 的周次过滤。
-const DEFAULT_TEACHING_WEEK: number = 14;
 
 export class CourseRepository extends BaseRepository {
   private static _instance?: CourseRepository;
@@ -72,6 +71,7 @@ export class CourseRepository extends BaseRepository {
       return sc;
     });
     let items = CourseLogic.decorateStatuses(base);
+    items = await this.decorateScheduleConflicts(items);
     if (query && query.length > 0) {
       const q = query.toLowerCase();
       items = items.filter((s) =>
@@ -236,6 +236,29 @@ export class CourseRepository extends BaseRepository {
     return this.importedSchedule.length > 0;
   }
 
+  // 与当前课表（导入课表/内置课表）冲突的可选课程标记为 conflict，
+  // 与 decorateStatuses（已选课程之间的冲突）互补，避免选课中心放行与课表重叠的课。
+  private async decorateScheduleConflicts(items: SelectionCourse[]): Promise<SelectionCourse[]> {
+    const active = await this.getActiveSchedule();
+    return items.map((item): SelectionCourse => {
+      if (item.status !== 'available') {
+        return item;
+      }
+      let hitName = '';
+      for (let i = 0; i < active.length; i++) {
+        if (CourseLogic.courseConflictsWithScheduleItem(item.course, active[i])) {
+          hitName = active[i].courseName;
+          break;
+        }
+      }
+      if (hitName.length > 0) {
+        const conf: SelectionCourse = { course: item.course, status: 'conflict', conflictWith: `与课表「${hitName}」时间冲突` };
+        return conf;
+      }
+      return item;
+    });
+  }
+
   // 已选课程对应的课表行（并入「我的课表」）
   private async getSelectedScheduleItems(): Promise<ScheduleItem[]> {
     const mine = await this.getMySelectedCourses();
@@ -264,9 +287,9 @@ export class CourseRepository extends BaseRepository {
   }
 
   // 今日/明日课程：走 getSchedule 的合并结果（导入课表 + 已选课程）再按 weekday 过滤，
-  // 与课表页“本周”同源。week 默认用当前教学周，与 getSchedule/课表页默认周一致。
+  // 与课表页“本周”同源。week 默认用按真实日期计算的当前教学周，与首页/课表页同口径。
   async getTodayCourses(weekday: number, week?: number): Promise<ScheduleItem[]> {
-    const all = await this.getSchedule(undefined, week ?? DEFAULT_TEACHING_WEEK);
+    const all = await this.getSchedule(undefined, week ?? TermUtils.teachingWeek());
     const items = all.filter((s) => s.weekday === weekday);
     return this.delayCopy<ScheduleItem[]>(items);
   }
@@ -374,6 +397,7 @@ export class CourseRepository extends BaseRepository {
       return sc;
     });
     let items = CourseLogic.decorateStatuses(base);
+    items = await this.decorateScheduleConflicts(items);
     if (query && query.length > 0) {
       const q = query.toLowerCase();
       items = items.filter((s) =>
@@ -431,6 +455,13 @@ export class CourseRepository extends BaseRepository {
     for (let i = 0; i < selected.length; i++) {
       if (CourseLogic.coursesConflict(target, selected[i])) {
         return this.reject(`与「${selected[i].name}」时间冲突`);
+      }
+    }
+    // 与当前课表（导入课表/内置课表）冲突校验：避免选到与既有课程时间重叠的课
+    const activeSchedule = await this.getActiveSchedule();
+    for (let i = 0; i < activeSchedule.length; i++) {
+      if (CourseLogic.courseConflictsWithScheduleItem(target, activeSchedule[i])) {
+        return this.reject(`与课表「${activeSchedule[i].courseName}」时间冲突`);
       }
     }
     await this.addMember(courseId);
