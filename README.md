@@ -16,7 +16,7 @@
 
 ## 软件架构
 
-当前仓库为 HarmonyOS 工程结构，主要目录如下：
+当前仓库为 HarmonyOS 工程结构，主要目录如下（**每个文件的逐一说明见下方「技术架构 → 工程完整文件结构」**）：
 
 ```text
 .
@@ -42,6 +42,165 @@
 - **远程模式（`AppConfig.useRemote = true`）**：认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践及管理端各域改走 **Track B 后端**（`AppConfig.baseUrl = https://lsw666.dns.army/api`，经 nginx 反代 + Let's Encrypt 的 **HTTPS**），读失败回退本地、写失败显式报错。
 
 > 邮箱验证码（注册 / 找回密码）始终联网走后端真实发送，不受 `useRemote` 开关影响。详见下文「后端服务（Track B）」与「安全与鉴权」。
+
+### 工程完整文件结构
+
+> 仓库全部受管文件逐一展开（`entry/src/main/ets/` 下约 120 个 ArkTS 源码文件的逐文件说明见下一节「ArkTS 源码结构」）。
+
+```text
+.
+├── AppScope/                                    # 应用级配置与资源
+│   ├── app.json5                                # 应用全局配置：bundleName（com.example.test）、版本号、应用图标与名称引用
+│   └── resources/base/
+│       ├── element/string.json                  # 应用级字符串资源（应用显示名等）
+│       └── media/
+│           ├── background.png                   # 应用分层图标·背景层
+│           ├── foreground.png                   # 应用分层图标·前景层
+│           └── layered_image.json               # 分层图标描述文件（前景 + 背景合成）
+├── entry/                                       # HarmonyOS 主模块（唯一 HAP）
+│   ├── .gitignore                               # 模块级忽略规则（build 产物等）
+│   ├── build-profile.json5                      # 模块构建配置（构建选项、目标）
+│   ├── hvigorfile.ts                            # 模块级 Hvigor 构建入口（hapTasks）
+│   ├── obfuscation-rules.txt                    # Release 构建混淆规则
+│   ├── oh-package.json5                         # 模块依赖声明（@ohos/hypium 测试框架等）
+│   └── src/
+│       ├── main/
+│       │   ├── module.json5                     # 模块声明：EntryAbility、INTERNET 权限、routerMap 指向 route_map
+│       │   ├── ets/                             # ArkTS 源码：59 页 + 仓储/模型/组件（逐文件说明见下节）
+│       │   └── resources/
+│       │       ├── base/element/
+│       │       │   ├── color.json               # 颜色资源定义
+│       │       │   ├── float.json               # 尺寸/浮点资源定义
+│       │       │   └── string.json              # UI 中文文案外置（约 534 条，i18n 单一来源）
+│       │       ├── base/media/                  # 63 枚玫瑰学院风 SVG 线性图标（经 AppIcon 组件统一引用）+ 应用图标：
+│       │       │   │                            # 〔底部导航/首页〕ic_home(首页) ic_mine(我的) ic_evaluation(评教) ic_practice(实践) ic_public(公共)
+│       │       │   │                            #   ic_dashboard(仪表盘) ic_students(学生管理) ic_madame(管理员我的)
+│       │       │   │                            # 〔功能域〕ic_course(课程) ic_schedule(课表) ic_selection(选课) ic_grades(成绩) ic_exam(考试)
+│       │       │   │                            #   ic_roster(学籍) ic_leave(请假) ic_feedback(反馈) ic_notice(通知) ic_bell(消息铃铛)
+│       │       │   │                            #   ic_approve(审批) ic_calendar(日历) ic_book(书本) ic_wallet(账户) ic_chat(聊天)
+│       │       │   │                            # 〔操作〕ic_back(返回) ic_forward(前进) ic_close(关闭) ic_check(勾选) ic_plus(新增)
+│       │       │   │                            #   ic_edit(编辑) ic_trash(删除) ic_search(搜索) ic_filter(筛选) ic_sort(排序)
+│       │       │   │                            #   ic_refresh(刷新) ic_send(发送) ic_download(下载) ic_upload(上传) ic_scan(扫码)
+│       │       │   │                            #   ic_qr(二维码) ic_camera(相机) ic_menu(菜单) ic_more(更多) ic_settings(设置)
+│       │       │   │                            # 〔状态/表单〕ic_success(成功) ic_error(错误) ic_warning(警告) ic_info(信息)
+│       │       │   │                            #   ic_eye(显示密码) ic_eye_off(隐藏密码) ic_lock(锁定) ic_unlock(解锁)
+│       │       │   │                            # 〔信息展示〕ic_time(时间) ic_location(位置) ic_pin(置顶) ic_tag(标签) ic_star(星标)
+│       │       │   │                            #   ic_file(文件) ic_image(图片) ic_mail(邮件) ic_phone(电话)
+│       │       │   │                            # 〔品牌装饰〕ic_rose(玫瑰) ic_petal(花瓣) ic_sparkle(星光) ic_heart(爱心)
+│       │       │   ├── startIcon.png            # 启动/桌面图标
+│       │       │   ├── background.png           # 模块分层图标·背景层
+│       │       │   ├── foreground.png           # 模块分层图标·前景层
+│       │       │   └── layered_image.json       # 模块分层图标描述
+│       │       ├── base/profile/
+│       │       │   ├── backup_config.json       # 系统备份/恢复能力配置
+│       │       │   ├── main_pages.json          # 页面注册表（仅 pages/Index 唯一 @Entry）
+│       │       │   └── route_map.json           # Navigation 系统路由表（58 页懒加载注册：name → Builder）
+│       │       ├── dark/element/color.json      # 深色模式颜色资源（预留）
+│       │       └── rawfile/my_schedule.xlsx     # 内置真实课表 xlsx（「课表导入」功能演示数据源）
+│       ├── mock/mock-config.json5               # DevEco 预览器 mock 配置
+│       ├── ohosTest/                            # 设备测试（需模拟器/真机运行）
+│       │   ├── module.json5                     # 测试模块声明
+│       │   └── ets/test/
+│       │       ├── Ability.test.ets             # EntryAbility 启动冒烟测试
+│       │       └── List.test.ets                # 设备测试套件聚合入口
+│       └── test/                                # 本地单元测试（无需设备）
+│           ├── List.test.ets                    # 本地测试套件聚合入口
+│           └── LocalUnit.test.ets               # 16 例本地单测（仓储/课表解析器/文件安全/会话/管理端状态机）
+├── server/                                      # Track B 远程后端 API（Node 18 + Express + pg，CommonJS 免构建）
+│   ├── .env.example                             # 环境变量模板（PG 连接 / JWT_SECRET / SMTP 凭据占位，真实值仅在服务器）
+│   ├── .gitignore                               # 忽略 .env / node_modules / coverage
+│   ├── README.md                                # 后端端点清单、本地运行与部署说明
+│   ├── package.json                             # 依赖与脚本（test / test:coverage / migrate / check:syntax，含覆盖率门禁）
+│   ├── package-lock.json                        # 依赖版本锁
+│   ├── migrate.js                               # 幂等迁移 runner（按 schema_migrations 登记跳过已应用）
+│   ├── seed.js                                  # 演示数据种子（测试账号/选课轮次/评教模板，幂等可重跑）
+│   ├── deploy/
+│   │   └── nginx-https-setup.md                 # HTTPS 反代配置复现文档（nginx + Let's Encrypt + 域名）
+│   ├── migrations/
+│   │   ├── 001_initial_dtest2_schema.sql        # 权威建表脚本（dtest2 schema 全量 31 表）
+│   │   ├── 002_class_students.sql               # 班级学生名册表（注册白名单，47 人）
+│   │   └── 003_class_schedule.sql               # 班级课表表 + 课程-教师绑定表
+│   ├── scripts/
+│   │   ├── check-syntax.js                      # node --check 全量 JS 语法检查（CI 测试前置步骤）
+│   │   ├── class-students.json                  # 班级名册数据（47 人，提取自 班级学生信息.xlsx）
+│   │   ├── class-schedule.json                  # 班级课表数据（40 条，23计算机科学与技术U9，含教师绑定）
+│   │   ├── import-class-students.js             # 名册导入脚本（UPSERT 幂等）
+│   │   ├── import-class-schedule.js             # 课表导入脚本（同事务派生课程-教师绑定）
+│   │   └── import-class-eval-tasks.js           # 评教任务生成脚本（清测试数据，按班级 × 已注册学生生成）
+│   ├── src/
+│   │   ├── index.js                             # 装配层：trust proxy/CORS/限流/JSON + /health + 按域挂载路由（约 85 行）
+│   │   ├── db.js                                # pg 连接池（读 .env 的 PG* 配置）
+│   │   ├── envelope.js                          # ApiResponse 信封 ok()/fail()
+│   │   ├── auth.js                              # JWT 签发/校验 + authRequired/adminRequired 中间件（强制 JWT_SECRET）
+│   │   ├── hash.js                              # 密码哈希：bcrypt（新）+ 旧 SHA-256 双轨校验、登录惰性升级
+│   │   ├── email.js                             # nodemailer 接 QQ SMTP 真实发送验证码邮件
+│   │   ├── codeStore.js                         # 验证码内存存储（5 分钟有效 / 60s 重发节流 / 限次 / 用后即焚）
+│   │   ├── identity.js                          # currentStudentId：学号一律取自 JWT（防水平越权 IDOR）
+│   │   ├── mappers.js                           # 纯映射函数 + SQL 常量（DB 行→DTO、周次解析、时间冲突判定）
+│   │   ├── middleware/
+│   │   │   ├── rateLimit.js                     # 内存级限流（全局 300/分·IP + 认证类 10/分·IP，超限 429）
+│   │   │   ├── errorHandler.js                  # serverError：服务端记日志详情、客户端只回通用文案（防信息泄露）
+│   │   │   └── permission.js                    # permissionRequired：管理端细粒度鉴权（查 DB 权限矩阵，fail-closed）
+│   │   ├── repositories/
+│   │   │   └── profile.repo.js                  # 登录下发真实 profile（学生资料 / 管理员资料 + 权限码归一）
+│   │   └── routes/                              # 按域路由（express.Router，全路径 /api/...）
+│   │       ├── auth.routes.js                   # 认证：登录 / 邮箱验证码 / 注册（名册白名单 + 自动生成本班评教）/ 找回密码
+│   │       ├── selection.routes.js              # 选课：课程 / 轮次 / 选课（学分上限 + 时间冲突 + FOR UPDATE 行锁）/ 退课
+│   │       ├── grades.routes.js                 # 成绩查询（按 JWT 学号）
+│   │       ├── schedule.routes.js               # 班级课表（按名册班级匹配返回本班课表）
+│   │       ├── notices.routes.js                # 通知列表 / 详情 / 标记已读
+│   │       ├── leave.routes.js                  # 请假提交（事务联动审批实例）/ 我的请假
+│   │       ├── feedback.routes.js               # 意见反馈提交 / 列表
+│   │       ├── evaluations.routes.js            # 评教任务列表（课程信息回退课表绑定）/ 评教提交
+│   │       ├── practice.routes.js               # 实践项目 / 报名（行锁防超名额）/ 取消报名
+│   │       └── admin.routes.js                  # 管理端 16 端点：学生管理 / 成绩审核 / 审批 / 通知发布 / 角色权限 / 审计日志 / 评教模板
+│   └── test/                                    # Jest + supertest 测试套件（141 例，行覆盖率 80% 门禁）
+│       ├── jest.setup.js                        # 测试启动注入（JWT_SECRET / 限流阈值）
+│       ├── helpers/
+│       │   ├── dbMock.js                        # pg 连接池 mock（按 SQL 正则路由返回行，断言事务轨迹）
+│       │   └── concurrencyDbMock.js             # 有状态行锁 mock（忠实复刻 FOR UPDATE 互斥，并发压测用）
+│       ├── auth.test.js                         # 登录全分支 + 鉴权中间件（含旧哈希惰性升级）
+│       ├── auth-flows.test.js                   # 注册（名册白名单/姓名校验/评教生成）+ 找回密码闭环
+│       ├── security.test.js                     # IDOR 防护 + 管理端细粒度权限 403/放行
+│       ├── selections.test.js                   # 选课事务 409 矩阵 / 行锁 / 失败回滚
+│       ├── practice.test.js                     # 实践报名分支 + 行锁
+│       ├── concurrency.test.js                  # 20 并发抢 1/5 名额恰好 1/5 人成功（含去锁对照）
+│       ├── schedule.test.js                     # 班级课表端点（名册命中/资料兜底/无班级 404）
+│       ├── ratelimit.test.js                    # 限流 429 集成测试
+│       ├── rateLimit-unit.test.js               # 限流器单元测试
+│       ├── codeStore.test.js                    # 验证码存储（有效期/节流/限次）
+│       ├── mappers.test.js                      # DTO 映射纯函数
+│       ├── core-utils.test.js                   # envelope/hash/identity 等核心工具
+│       ├── rules.test.js                        # 周次解析 + 时间冲突判定纯函数
+│       ├── endpoints-read.test.js               # 全部只读端点广覆盖（200 + 鉴权链路）
+│       ├── mutations.test.js                    # 写端点广覆盖（请假/反馈/评教/管理端）
+│       ├── account-repo.test.js                 # profile 读取 + 权限码归一化
+│       └── coverage-extra.test.js               # 500 分支 + 防信息泄露断言
+├── docs/                                        # 文档与实机截图
+│   ├── CLIENT_TESTING.md                        # 客户端测试指南（hypium 用例清单 / 运行方式 / 运行登记）
+│   ├── RELEASE.md                               # 发布与签名说明
+│   ├── SPRINT1_COMPLETION_REPORT.md             # Sprint 1 完成报告
+│   └── screenshots/                             # 8 张模拟器实机截图（README「UI 实机运行截图」引用）：
+│                                                #   01-login(登录) 02-home(首页) 03-schedule(课表) 04-selection(选课)
+│                                                #   05-notices(通知) 06-notice-detail(通知详情) 07-practice(实践) 08-practice-detail(实践详情)
+├── signing/                                     # 签名材料目录（证书不入库）
+│   ├── .gitignore                               # 忽略全部证书/密钥材料
+│   └── README.md                                # 签名材料获取与配置说明
+├── .github/workflows/
+│   └── backend-tests.yml                        # 后端 CI：Node 18/20 矩阵跑语法检查 + 覆盖率门禁测试
+├── .gitignore                                   # 工程忽略规则（含保密文件名模式 + server/src 源码放行）
+├── PROJECT_PLAN.md                              # 项目计划文档（迭代规划）
+├── README.md                                    # 本文档
+├── 阶段检查.md                                  # 课程阶段检查记录
+├── build-profile.json5                          # 工程构建配置（SDK/API 版本、签名配置占位、模块清单）
+├── code-linter.json5                            # ArkTS 代码检查（codelinter）规则配置
+├── hvigor/hvigor-config.json5                   # Hvigor 构建工具版本与依赖配置
+├── hvigorfile.ts                                # 工程级 Hvigor 构建入口（appTasks）
+├── oh-package.json5                             # OpenHarmony 工程包配置
+└── oh-package-lock.json5                        # OpenHarmony 依赖版本锁
+```
+
+### ArkTS 源码结构
 
 ```text
 entry/src/main/ets/
