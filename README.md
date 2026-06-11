@@ -523,17 +523,67 @@ entry/src/main/ets/
 │   │   └── TextStyles.ets            # 文字样式 token
 │   ├── Components.ets                # 通用组件库（TopBar / 卡片 / 按钮 / 输入框 / Pill / Divider …）
 │   └── Theme.ets                     # 主题聚合与玫瑰学院风设计 token
-└── pages/                            # 59 个页面（逐页角色见下方「完整页面清单」表）
+└── pages/                            # 60 个页面文件 = 1 个 @Entry 根容器 + 59 个业务页（逐页角色见下方「完整页面清单」表）
     ├── Index.ets                     # 唯一 @Entry：托管 Navigation(AppRoute.stack)，按会话 push 初始路由
-    ├── 〔认证〕LoginPage(学生登录)·RegisterPage(注册)·ForgotPage(忘记密码)·AdminLoginPage(管理员登录)
-    ├── 〔学生·首页/通知〕HomePage(首页工作台)·TodayPage(今日课程)·NoticesPage(通知列表)·NoticeDetailPage(通知详情)·MessageCenterPage(消息中心)
-    ├── 〔学生·课程/选课〕SchedulePage(我的课表)·CourseDetailPage(课程详情)·SelectionPage(选课中心)·SelectionConfirmPage(选课确认)·SelectionResultPage(选课结果)
-    ├── 〔学生·学业〕GradesPage(成绩查询)·GradeDetailPage(成绩详情)·GradeAppealPage(成绩申诉)·ExamPage(考试安排)·ExamDetailPage(考试详情)·RosterPage(学籍信息)
-    ├── 〔学生·评教/杂项〕EvalPage(评教)·LeavePage(请假)·LeaveDetailPage(请假详情)·FeedbackPage(反馈)·FeedbackDetailPage(反馈详情)·PracticePage(实践公服)·PracticeDetailPage(实践详情)·PracticeSignupPage(实践报名)·MyPracticePage(我的实践)·ServiceHallPage(服务大厅)
-    ├── 〔学生·个人中心〕MinePage(我的)·AccountPage(我的账户)·EditInfoPage(修改资料)·PasswordPage(修改密码)·SettingsPage(设置)·AboutPage(关于)
-    ├── 〔管理端·主〕AdminDashboardPage(仪表盘)·AdminStudentsPage(学生管理)·AdminStudentDetailPage(学生详情)·AdminCoursesPage(课程管理)·AdminCourseDetailPage(课程详情)·AdminSelectionPage(选课管理)·AdminGradesPage(成绩管理)·AdminNoticePage(通知发布)·AdminEvalPage(评教管理)·AdminApprovalsPage(审批中心)·AdminApprovalDetailPage(审批详情)
-    ├── 〔管理端·配置〕AdminCalendarPage(教学日历)·AdminRolePermPage(角色权限)·AdminAuditLogPage(审计日志)·AuditLogDetailPage(日志详情)·AdminSysConfigPage(系统配置)·AdminProfilePage(管理员中心)·AdminPasswordPage(管理员改密)
-    └── 〔通用/工具页〕AttachmentPreviewPage(附件预览)·ImportResultPage(导入结果)·NoPermissionPage(无权限)·DocPage(协议/隐私文档)
+    ├── LoginPage.ets                 # 认证：学生登录
+    ├── RegisterPage.ets              # 认证：注册（邮箱验证码 + 班级名册白名单）
+    ├── ForgotPage.ets                # 认证：忘记密码（验证码校验，不自动建号）
+    ├── AdminLoginPage.ets            # 认证：管理员登录
+    ├── HomePage.ets                  # 学生·首页/通知：首页工作台（今日课程按真实校时间表排序，已上完变灰）
+    ├── TodayPage.ets                 # 学生·首页/通知：今日课程（今天/明天/本周三 tab）
+    ├── NoticesPage.ets               # 学生·首页/通知：通知列表（已读/未读）
+    ├── NoticeDetailPage.ets          # 学生·首页/通知：通知详情（阅读即回写已读）
+    ├── MessageCenterPage.ets         # 学生·首页/通知：消息中心
+    ├── SchedulePage.ets              # 学生·课程/选课：我的课表（周视图 + xlsx 课表导入入口）
+    ├── CourseDetailPage.ets          # 学生·课程/选课：课程详情（目录走学生可访问端点）
+    ├── SelectionPage.ets             # 学生·课程/选课：选课中心（按本人年级过滤定向课程）
+    ├── SelectionConfirmPage.ets      # 学生·课程/选课：选课确认
+    ├── SelectionResultPage.ets       # 学生·课程/选课：选课结果
+    ├── GradesPage.ets                # 学生·学业：成绩查询（仅审核发布后可见）
+    ├── GradeDetailPage.ets           # 学生·学业：成绩详情（构成 / 绩点 / 排名）
+    ├── GradeAppealPage.ets           # 学生·学业：成绩申诉
+    ├── ExamPage.ets                  # 学生·学业：考试安排（含校历学期节点横滑卡）
+    ├── ExamDetailPage.ets            # 学生·学业：考试详情
+    ├── RosterPage.ets                # 学生·学业：学籍信息
+    ├── EvalPage.ets                  # 学生·评教/杂项：量化评教（任务实时跟随当前课程，内联问卷弹层）
+    ├── LeavePage.ets                 # 学生·评教/杂项：请假申请（事务联动审批实例）
+    ├── LeaveDetailPage.ets           # 学生·评教/杂项：请假详情
+    ├── FeedbackPage.ets              # 学生·评教/杂项：意见反馈
+    ├── FeedbackDetailPage.ets        # 学生·评教/杂项：反馈详情
+    ├── PracticePage.ets              # 学生·评教/杂项：实践公服（项目列表）
+    ├── PracticeDetailPage.ets        # 学生·评教/杂项：实践详情
+    ├── PracticeSignupPage.ets        # 学生·评教/杂项：实践报名（行锁防超名额）
+    ├── MyPracticePage.ets            # 学生·评教/杂项：我的实践
+    ├── ServiceHallPage.ets           # 学生·评教/杂项：服务大厅（功能入口聚合）
+    ├── MinePage.ets                  # 学生·个人中心：我的（自定义头像快路径渲染）
+    ├── AccountPage.ets               # 学生·个人中心：我的账户
+    ├── EditInfoPage.ets              # 学生·个人中心：修改资料（头像选图压缩 base64 直传后端）
+    ├── PasswordPage.ets              # 学生·个人中心：修改密码
+    ├── SettingsPage.ets              # 学生·个人中心：设置
+    ├── AboutPage.ets                 # 学生·个人中心：关于
+    ├── AdminDashboardPage.ets        # 管理端·主：仪表盘（实时 SQL 聚合统计，模块入口按权限收敛）
+    ├── AdminStudentsPage.ets         # 管理端·主：学生管理（已注册学生搜索）
+    ├── AdminStudentDetailPage.ets    # 管理端·主：学生详情（资料全字段）
+    ├── AdminCoursesPage.ets          # 管理端·主：课程管理（全目录 CRUD）
+    ├── AdminCourseDetailPage.ets     # 管理端·主：课程详情（管理视角）
+    ├── AdminSelectionPage.ets        # 管理端·主：选课管理（轮次启停/时间编辑/冲突明细）
+    ├── AdminRoundCoursesPage.ets     # 管理端·主：轮次选课课程管理（面向年级发布 / 增删改查 / 下架）
+    ├── AdminGradesPage.ets           # 管理端·主：成绩管理（按学生打分 → 待审核 → 两段式发布）
+    ├── AdminNoticePage.ets           # 管理端·主：通知发布
+    ├── AdminEvalPage.ets             # 管理端·主：评教管理（统计 / 模板 / 评教期开关）
+    ├── AdminApprovalsPage.ets        # 管理端·主：审批中心（联动请假回写）
+    ├── AdminApprovalDetailPage.ets   # 管理端·主：审批详情
+    ├── AdminCalendarPage.ets         # 管理端·配置：教学日历（真实校历 CRUD）
+    ├── AdminRolePermPage.ets         # 管理端·配置：角色权限（权限矩阵）
+    ├── AdminAuditLogPage.ets         # 管理端·配置：审计日志（全部写操作自动落库）
+    ├── AuditLogDetailPage.ets        # 管理端·配置：日志详情
+    ├── AdminSysConfigPage.ets        # 管理端·配置：系统配置
+    ├── AdminProfilePage.ets          # 管理端·配置：管理员中心
+    ├── AdminPasswordPage.ets         # 管理端·配置：管理员改密
+    ├── AttachmentPreviewPage.ets     # 通用/工具：附件预览
+    ├── ImportResultPage.ets          # 通用/工具：课表导入结果（成功/失败/成功率）
+    ├── NoPermissionPage.ets          # 通用/工具：无权限提示（路由守卫缺权重定向落点）
+    └── DocPage.ets                   # 通用/工具：协议 / 隐私文档
 ```
 
 > **导航**：已从已废弃的 Page Router 迁移到 **Navigation + NavPathStack（系统路由表懒加载）**；`pages/Index.ets` 为唯一 `@Entry` 根容器，其余页面经 `route_map.json` 注册、由 `AppRoute` 门面统一驱动。
@@ -775,7 +825,7 @@ entry/src/main/ets/
 
 ## 完整页面清单
 
-> 共 **59 个页面**（含 Navigation 迁移后新增的 `Index` 根容器与各详情 / 二级页），位于 `entry/src/main/ets/pages/`。「ArkTS 文件」列为实际工程文件名。
+> 共 **60 个页面**（含 Navigation 迁移后新增的 `Index` 根容器与各详情 / 二级页），位于 `entry/src/main/ets/pages/`。「ArkTS 文件」列为实际工程文件名。
 
 | 序号 | 页面 | 角色 | ArkTS 文件 |
 | --- | --- | --- | --- |
@@ -838,6 +888,7 @@ entry/src/main/ets/
 | 57 | 课程详情（管理） | 管理员 | AdminCourseDetailPage.ets |
 | 58 | 导入结果 | 管理员 | ImportResultPage.ets |
 | 59 | 审计日志详情 | 管理员 | AuditLogDetailPage.ets |
+| 60 | 轮次选课课程管理 | 管理员 | AdminRoundCoursesPage.ets |
 
 ## 安装与运行
 
