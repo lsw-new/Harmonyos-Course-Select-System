@@ -260,7 +260,8 @@ export class AdminRepository extends BaseRepository {
       credit: payload.credit,
       timeText: payload.timeText,
       capacity: payload.capacity,
-      status: payload.status
+      status: payload.status,
+      targetGrade: payload.targetGrade ?? ''
     };
     return body;
   }

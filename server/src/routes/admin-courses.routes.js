@@ -50,7 +50,12 @@ function validatePayload(b) {
   if (!Number.isInteger(capacity) || capacity < 0 || capacity > 1000) {
     return { error: '容量需为 0-1000 的整数' };
   }
-  return { code, name, teacher, category, status, credit, capacity, time: parseTimeText(b.timeText) };
+  // 面向年级：空 = 全部年级；否则须为「20XX级」格式（与学号前 4 位派生的年级同口径）
+  const targetGrade = String((b && b.targetGrade) || '').trim();
+  if (targetGrade !== '' && !/^20\d{2}级$/.test(targetGrade)) {
+    return { error: '面向年级需为「20XX级」格式或留空（全部年级）' };
+  }
+  return { code, name, teacher, category, status, credit, capacity, targetGrade: targetGrade || null, time: parseTimeText(b.timeText) };
 }
 
 async function fetchCourse(courseId) {
@@ -87,10 +92,10 @@ router.post('/api/admin/courses', permissionRequired('courses.manage:create'), a
     await pool.query(
       `INSERT INTO dtest2.courses
          (course_id, code, name, category, credit, teacher, capacity, status,
-          weekday, period_start, period_end, weeks_text)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+          weekday, period_start, period_end, weeks_text, target_grade)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
       [courseId, v.code, v.name, v.category, v.credit, v.teacher, v.capacity, v.status,
-        v.time.weekday, v.time.periodStart, v.time.periodEnd, v.time.weeksText]
+        v.time.weekday, v.time.periodStart, v.time.periodEnd, v.time.weeksText, v.targetGrade]
     );
     res.json(ok(await fetchCourse(courseId)));
   } catch (e) {
@@ -111,10 +116,10 @@ router.put('/api/admin/courses/:id', permissionRequired('courses.manage:update')
     const r = await pool.query(
       `UPDATE dtest2.courses SET
          code=$2, name=$3, category=$4, credit=$5, teacher=$6, capacity=$7, status=$8,
-         weekday=$9, period_start=$10, period_end=$11, weeks_text=$12, updated_at=now()
+         weekday=$9, period_start=$10, period_end=$11, weeks_text=$12, target_grade=$13, updated_at=now()
        WHERE course_id=$1`,
       [req.params.id, v.code, v.name, v.category, v.credit, v.teacher, v.capacity, v.status,
-        v.time.weekday, v.time.periodStart, v.time.periodEnd, v.time.weeksText]
+        v.time.weekday, v.time.periodStart, v.time.periodEnd, v.time.weeksText, v.targetGrade]
     );
     if (r.rowCount === 0) {
       return res.status(404).json(fail('课程不存在'));

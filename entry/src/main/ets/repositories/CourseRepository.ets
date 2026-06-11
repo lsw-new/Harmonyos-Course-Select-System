@@ -209,8 +209,18 @@ export class CourseRepository extends BaseRepository {
     return open;
   }
 
-  // 完整目录（含已关闭）：用于「我的已选」与课程详情
+  // 完整目录（含已关闭）：用于「我的已选」与课程详情。
+  // 联机模式走学生可访问的 /api/courses（此前误走管理端点，学生 token 403 后
+  // 回退本地 mock，远程课程 id 查不到 → 详情页报「课程不存在」）。
   private async getFullCatalog(): Promise<Course[]> {
+    if (this.useRemote()) {
+      try {
+        const remote = await RemoteApi.listAllCourses();
+        return remote.map((r) => CourseLogic.toStudentCourse(CourseLogic.remoteToAdminCourse(r)));
+      } catch (e) {
+        // 远程失败回退本地目录
+      }
+    }
     const adminCourses = await AdminRepository.get().getCourses();
     return adminCourses.map((a) => CourseLogic.toStudentCourse(a));
   }
@@ -463,10 +473,7 @@ export class CourseRepository extends BaseRepository {
     if (memberIds.indexOf(courseId) >= 0) {
       return this.reject('已选该课程');
     }
-    // 限选规则：每人限选一门（与后端权威校验同口径；选修课统一周四晚，多门二选一）
-    if (memberIds.length >= 1) {
-      return this.reject('每人限选一门选修课程，请先退选已选课程');
-    }
+    // 注：旧「限选一门」规则已移除（与后端同步）；多选由学分上限 + 时间冲突兜底。
     const cap = target.capacity;
     const cnt = target.selectedCount;
     if (cap !== undefined && cnt !== undefined && cnt >= cap) {

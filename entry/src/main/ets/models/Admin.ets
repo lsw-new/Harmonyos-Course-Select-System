@@ -94,6 +94,7 @@ export interface AdminCourseItem {
   capacity: number;
   selectedCount: number;
   status: AdminCourseStatus;
+  targetGrade?: string;
 }
 
 export interface AdminCourseWritePayload {
@@ -106,6 +107,7 @@ export interface AdminCourseWritePayload {
   capacity: number;
   selectedCount: number;
   status: AdminCourseStatus;
+  targetGrade?: string;
 }
 
 export type SelectionRoundStatus = 'notStarted' | 'running' | 'ended';

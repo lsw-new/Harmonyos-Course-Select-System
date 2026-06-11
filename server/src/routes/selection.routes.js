@@ -11,16 +11,20 @@ const { mapCourse, COURSE_COLUMNS, SELECTED_COUNT_JOIN, coursesConflict } = requ
 const router = express.Router();
 
 // ---- 课程列表（可选 ?status=open）----
+// 面向年级发布：学生只能看到「全部年级」或本人年级（学号前 4 位派生）的课程；管理员可见全部。
 router.get('/api/courses', authRequired, async (req, res) => {
   const status = req.query.status ? String(req.query.status) : null;
+  const isStudent = req.auth && req.auth.role === 'student';
+  const grade = isStudent ? `${String(req.auth.sub || '').slice(0, 4)}级` : null;
   try {
     const r = await pool.query(
       `SELECT ${COURSE_COLUMNS}, COALESCE(sc.cnt, 0) AS selected_count
        FROM dtest2.courses c
        ${SELECTED_COUNT_JOIN}
        WHERE ($1::text IS NULL OR c.status = $1)
+         AND ($2::text IS NULL OR c.target_grade IS NULL OR c.target_grade = '' OR c.target_grade = $2)
        ORDER BY c.created_at DESC`,
-      [status]
+      [status, grade]
     );
     res.json(ok(r.rows.map(mapCourse)));
   } catch (e) {
@@ -100,7 +104,7 @@ router.post('/api/selections', authRequired, async (req, res) => {
     const creditLimit = Number(round.rows[0].credit_limit);
     // FOR UPDATE 锁定课程行：序列化同一课程的并发选课，使下方 COUNT 容量校验与 INSERT 原子化，杜绝超容量。
     const course = await client.query(
-      `SELECT capacity, status, credit, weekday, period_start, period_end, weeks_text
+      `SELECT capacity, status, credit, weekday, period_start, period_end, weeks_text, target_grade
          FROM dtest2.courses WHERE course_id=$1 FOR UPDATE`, [courseId]
     );
     if (course.rowCount === 0) {
@@ -110,6 +114,12 @@ router.post('/api/selections', authRequired, async (req, res) => {
     if (course.rows[0].status !== 'open') {
       await client.query('ROLLBACK');
       return res.status(409).json(fail('课程未开放选课'));
+    }
+    // 面向年级发布：课程定向到其他年级时拒绝选课（与列表过滤同口径，服务端权威校验）
+    const targetGrade = course.rows[0].target_grade || '';
+    if (targetGrade !== '' && targetGrade !== `${studentId.slice(0, 4)}级`) {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail(`该课程面向 ${targetGrade} 开放，你的年级不可选`));
     }
     const dup = await client.query(
       `SELECT status FROM dtest2.selections WHERE student_id=$1 AND course_id=$2 AND round_id=$3`,
@@ -149,11 +159,8 @@ router.post('/api/selections', authRequired, async (req, res) => {
         return res.status(409).json(fail(`与「${row.name}」时间冲突`));
       }
     }
-    // 限选规则：每名学生限选一门选修课程（选修课统一安排在周四晚，多门同台二选一）
-    if (selected.rows.length >= 1) {
-      await client.query('ROLLBACK');
-      return res.status(409).json(fail('每人限选一门选修课程，请先退选已选课程'));
-    }
+    // 注：旧「限选一门」规则已移除（当年仅两门同时段选修的临时约束）；
+    // 选课中心扩充后允许多选，上限由轮次学分上限 + 时间冲突权威校验兜底。
     const selId = `sel-${studentId}-${courseId}-${roundId}`;
     await client.query(
       `INSERT INTO dtest2.selections (selection_id, student_id, course_id, round_id, status, created_at, dropped_at)

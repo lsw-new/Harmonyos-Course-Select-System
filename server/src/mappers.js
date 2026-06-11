@@ -86,13 +86,14 @@ function mapCourse(row) {
     timeText: deriveTimeText(row),
     capacity: row.capacity,
     selectedCount: Number(row.selected_count || 0),
-    status: row.status
+    status: row.status,
+    targetGrade: row.target_grade || ''
   };
 }
 
 const COURSE_COLUMNS =
   `c.course_id, c.code, c.name, c.teacher, c.category, c.credit, c.capacity, c.status,
-   c.weekday, c.period_start, c.period_end, c.weeks_text`;
+   c.weekday, c.period_start, c.period_end, c.weeks_text, c.target_grade`;
 const SELECTED_COUNT_JOIN =
   `LEFT JOIN (SELECT course_id, COUNT(*) cnt FROM dtest2.selections WHERE status='selected' GROUP BY course_id) sc
      ON sc.course_id = c.course_id`;

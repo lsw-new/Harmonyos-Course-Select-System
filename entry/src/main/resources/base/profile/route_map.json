@@ -71,6 +71,11 @@
                           "buildFunction":  "AdminRolePermPageBuilder"
                       },
                       {
+                          "name":  "pages/AdminRoundCoursesPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminRoundCoursesPage.ets",
+                          "buildFunction":  "AdminRoundCoursesPageBuilder"
+                      },
+                      {
                           "name":  "pages/AdminSelectionPage",
                           "pageSourceFile":  "src/main/ets/pages/AdminSelectionPage.ets",
                           "buildFunction":  "AdminSelectionPageBuilder"

@@ -43,7 +43,8 @@ export class CourseLogic {
       timeText: r.timeText,
       capacity: r.capacity,
       selectedCount: r.selectedCount,
-      status: r.status as AdminCourseStatus
+      status: r.status as AdminCourseStatus,
+      targetGrade: r.targetGrade
     };
     return item;
   }

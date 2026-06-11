@@ -43,6 +43,12 @@ struct AdminSelectionPage {
     this.load();
   }
 
+  // 进入该轮次的选课课程管理（面向年级发布 / 增删改查，与选课中心同源）
+  private openRoundCourses(r: AdminRound): void {
+    const p: Record<string, Object> = { 'roundName': r.name };
+    AppRoute.go(Routes.AdminRoundCourses, { params: p });
+  }
+
   private load(): void {
     this.loading = true;
     AppRoute.showLoading();
@@ -261,6 +267,7 @@ struct AdminSelectionPage {
       if (r.status !== 'ended') {
         this.ActionChip('编辑时间', ElysiaTheme.INK_SOFT, '#F5F2F4', () => { this.openEdit(r); })
       }
+      this.ActionChip('选课课程', '#6F47A8', '#F1E2FF', () => { this.openRoundCourses(r); })
       if (r.status === 'ended') {
         Text($r('app.string.adminselection_ended')).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).layoutWeight(1)
       }

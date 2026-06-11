@@ -49,7 +49,7 @@ describe('mappers pure helpers', () => {
       weekday: 4, period_start: 1, period_end: 2, capacity: 40, status: 'open'
     })).toEqual({
       id: 'c1', code: 'ART101', name: '陶瓷艺术', teacher: '李老师', category: '必修', credit: 2.5,
-      timeText: '周四 1-2 节', capacity: 40, selectedCount: 0, status: 'open'
+      timeText: '周四 1-2 节', capacity: 40, selectedCount: 0, status: 'open', targetGrade: ''
     });
 
     expect(mapCourse({

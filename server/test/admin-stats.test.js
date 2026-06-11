@@ -169,3 +169,42 @@ describe('GET /api/admin/verification-codes（验证码监控）', () => {
     expect(entry.maxAttempts).toBe(5);
   });
 });
+
+describe('课程管理：面向年级（targetGrade）', () => {
+  const base = { code: 'X1', name: '测试课', teacher: '某师', category: 'elective', credit: 2, capacity: 30, status: 'open', timeText: '周一 9-10 节' };
+
+  test('targetGrade 非法格式 → 400', async () => {
+    __mock.setRoutes([PERM_GRANT]);
+    const res = await request(app).post('/api/admin/courses').set('Authorization', adm)
+      .send(Object.assign({}, base, { targetGrade: '大三' }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('年级');
+  });
+
+  test('targetGrade 合法 → 入库参数含该年级', async () => {
+    __mock.setRoutes([
+      PERM_GRANT,
+      { match: /INSERT INTO dtest2\.courses/, result: [] },
+      { match: /FROM dtest2\.courses c/, result: [{ course_id: 'ac-1', code: 'X1', name: '测试课', teacher: '某师', category: 'elective', credit: 2, capacity: 30, status: 'open', weekday: 1, period_start: 9, period_end: 10, target_grade: '2023级' }] }
+    ]);
+    const res = await request(app).post('/api/admin/courses').set('Authorization', adm)
+      .send(Object.assign({}, base, { targetGrade: '2023级' }));
+    expect(res.status).toBe(200);
+    expect(res.body.data.targetGrade).toBe('2023级');
+    const ins = __mock.getLog().find((e) => e.sql.indexOf('INSERT INTO dtest2.courses') >= 0);
+    expect(ins.params).toContain('2023级');
+  });
+
+  test('targetGrade 留空 → 入库为 NULL（全部年级）', async () => {
+    __mock.setRoutes([
+      PERM_GRANT,
+      { match: /INSERT INTO dtest2\.courses/, result: [] },
+      { match: /FROM dtest2\.courses c/, result: [{ course_id: 'ac-2', code: 'X1', name: '测试课', teacher: '某师', category: 'elective', credit: 2, capacity: 30, status: 'open', weekday: 1, period_start: 9, period_end: 10, target_grade: null }] }
+    ]);
+    const res = await request(app).post('/api/admin/courses').set('Authorization', adm).send(base);
+    expect(res.status).toBe(200);
+    expect(res.body.data.targetGrade).toBe('');
+    const ins = __mock.getLog().find((e) => e.sql.indexOf('INSERT INTO dtest2.courses') >= 0);
+    expect(ins.params[ins.params.length - 1]).toBeNull();
+  });
+});

@@ -45,14 +45,13 @@ describe('POST /api/selections', () => {
     expect(__mock.executed('ROLLBACK')).toBe(false);
   });
 
-  test('限选一门：已有任一已选课程（不超学分不冲突）→ 409 且回滚', async () => {
+  test('允许多选：已有已选课程（不超学分不冲突）→ 200 正常选课（旧限选一门已移除）', async () => {
     __mock.setRoutes(routes({
       selected: [{ name: '陶瓷艺术赏析', credit: 2, weekday: 4, period_start: 9, period_end: 10, weeks_text: '1-16' }]
     }));
     const res = await selectCourse();
-    expect(res.status).toBe(409);
-    expect(res.body.error).toContain('限选一门');
-    expect(__mock.executed('ROLLBACK')).toBe(true);
+    expect(res.status).toBe(200);
+    expect(__mock.executed('COMMIT')).toBe(true);
   });
 
   test('问题4：选课对课程行加 FOR UPDATE 行锁', async () => {
@@ -118,5 +117,41 @@ describe('POST /api/selections', () => {
     expect(res.body.error).toContain('时间冲突');
     expect(res.body.error).toContain('大学物理');
     expect(__mock.executed('ROLLBACK')).toBe(true);
+  });
+});
+
+describe('面向年级发布（target_grade）', () => {
+  test('课程定向其他年级 → 409 且回滚', async () => {
+    __mock.setRoutes(routes({
+      course: [{ capacity: 50, status: 'open', credit: 3, weekday: 1, period_start: 1, period_end: 2, weeks_text: '1-16', target_grade: '2024级' }]
+    }));
+    const res = await selectCourse();
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain('2024级');
+    expect(__mock.executed('ROLLBACK')).toBe(true);
+  });
+
+  test('课程定向本人年级（2023级）→ 正常选课', async () => {
+    __mock.setRoutes(routes({
+      course: [{ capacity: 50, status: 'open', credit: 3, weekday: 1, period_start: 1, period_end: 2, weeks_text: '1-16', target_grade: '2023级' }]
+    }));
+    const res = await selectCourse();
+    expect(res.status).toBe(200);
+  });
+
+  test('学生列表查询带本人年级过滤参数', async () => {
+    __mock.setRoutes([{ match: /FROM dtest2\.courses c/, result: [] }]);
+    const res = await request(app).get('/api/courses?status=open').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const q = __mock.getLog().find((e) => e.sql.indexOf('FROM dtest2.courses c') >= 0);
+    expect(q.params).toContain('2023级');
+  });
+
+  test('管理员列表查询不过滤年级', async () => {
+    const adm = signToken({ sub: 'A20251001', role: 'admin' });
+    __mock.setRoutes([{ match: /FROM dtest2\.courses c/, result: [] }]);
+    await request(app).get('/api/courses').set('Authorization', `Bearer ${adm}`);
+    const q = __mock.getLog().find((e) => e.sql.indexOf('FROM dtest2.courses c') >= 0);
+    expect(q.params[1]).toBeNull();
   });
 });

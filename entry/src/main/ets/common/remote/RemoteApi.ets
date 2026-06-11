@@ -15,6 +15,7 @@ export interface RemoteCourse {
   capacity: number;
   selectedCount: number;
   status: string;
+  targetGrade: string;
 }
 
 export interface RemoteRound {
@@ -365,6 +366,7 @@ export interface AdminCourseBody {
   timeText: string;
   capacity: number;
   status: string;
+  targetGrade: string;
 }
 
 export interface RemoteGradeScoreRow {
@@ -494,6 +496,11 @@ export class RemoteApi {
   static async resetPassword(account: string, contact: string, verifyCode: string, newPassword: string): Promise<void> {
     const body: ResetPasswordBody = { account: account, contact: contact, verifyCode: verifyCode, newPassword: newPassword };
     await apiClient.post<Object>('/auth/reset-password', body);
+  }
+
+  // 全部课程（学生可访问；后端按本人年级过滤定向课程）：课程详情用
+  static async listAllCourses(): Promise<RemoteCourse[]> {
+    return apiClient.get<RemoteCourse[]>('/courses');
   }
 
   static async listOpenCourses(): Promise<RemoteCourse[]> {
