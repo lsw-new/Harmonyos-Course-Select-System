@@ -8,6 +8,7 @@ import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { CourseRepository } from '../repositories/CourseRepository';
+import { CourseLogic } from '../repositories/CourseLogic';
 import { ScheduleItem } from '../models/Course';
 import { TermUtils } from '../common/utils/TermUtils';
 
@@ -30,6 +31,9 @@ struct TodayPage {
   @StorageProp('safeBottom') safeBottom: number = 0;
   @StorageProp('breakpoint') bp: string = 'sm';
 
+  // 当前时刻（当日分钟数）：「今天」tab 判定已上完/进行中用，加载时刷新
+  @State nowMinutes: number = 0;
+
   private todayWeekday: number = toWeekday(new Date().getDay());
   private tomorrowWeekday: number = toWeekday((new Date().getDay() + 1) % 7);
 
@@ -40,9 +44,19 @@ struct TodayPage {
     this.loadData();
   }
 
+  // 课程进行状态：仅「今天」tab 按真实时刻判定；明天/本周一律按未开始展示
+  private lessonStatusOf(c: ScheduleItem): string {
+    if (this.activeTab !== 0) {
+      return 'upcoming';
+    }
+    return CourseLogic.lessonStatus(c, this.nowMinutes);
+  }
+
   private loadData(): void {
     this.loading = true;
     AppRoute.showLoading();
+    const d = new Date();
+    this.nowMinutes = d.getHours() * 60 + d.getMinutes();
     this.errorMsg = '';
     let promise: Promise<ScheduleItem[]>;
     if (this.activeTab === 0) {
@@ -55,7 +69,8 @@ struct TodayPage {
     }
     promise
       .then((res: ScheduleItem[]) => {
-        this.courses = res;
+        // 今天/明天按真实上课时间升序；本周保持课表原序（跨星期混排无意义）
+        this.courses = this.activeTab === 2 ? res : CourseLogic.sortByLessonTime(res);
         this.loading = false;
       })
       .catch((e: object) => {
@@ -112,31 +127,43 @@ struct TodayPage {
                 ListItem() {
                   Row() {
                     Column() {
-                      Text(c.startTime).fontSize(14).fontStyle(FontStyle.Italic)
-                        .fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
-                      Text(c.endTime).fontSize(9).fontColor(ElysiaTheme.INK_MUTE)
+                      Text(CourseLogic.realStartTime(c.periodStart, c.classroom) || c.startTime)
+                        .fontSize(14).fontStyle(FontStyle.Italic)
+                        .fontColor(this.lessonStatusOf(c) === 'finished' ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_700)
+                        .fontFamily(ElysiaTheme.FONT_DISPLAY)
+                      Text(CourseLogic.realEndTime(c.periodEnd, c.classroom) || c.endTime)
+                        .fontSize(9).fontColor(ElysiaTheme.INK_MUTE)
                     }
                     .width(50).alignItems(HorizontalAlign.End)
 
                     Stack().width(9).height(9).borderRadius(5)
-                      .backgroundColor(ElysiaTheme.ROSE_500).margin({ left: 8, right: 8 })
+                      .backgroundColor(this.lessonStatusOf(c) === 'finished' ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_500)
+                      .margin({ left: 8, right: 8 })
 
                     Column() {
                       Text(c.courseName).fontSize(13).fontWeight(FontWeight.Bold)
-                        .fontColor(ElysiaTheme.INK)
+                        .fontColor(this.lessonStatusOf(c) === 'finished' ? ElysiaTheme.INK_MUTE : ElysiaTheme.INK)
                       Row() {
-                        AppIcon({ name: 'pin', iconSize: 12 })
+                        AppIcon({ name: 'pin', iconSize: 12, dim: this.lessonStatusOf(c) === 'finished' })
                         Text(c.classroom + ' · ' + c.teacher).fontSize(11)
-                          .fontColor(ElysiaTheme.INK_SOFT).margin({ left: 4 })
+                          .fontColor(this.lessonStatusOf(c) === 'finished' ? ElysiaTheme.INK_MUTE : ElysiaTheme.INK_SOFT)
+                          .margin({ left: 4 })
                       }.margin({ top: 4 })
                     }.alignItems(HorizontalAlign.Start).layoutWeight(1)
 
-                    Pill({ text: c.courseType })
+                    if (this.lessonStatusOf(c) === 'finished') {
+                      Pill({ text: $r('app.string.home_lesson_done'), bg: '#EFECEE', color: ElysiaTheme.INK_MUTE })
+                    } else if (this.lessonStatusOf(c) === 'ongoing') {
+                      Pill({ text: $r('app.string.home_lesson_ongoing'), bg: '#FFE4EE', color: ElysiaTheme.ROSE_700 })
+                    } else {
+                      Pill({ text: c.courseType })
+                    }
                   }
                   .width('100%').padding(12)
                   .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
                   .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
                   .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
+                  .opacity(this.lessonStatusOf(c) === 'finished' ? 0.62 : 1)
                   .onClick(() => {
                     let p: Record<string, Object> = { 'id': c.courseId };
                     let opts: NavigateOptions = { params: p };

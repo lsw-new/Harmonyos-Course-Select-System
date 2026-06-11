@@ -70,6 +70,8 @@
     { "name": "home_search_ph", "value": "搜索课程 · 通知 · 文件" },
     { "name": "home_view_all", "value": "查看全部 ›" },
     { "name": "home_no_class", "value": "今日无课 · 享受片刻闲暇" },
+    { "name": "home_lesson_done", "value": "已上完" },
+    { "name": "home_lesson_ongoing", "value": "进行中" },
     { "name": "home_service_hall", "value": "办事大厅" },
     { "name": "home_search_result", "value": "搜索结果" },
     { "name": "home_search_hint", "value": "试试课程名 / 老师 / 教室 / 通知标题 / 文件名" },

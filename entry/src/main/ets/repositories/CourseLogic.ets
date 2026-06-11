@@ -10,6 +10,15 @@ import { RemoteCourse, RemoteNotice, RemoteScheduleItem } from '../common/remote
 
 const CONTROL_CHAR_PATTERN: RegExp = new RegExp('[\\u0000-\\u001f\\u007f]');
 
+// 景德镇艺术职业大学真实上课时间表（索引 0 占位，节次 1-10）。
+// 表 1：单数教学楼（香樟苑教1/3/5、上茶苑教7/9、长芗苑教11/13、芭蕉苑教15/17/19/21）+ 体育馆/田径场；
+// 表 2：双数教学楼（香樟苑教2/4、上茶苑教6/8、长芗苑教10/12、芭蕉苑教14/16/18/20）。
+const REAL_T1_START: string[] = ['', '08:00', '08:55', '10:25', '11:20', '14:00', '14:55', '16:25', '17:20', '19:20', '20:15'];
+const REAL_T1_END: string[] = ['', '08:45', '09:40', '11:10', '12:05', '14:45', '15:40', '17:10', '18:05', '20:05', '21:00'];
+const REAL_T2_START: string[] = ['', '08:20', '09:15', '10:35', '11:30', '14:20', '15:15', '16:35', '17:30', '19:20', '20:15'];
+const REAL_T2_END: string[] = ['', '09:05', '10:00', '11:20', '12:15', '15:05', '16:00', '17:20', '18:15', '20:05', '21:00'];
+const BUILDING_NO_PATTERN: RegExp = new RegExp('教\\s*(\\d+)\\s*栋');
+
 export class CourseLogic {
   static isFiniteNumber(value: number): boolean {
     return typeof value === 'number' && value === value && value !== Infinity && value !== -Infinity;
@@ -171,6 +180,82 @@ export class CourseLogic {
   static sectionEndTime(section: number): string {
     const t: string[] = ['', '08:45', '09:35', '10:45', '11:35', '14:45', '15:35', '16:45', '17:35', '19:45', '20:35', '21:45', '22:35'];
     return (section >= 1 && section < t.length) ? t[section] : '';
+  }
+
+  // 教室所属时间表：双数栋走表 2，单数栋/体育馆/田径场/无法识别走表 1
+  static timetableOf(classroom: string): number {
+    const m: RegExpExecArray | null = BUILDING_NO_PATTERN.exec(classroom);
+    if (m !== null) {
+      const n = parseInt(m[1], 10);
+      if (!Number.isNaN(n) && n % 2 === 0) {
+        return 2;
+      }
+    }
+    return 1;
+  }
+
+  // 真实上课/下课时间（按教室栋号区分时间表）；节次超出 1-10 返回空串
+  static realStartTime(period: number, classroom: string): string {
+    const t = CourseLogic.timetableOf(classroom) === 2 ? REAL_T2_START : REAL_T1_START;
+    return (period >= 1 && period < t.length) ? t[period] : '';
+  }
+
+  static realEndTime(period: number, classroom: string): string {
+    const t = CourseLogic.timetableOf(classroom) === 2 ? REAL_T2_END : REAL_T1_END;
+    return (period >= 1 && period < t.length) ? t[period] : '';
+  }
+
+  // 课表行展示时间段 "08:00-09:40"；节次不在真实时间表内时回退原始 startTime
+  static lessonTimeText(s: ScheduleItem): string {
+    const a = CourseLogic.realStartTime(s.periodStart, s.classroom);
+    const b = CourseLogic.realEndTime(s.periodEnd, s.classroom);
+    if (a.length === 0 || b.length === 0) {
+      return s.startTime;
+    }
+    return `${a}-${b}`;
+  }
+
+  // "HH:mm" → 当日分钟数；非法返回 -1
+  static minutesOf(hhmm: string): number {
+    const parts = hhmm.split(':');
+    if (parts.length !== 2) {
+      return -1;
+    }
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (Number.isNaN(h) || Number.isNaN(m)) {
+      return -1;
+    }
+    return h * 60 + m;
+  }
+
+  // 课程进行状态：按当前时刻（当日分钟数）判定 upcoming / ongoing / finished；
+  // 时间无法解析时按 upcoming 处理（不误标灰）
+  static lessonStatus(s: ScheduleItem, nowMinutes: number): string {
+    const start = CourseLogic.minutesOf(CourseLogic.realStartTime(s.periodStart, s.classroom));
+    const end = CourseLogic.minutesOf(CourseLogic.realEndTime(s.periodEnd, s.classroom));
+    if (start < 0 || end < 0) {
+      return 'upcoming';
+    }
+    if (nowMinutes >= end) {
+      return 'finished';
+    }
+    if (nowMinutes >= start) {
+      return 'ongoing';
+    }
+    return 'upcoming';
+  }
+
+  // 按真实上课时间升序排序（同一开始时间按起始节次）；返回新数组不改原数组
+  static sortByLessonTime(items: ScheduleItem[]): ScheduleItem[] {
+    return items.slice().sort((a: ScheduleItem, b: ScheduleItem) => {
+      const sa = CourseLogic.minutesOf(CourseLogic.realStartTime(a.periodStart, a.classroom));
+      const sb = CourseLogic.minutesOf(CourseLogic.realStartTime(b.periodStart, b.classroom));
+      if (sa !== sb) {
+        return sa - sb;
+      }
+      return a.periodStart - b.periodStart;
+    });
   }
 
   // 已选课程 → 课表行：仅转换含有效星期/节次/周次的课程（集中实践等无排课信息的跳过）

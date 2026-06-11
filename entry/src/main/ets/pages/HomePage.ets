@@ -12,6 +12,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { CourseRepository } from '../repositories/CourseRepository';
+import { CourseLogic } from '../repositories/CourseLogic';
 import { HomeSummary, QuickEntry, DownloadFile, RecentLogin, TermInfo } from '../models/Home';
 import { ScheduleItem } from '../models/Course';
 import { Notice } from '../models/Notice';
@@ -36,6 +37,8 @@ struct HomePage {
   @State courseHits: ScheduleItem[] = [];
   @State noticeHits: Notice[] = [];
   @State fileHits: DownloadFile[] = [];
+  // 当前时刻（当日分钟数）：用于今日课程「已上完/进行中」判定，加载数据时刷新
+  @State nowMinutes: number = 0;
   // 完整可搜索语料（全周课表 / 全部通知 / 文件），不直接渲染，故用 private。
   private allCourses: ScheduleItem[] = [];
   private allNotices: Notice[] = [];
@@ -51,9 +54,20 @@ struct HomePage {
     this.loadData();
   }
 
+  private refreshNow(): void {
+    const d = new Date();
+    this.nowMinutes = d.getHours() * 60 + d.getMinutes();
+  }
+
+  // 今日课程进行状态（基于真实校时间表与当前时刻）
+  private lessonStatusOf(c: ScheduleItem): string {
+    return CourseLogic.lessonStatus(c, this.nowMinutes);
+  }
+
   loadData(): void {
     this.loading = true;
     AppRoute.showLoading();
+    this.refreshNow();
     this.errorMsg = '';
     const repo = ProfileRepository.get();
     Promise.all([repo.getHomeSummary(), repo.getProfile()])
@@ -371,28 +385,46 @@ struct HomePage {
     Row() {
       Column() {
         Text(`${c.periodStart}-${c.periodEnd} 节`).fontSize(13).fontStyle(FontStyle.Italic)
-          .fontColor(this.hueText(c.courseType)).fontFamily(ElysiaTheme.FONT_DISPLAY)
-        Text(`${c.startTime}`).fontSize(9).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
+          .fontColor(this.lessonStatusOf(c) === 'finished' ? ElysiaTheme.INK_MUTE : this.hueText(c.courseType))
+          .fontFamily(ElysiaTheme.FONT_DISPLAY)
+        Text(CourseLogic.lessonTimeText(c)).fontSize(9)
+          .fontColor(this.lessonStatusOf(c) === 'finished' ? ElysiaTheme.INK_MUTE : ElysiaTheme.INK_SOFT)
+          .margin({ top: 2 })
       }
-      .width(70).padding({ top: 10, bottom: 10 }).borderRadius(14)
+      .width(76).padding({ top: 10, bottom: 10 }).borderRadius(14)
       .alignItems(HorizontalAlign.Center)
-      .linearGradient({ angle: 180, colors: this.hueBg(c.courseType) })
+      .linearGradient({
+        angle: 180,
+        colors: this.lessonStatusOf(c) === 'finished'
+          ? [['#F0EDEF', 0], ['#E4E0E3', 1]] as Array<[string, number]>
+          : this.hueBg(c.courseType)
+      })
 
       Column() {
-        Text(c.courseName).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+        Text(c.courseName).fontSize(13).fontWeight(FontWeight.Bold)
+          .fontColor(this.lessonStatusOf(c) === 'finished' ? ElysiaTheme.INK_MUTE : ElysiaTheme.INK)
         Row() {
-          AppIcon({ name: 'pin', iconSize: 12 })
+          AppIcon({ name: 'pin', iconSize: 12, dim: this.lessonStatusOf(c) === 'finished' })
           Text(`${c.classroom} · ${c.teacher}`)
-            .fontSize(11).fontColor(ElysiaTheme.INK_SOFT).margin({ left: 4 })
+            .fontSize(11)
+            .fontColor(this.lessonStatusOf(c) === 'finished' ? ElysiaTheme.INK_MUTE : ElysiaTheme.INK_SOFT)
+            .margin({ left: 4 })
         }.margin({ top: 4 })
       }.layoutWeight(1).alignItems(HorizontalAlign.Start).margin({ left: 12, right: 12 })
 
-      Pill({ text: c.courseType })
+      if (this.lessonStatusOf(c) === 'finished') {
+        Pill({ text: $r('app.string.home_lesson_done'), bg: '#EFECEE', color: ElysiaTheme.INK_MUTE })
+      } else if (this.lessonStatusOf(c) === 'ongoing') {
+        Pill({ text: $r('app.string.home_lesson_ongoing'), bg: '#FFE4EE', color: ElysiaTheme.ROSE_700 })
+      } else {
+        Pill({ text: c.courseType })
+      }
     }
     .width('100%').padding(12)
     .backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
     .shadow({ radius: 14, color: '#1FD85487', offsetX: 0, offsetY: 4 })
+    .opacity(this.lessonStatusOf(c) === 'finished' ? 0.62 : 1)
     .onClick(() => {
       let p: Record<string, Object> = { 'id': c.courseId };
       let opts: NavigateOptions = { params: p };

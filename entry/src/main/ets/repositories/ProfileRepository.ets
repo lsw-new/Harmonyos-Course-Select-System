@@ -16,6 +16,7 @@ import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppConfig } from '../app/AppConfig';
 import { RemoteApi, RemoteLeave, RemoteFeedback, ProfileUpdateBody } from '../common/remote/RemoteApi';
 import { CourseRepository } from './CourseRepository';
+import { CourseLogic } from './CourseLogic';
 import { ScheduleItem } from '../models/Course';
 import { Notice } from '../models/Notice';
 import { TermInfo } from '../models/Home';
@@ -331,7 +332,8 @@ export class ProfileRepository extends BaseRepository {
     const noticesPromise: Promise<Notice[] | undefined> = CourseRepository.get().getNotices()
       .catch((): Notice[] | undefined => undefined);
     const weekSchedule = await schedulePromise;
-    summary.todayCourses = weekSchedule.filter((s: ScheduleItem) => s.weekday === weekday);
+    // 按真实上课时间排序（教室单/双数栋分属两张校时间表，节次相同开始时间也可能不同）
+    summary.todayCourses = CourseLogic.sortByLessonTime(weekSchedule.filter((s: ScheduleItem) => s.weekday === weekday));
     // 未读角标与通知摘要与「通知列表页」同源（联机走后端真实通知、本地走 NoticeStore），
     // 避免首页与通知页数字对不上；通知拉取失败回退本地 NoticeStore。
     const notices = await noticesPromise;
