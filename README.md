@@ -1,5 +1,154 @@
 # 教学管理系统 HarmonyOS App
 
+## 后端部署教程（从零到上线）
+
+> 目标架构：**公网仅开放 80/443 → nginx（TLS 终止）→ 本机 Node `:8090`（pm2 守护）→ Postgres 容器**。
+> 线上实例：API `https://lsw666.dns.army/api`，Web 管理控制台 `https://lsw666.dns.army/admin/`。
+> 以下步骤在一台全新 Linux 服务器（线上为 Ubuntu）上从零复现整套后端。
+
+### 第 0 步 · 前置条件
+
+- 一台有公网 IP 的 Linux 服务器，以及一个已解析到该 IP 的域名（HTTPS 证书需要）
+- 服务器安装：**Node.js ≥ 18**、**Docker**（跑 Postgres）、**nginx**、**certbot**
+
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx docker.io
+# Node 18+（若发行版自带版本过旧，用 NodeSource 或 nvm 安装）
+node -v   # 应 >= v18
+```
+
+### 第 1 步 · 启动 Postgres 容器
+
+```bash
+sudo docker run -d --name dtest2-postgres \
+  -e POSTGRES_DB=dtest2_harmony \
+  -e POSTGRES_USER=dtest2_app \
+  -e POSTGRES_PASSWORD='<一个强密码>' \
+  -p 127.0.0.1:15432:5432 \
+  --restart unless-stopped \
+  postgres:16
+```
+
+> ⚠️ **容器网络坑（线上踩过）**：部分环境下 host 上的 `127.0.0.1:15432` 端口映射不可用（TCP 能握手但 pg 报 `Connection terminated`）。此时改用**容器 bridge IP** 直连：
+>
+> ```bash
+> sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' dtest2-postgres
+> ```
+>
+> 把查到的 IP（如 `172.17.0.2`）填入 `.env` 的 `PGHOST`、`PGPORT=15432`。**容器重启可能换 IP**——若日后 `/health` 突然报 db 错误，先重查此 IP 并更新 `.env`。
+
+### 第 2 步 · 上传代码并安装依赖
+
+```bash
+# 本地：把仓库 server/ 目录上传到服务器
+scp -r server/* <user>@<服务器IP>:~/dtest2-api/
+
+# 服务器：
+cd ~/dtest2-api
+npm install --omit=dev   # express / pg / jsonwebtoken / bcryptjs / nodemailer / dotenv / cors
+```
+
+### 第 3 步 · 配置环境变量（`.env`）
+
+```bash
+cd ~/dtest2-api
+cp .env.example .env
+vim .env
+```
+
+逐项填写（**`.env` 绝不入库**，模板见 `server/.env.example`）：
+
+| 变量 | 说明 |
+|---|---|
+| `PORT` | 后端监听端口，默认 `8090` |
+| `PGHOST` / `PGPORT` | Postgres 地址：优先 `127.0.0.1:15432`，映射不通则用容器 bridge IP（见第 1 步） |
+| `PGDATABASE` / `PGUSER` / `PGPASSWORD` | `dtest2_harmony` / `dtest2_app` / 第 1 步设置的密码 |
+| `JWT_SECRET` | **必填**，≥16 字符随机串（建议 64）；缺失或过短服务**拒绝启动**。生成：`openssl rand -hex 32` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | QQ 邮箱 SMTP：`smtp.qq.com` / `465` / `true` |
+| `SMTP_SENDER_EMAIL` / `SMTP_SENDER_PASSWORD` | 发件邮箱 + QQ 邮箱**授权码**（在 QQ 邮箱设置→账户→开启 SMTP 获取，不是登录密码） |
+| `CORS_ORIGINS` | 留空=关闭跨域（原生 App 不受 CORS 约束，无需配置） |
+| `RATE_LIMIT_*` | 限流阈值，可不改（全局 300/分·IP，登录与验证码 10/分·IP） |
+
+### 第 4 步 · 建库迁移 + 导入基础数据
+
+```bash
+cd ~/dtest2-api          # ⚠️ 必须在此目录运行（dotenv 按当前目录找 .env）
+npm run migrate          # 幂等应用 migrations/001~006：31 表全量建表 + 班级名册表 +
+                         # 班级课表表 + 成绩两段式发布 + 系统配置表 + 名册学院/专业列
+npm run seed             # 演示账号 / 选课轮次 / 评教模板（幂等可重跑）
+node scripts/import-class-students.js     # 班级学生名册 47 人（注册白名单）
+node scripts/import-class-schedule.js     # 班级课表 40 条 + 课程-教师绑定
+node scripts/import-class-eval-tasks.js   # 评教任务（已注册学生 × 本班课程）
+node scripts/import-class-grade-tasks.js  # 成绩录入任务（班级课程）
+node scripts/import-school-calendar.js    # 真实校历节点（两学期 25 条）
+```
+
+所有导入脚本均为 UPSERT 幂等设计，重复运行安全；迁移 runner 按 `schema_migrations` 登记跳过已应用版本。
+
+### 第 5 步 · pm2 守护进程
+
+```bash
+sudo npm i -g pm2
+cd ~/dtest2-api
+pm2 start src/index.js --name dtest2-api
+pm2 save              # 持久化进程列表
+pm2 startup           # 生成开机自启命令（按提示执行一次）
+
+# 本机验证
+curl http://127.0.0.1:8090/health   # 应返回 {"success":true,...,"db":"ok"}
+```
+
+### 第 6 步 · nginx 反代 + HTTPS
+
+```bash
+sudo certbot --nginx -d <你的域名>   # 申请 Let's Encrypt 证书（自动续期）
+```
+
+在该域名的 443 server 块中加两个 location（完整样板见
+[`server/deploy/nginx-https-setup.md`](server/deploy/nginx-https-setup.md) 与
+[`server/deploy/nginx-admin-block.conf`](server/deploy/nginx-admin-block.conf)）：
+
+```nginx
+location /api/ {
+    proxy_pass http://127.0.0.1:8090;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+location /admin {
+    proxy_pass http://127.0.0.1:8090;
+    proxy_set_header Host $host;
+}
+```
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**防火墙/云安全组只放行 80/443**；`8090` 不对公网开放——后端已设 `trust proxy loopback`，仅信任本机 nginx 转发的真实 IP（用于限流与审计）。
+
+### 第 7 步 · 上线验证
+
+```bash
+curl https://<你的域名>/api/health
+curl -s -X POST https://<你的域名>/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"account":"<管理员工号>","password":"<密码>"}'
+```
+
+- 浏览器打开 `https://<你的域名>/admin/`，用管理员账号登录 Web 管理控制台（概览 / 学生 / 选课 / 成绩 / 审批 / 通知 / 验证码监控 / 审计 / 数据库管理）。
+- App 侧把 `entry/src/main/ets/common/AppConfig.ets` 的 `baseUrl` 改为 `https://<你的域名>/api` 后重新构建即可联机。
+
+### 第 8 步 · 日常更新与运维
+
+- **更新部署固定流程**：备份（`cp -r src src.bak.$(date +%s)`）→ 上传改动文件 → `node --check <文件>` 语法校验 → `pm2 restart dtest2-api` → `curl /health` + 登录验证；失败即用备份回滚。
+- **日志与状态**：`pm2 logs dtest2-api` / `pm2 ls`；500 错误详情只记服务端日志，客户端仅见通用文案。
+- **新增数据库迁移**：上传 `migrations/00X_*.sql` 后执行 `npm run migrate`（幂等，已应用自动跳过）。
+- **常见故障**：`/health` 报 db 错误 → 大概率是 Postgres 容器重启后 bridge IP 变化，按第 1 步重查 IP、更新 `.env` 的 `PGHOST`、`pm2 restart` 即恢复。
+- **回归测试**：本地 `cd server && npm run test:coverage`（271 例 + 覆盖率门禁），改动后端后务必跑过再部署。
+
 ## 项目介绍
 
 本项目是“绷住了小组”的软件工程课程作业，目标是实现一个面向 HarmonyOS NEXT 的教学管理系统 App。
@@ -72,21 +221,71 @@
 │       │       │   ├── color.json               # 颜色资源定义
 │       │       │   ├── float.json               # 尺寸/浮点资源定义
 │       │       │   └── string.json              # UI 中文文案外置（约 534 条，i18n 单一来源）
-│       │       ├── base/media/                  # 63 枚玫瑰学院风 SVG 线性图标（经 AppIcon 组件统一引用）+ 应用图标：
-│       │       │   │                            # 〔底部导航/首页〕ic_home(首页) ic_mine(我的) ic_evaluation(评教) ic_practice(实践) ic_public(公共)
-│       │       │   │                            #   ic_dashboard(仪表盘) ic_students(学生管理) ic_madame(管理员我的)
-│       │       │   │                            # 〔功能域〕ic_course(课程) ic_schedule(课表) ic_selection(选课) ic_grades(成绩) ic_exam(考试)
-│       │       │   │                            #   ic_roster(学籍) ic_leave(请假) ic_feedback(反馈) ic_notice(通知) ic_bell(消息铃铛)
-│       │       │   │                            #   ic_approve(审批) ic_calendar(日历) ic_book(书本) ic_wallet(账户) ic_chat(聊天)
-│       │       │   │                            # 〔操作〕ic_back(返回) ic_forward(前进) ic_close(关闭) ic_check(勾选) ic_plus(新增)
-│       │       │   │                            #   ic_edit(编辑) ic_trash(删除) ic_search(搜索) ic_filter(筛选) ic_sort(排序)
-│       │       │   │                            #   ic_refresh(刷新) ic_send(发送) ic_download(下载) ic_upload(上传) ic_scan(扫码)
-│       │       │   │                            #   ic_qr(二维码) ic_camera(相机) ic_menu(菜单) ic_more(更多) ic_settings(设置)
-│       │       │   │                            # 〔状态/表单〕ic_success(成功) ic_error(错误) ic_warning(警告) ic_info(信息)
-│       │       │   │                            #   ic_eye(显示密码) ic_eye_off(隐藏密码) ic_lock(锁定) ic_unlock(解锁)
-│       │       │   │                            # 〔信息展示〕ic_time(时间) ic_location(位置) ic_pin(置顶) ic_tag(标签) ic_star(星标)
-│       │       │   │                            #   ic_file(文件) ic_image(图片) ic_mail(邮件) ic_phone(电话)
-│       │       │   │                            # 〔品牌装饰〕ic_rose(玫瑰) ic_petal(花瓣) ic_sparkle(星光) ic_heart(爱心)
+│       │       ├── base/media/                  # 64 枚玫瑰学院风 SVG 线性图标（经 AppIcon 组件统一引用）+ 应用图标
+│       │       │   ├── ic_home.svg              # 底部导航/首页：首页
+│       │       │   ├── ic_mine.svg              # 底部导航/首页：我的
+│       │       │   ├── ic_evaluation.svg        # 底部导航/首页：评教
+│       │       │   ├── ic_practice.svg          # 底部导航/首页：实践
+│       │       │   ├── ic_public.svg            # 底部导航/首页：公共服务
+│       │       │   ├── ic_dashboard.svg         # 底部导航/首页：管理端仪表盘
+│       │       │   ├── ic_students.svg          # 底部导航/首页：管理端学生管理
+│       │       │   ├── ic_madame.svg            # 底部导航/首页：管理员我的
+│       │       │   ├── ic_course.svg            # 功能域：课程
+│       │       │   ├── ic_schedule.svg          # 功能域：课表
+│       │       │   ├── ic_selection.svg         # 功能域：选课
+│       │       │   ├── ic_grades.svg            # 功能域：成绩
+│       │       │   ├── ic_exam.svg              # 功能域：考试
+│       │       │   ├── ic_roster.svg            # 功能域：学籍
+│       │       │   ├── ic_leave.svg             # 功能域：请假
+│       │       │   ├── ic_feedback.svg          # 功能域：反馈
+│       │       │   ├── ic_notice.svg            # 功能域：通知
+│       │       │   ├── ic_bell.svg              # 功能域：消息铃铛
+│       │       │   ├── ic_approve.svg           # 功能域：审批
+│       │       │   ├── ic_calendar.svg          # 功能域：日历
+│       │       │   ├── ic_book.svg              # 功能域：书本/文档
+│       │       │   ├── ic_wallet.svg            # 功能域：账户
+│       │       │   ├── ic_chat.svg              # 功能域：聊天
+│       │       │   ├── ic_back.svg              # 操作：返回
+│       │       │   ├── ic_forward.svg           # 操作：前进
+│       │       │   ├── ic_close.svg             # 操作：关闭
+│       │       │   ├── ic_check.svg             # 操作：勾选
+│       │       │   ├── ic_plus.svg              # 操作：新增
+│       │       │   ├── ic_edit.svg              # 操作：编辑
+│       │       │   ├── ic_trash.svg             # 操作：删除
+│       │       │   ├── ic_search.svg            # 操作：搜索
+│       │       │   ├── ic_filter.svg            # 操作：筛选
+│       │       │   ├── ic_sort.svg              # 操作：排序
+│       │       │   ├── ic_refresh.svg           # 操作：刷新
+│       │       │   ├── ic_send.svg              # 操作：发送
+│       │       │   ├── ic_download.svg          # 操作：下载
+│       │       │   ├── ic_upload.svg            # 操作：上传
+│       │       │   ├── ic_scan.svg              # 操作：扫码
+│       │       │   ├── ic_qr.svg                # 操作：二维码
+│       │       │   ├── ic_camera.svg            # 操作：相机
+│       │       │   ├── ic_menu.svg              # 操作：菜单
+│       │       │   ├── ic_more.svg              # 操作：更多
+│       │       │   ├── ic_settings.svg          # 操作：设置
+│       │       │   ├── ic_success.svg           # 状态/表单：成功
+│       │       │   ├── ic_error.svg             # 状态/表单：错误
+│       │       │   ├── ic_warning.svg           # 状态/表单：警告
+│       │       │   ├── ic_info.svg              # 状态/表单：信息
+│       │       │   ├── ic_eye.svg               # 状态/表单：显示密码
+│       │       │   ├── ic_eye_off.svg           # 状态/表单：隐藏密码
+│       │       │   ├── ic_lock.svg              # 状态/表单：锁定
+│       │       │   ├── ic_unlock.svg            # 状态/表单：解锁
+│       │       │   ├── ic_time.svg              # 信息展示：时间
+│       │       │   ├── ic_location.svg          # 信息展示：位置
+│       │       │   ├── ic_pin.svg               # 信息展示：置顶
+│       │       │   ├── ic_tag.svg               # 信息展示：标签
+│       │       │   ├── ic_star.svg              # 信息展示：星标
+│       │       │   ├── ic_file.svg              # 信息展示：文件
+│       │       │   ├── ic_image.svg             # 信息展示：图片
+│       │       │   ├── ic_mail.svg              # 信息展示：邮件
+│       │       │   ├── ic_phone.svg             # 信息展示：电话
+│       │       │   ├── ic_rose.svg              # 品牌装饰：玫瑰
+│       │       │   ├── ic_petal.svg             # 品牌装饰：花瓣
+│       │       │   ├── ic_sparkle.svg           # 品牌装饰：星光
+│       │       │   ├── ic_heart.svg             # 品牌装饰：爱心
 │       │       │   ├── startIcon.png            # 启动/桌面图标
 │       │       │   ├── background.png           # 模块分层图标·背景层
 │       │       │   ├── foreground.png           # 模块分层图标·前景层
@@ -115,18 +314,28 @@
 │   ├── migrate.js                               # 幂等迁移 runner（按 schema_migrations 登记跳过已应用）
 │   ├── seed.js                                  # 演示数据种子（测试账号/选课轮次/评教模板，幂等可重跑）
 │   ├── deploy/
-│   │   └── nginx-https-setup.md                 # HTTPS 反代配置复现文档（nginx + Let's Encrypt + 域名）
+│   │   ├── nginx-https-setup.md                 # HTTPS 反代配置复现文档（nginx + Let's Encrypt + 域名）
+│   │   └── nginx-admin-block.conf               # 管理控制台 /admin location 块样板
 │   ├── migrations/
 │   │   ├── 001_initial_dtest2_schema.sql        # 权威建表脚本（dtest2 schema 全量 31 表）
 │   │   ├── 002_class_students.sql               # 班级学生名册表（注册白名单，47 人）
-│   │   └── 003_class_schedule.sql               # 班级课表表 + 课程-教师绑定表
+│   │   ├── 003_class_schedule.sql               # 班级课表表 + 课程-教师绑定表
+│   │   ├── 004_grades_published_nullable.sql    # 成绩两段式发布（published_at 可空，审核通过才发布）
+│   │   ├── 005_system_settings.sql              # 全局系统配置键值表（评教期开关等）
+│   │   └── 006_class_students_college_major.sql # 名册补学院/专业列并回填（注册资料不再写死待完善）
+│   ├── public/admin/                            # Web 后端管理控制台（纯静态单页，nginx /admin → :8090）
+│   │   ├── index.html                           # 控制台骨架：登录视图 + 九大栏目（概览/学生/选课/成绩/审批/通知/验证码监控/审计/数据库）
+│   │   ├── admin.js                             # 控制台逻辑：JWT 登录、各栏目加载、打分/审批/轮次操作、验证码倒计时、全表 CRUD
+│   │   └── admin.css                            # 控制台样式（玫瑰学院风深色侧栏 + 卡片/表格/状态 pill）
 │   ├── scripts/
 │   │   ├── check-syntax.js                      # node --check 全量 JS 语法检查（CI 测试前置步骤）
 │   │   ├── class-students.json                  # 班级名册数据（47 人，提取自 班级学生信息.xlsx）
-│   │   ├── class-schedule.json                  # 班级课表数据（40 条，23计算机科学与技术U9，含教师绑定）
+│   │   ├── class-schedule.json                  # 班级课表数据（23计算机科学与技术U9，含教师绑定）
 │   │   ├── import-class-students.js             # 名册导入脚本（UPSERT 幂等）
 │   │   ├── import-class-schedule.js             # 课表导入脚本（同事务派生课程-教师绑定）
-│   │   └── import-class-eval-tasks.js           # 评教任务生成脚本（清测试数据，按班级 × 已注册学生生成）
+│   │   ├── import-class-eval-tasks.js           # 评教任务生成脚本（清测试数据，按班级 × 已注册学生生成）
+│   │   ├── import-class-grade-tasks.js          # 成绩录入任务生成脚本（班级课程，幂等保留进度）
+│   │   └── import-school-calendar.js            # 真实校历导入脚本（两学期 25 节点）
 │   ├── src/
 │   │   ├── index.js                             # 装配层：trust proxy/CORS/限流/JSON + /health + 按域挂载路由（约 85 行）
 │   │   ├── db.js                                # pg 连接池（读 .env 的 PG* 配置）
@@ -153,8 +362,12 @@
 │   │       ├── feedback.routes.js               # 意见反馈提交 / 列表
 │   │       ├── evaluations.routes.js            # 评教任务列表（课程信息回退课表绑定）/ 评教提交
 │   │       ├── practice.routes.js               # 实践项目 / 报名（行锁防超名额）/ 取消报名
-│   │       └── admin.routes.js                  # 管理端 16 端点：学生管理 / 成绩审核 / 审批 / 通知发布 / 角色权限 / 审计日志 / 评教模板
-│   └── test/                                    # Jest + supertest 测试套件（141 例，行覆盖率 80% 门禁）
+│   │       ├── profile.routes.js                # 个人资料更新（头像 base64 ≤200KB / 联系方式，仅 JWT 本人）
+│   │       ├── admin.routes.js                  # 管理端：学生管理 / 成绩审核与按学生打分 / 审批 / 通知发布 / 角色权限 / 审计日志 / 评教模板
+│   │       ├── admin-stats.routes.js            # 管理端统计：仪表盘聚合 / 选课轮次状态机与时间编辑 / 评教统计 / 校历 CRUD / 验证码监控
+│   │       ├── admin-courses.routes.js          # 管理端课程 CRUD（timeText 解析，删除被引用课程 409）
+│   │       └── db.routes.js                     # 数据库管理：dtest2 全表分页 CRUD（表/列白名单防注入，system.config 权限）
+│   └── test/                                    # Jest + supertest 测试套件（271 例 / 26 套件，覆盖率门禁：行/语句/函数/分支均 ~80 线）
 │       ├── jest.setup.js                        # 测试启动注入（JWT_SECRET / 限流阈值）
 │       ├── helpers/
 │       │   ├── dbMock.js                        # pg 连接池 mock（按 SQL 正则路由返回行，断言事务轨迹）
@@ -175,6 +388,15 @@
 │       ├── endpoints-read.test.js               # 全部只读端点广覆盖（200 + 鉴权链路）
 │       ├── mutations.test.js                    # 写端点广覆盖（请假/反馈/评教/管理端）
 │       ├── account-repo.test.js                 # profile 读取 + 权限码归一化
+│       ├── admin-stats.test.js                  # 仪表盘/选课/评教统计 + 课程 CRUD + 验证码监控端点
+│       ├── selection-admin.test.js              # 选课轮次状态机/时间编辑（含真实日历校验与竞态 409）
+│       ├── grade-scoring.test.js                # 按学生打分闭环（进度/转待审核/两段式发布）
+│       ├── profile-update.test.js               # 资料更新（头像大小/格式校验）
+│       ├── eval-period.test.js                  # 评教期开关（服务端权威校验）
+│       ├── db-admin.test.js                     # 数据库管理 CRUD + 防注入白名单
+│       ├── coverage-branches.test.js            # 分支补全：db/课程/统计/成绩域 4xx/500
+│       ├── coverage-branches-domains.test.js    # 分支补全：通知/请假/反馈/实践/评教/课表/资料/认证域
+│       ├── coverage-branches-admin.test.js      # 分支补全：管理端状态机/审批联动/模板校验矩阵
 │       └── coverage-extra.test.js               # 500 分支 + 防信息泄露断言
 ├── docs/                                        # 文档与实机截图
 │   ├── CLIENT_TESTING.md                        # 客户端测试指南（hypium 用例清单 / 运行方式 / 运行登记）
@@ -357,8 +579,8 @@ entry/src/main/ets/
 `server/` 目录为 App 的远程后端 API，仅在 `AppConfig.useRemote = true` 时被调用。
 
 - **技术栈**：Node.js 18 + Express + `pg`（CommonJS 免构建），直连 Postgres（`dtest2` schema），统一返回 `ApiResponse` 信封 `{ success, data, error }`。
-- **源码结构**：`src/index.js` 仅做装配（中间件 + `/health` + 按域 `app.use(require('./routes/*'))`，约 80 行）；各域路由拆到 `src/routes/*.routes.js`（认证 / 选课 / 成绩 / 通知 / 请假 / 反馈 / 评教 / 实践 / 管理端），公共件在 `src/middleware/`（限流 / 错误处理 / 细粒度鉴权）与 `src/repositories/`（profile 读取），纯映射与 SQL 常量在 `src/mappers.js`。
-- **部署**：服务器 `138.2.47.185`，pm2 进程 `dtest2-api` 监听 `:8090`；前置 **nginx 反向代理**终止 TLS（Let's Encrypt 证书），对外为 `https://lsw666.dns.army/api`（2026-06-09 起由 `lsw666.duckdns.org` 迁移）。
+- **源码结构**：`src/index.js` 仅做装配（中间件 + `/health` + 按域 `app.use(require('./routes/*'))`，约 80 行）；各域路由拆到 `src/routes/*.routes.js`（认证 / 选课 / 成绩 / 课表 / 通知 / 请假 / 反馈 / 评教 / 实践 / 资料 / 管理端 / 管理统计 / 课程管理 / 数据库管理），公共件在 `src/middleware/`（限流 / 错误处理 / 细粒度鉴权）与 `src/repositories/`（profile 读取），纯映射与 SQL 常量在 `src/mappers.js`。
+- **部署**：pm2 进程 `dtest2-api` 监听本机 `:8090`（公网仅开放 80/443）；前置 **nginx 反向代理**终止 TLS（Let's Encrypt 证书），对外为 `https://lsw666.dns.army/api`；Web 管理控制台托管于 `https://lsw666.dns.army/admin/`。完整搭建步骤见本文最上方「**后端部署教程（从零到上线）**」。
 - **覆盖域**：认证（登录 / 注册 / 找回密码 / 邮箱验证码）、课程、选课（事务校验）、成绩、通知、请假、反馈、评教、实践，以及管理端的学生管理、成绩审核、审批、通知发布、角色权限、评教模板、审计日志。
 - **数据库迁移**：`server/migrations/` 权威建表脚本 + `npm run migrate` 幂等 runner。
 
@@ -382,9 +604,9 @@ entry/src/main/ets/
 
 后端 API 配套 **Jest + supertest** 自动化测试套件（`server/test/`）：
 
-- **108 个用例 / 11 个套件**，覆盖登录与鉴权中间件、越权（IDOR）防护、管理端细粒度权限、限流、选课事务（轮次 / 容量 / 学分上限 / 时间冲突 + `FOR UPDATE` 行锁 + 失败回滚）、实践报名、注册与找回密码闭环、各读写端点，以及选课规则纯函数。
+- **271 个用例 / 26 个套件**，覆盖登录与鉴权中间件、越权（IDOR）防护、管理端细粒度权限、限流、选课事务（轮次 / 容量 / 学分上限 / 时间冲突 + `FOR UPDATE` 行锁 + 失败回滚）、选课轮次状态机、成绩打分闭环、实践报名、注册与找回密码闭环、数据库管理防注入、验证码监控、各读写端点与全域错误分支（4xx 校验矩阵 / 事务回滚 / catch-500），以及选课规则纯函数。
 - **并发压力测试**：有状态 mock 忠实复刻 `FOR UPDATE` 行锁对临界区的序列化，跑真正的 `Promise.all` 并发——20 人同抢 1/5 个名额恰好 1/5 人成功、落库数不超容量；另设「去锁对照」证明该断言非恒真（锁缺失即超卖）。
-- **行覆盖率 83.2%**（语句 82.3% / 函数 80.4% / 分支 63.6%）；数据库连接池与 SMTP 等基础设施按约定排除统计。
+- **行覆盖率 99.0%**（语句 98.3% / 函数 94.0% / 分支 89.1%），覆盖率门禁锁定行/语句/函数/分支均约 80 线；数据库连接池与 SMTP 等基础设施按约定排除统计。
 - 持久层经 mock 注入，无需真实数据库即可运行：`cd server && npm test`（或 `npm run test:coverage`）。
 - **CI**：[`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml) 在 push / PR 时于 Node 18 / 20 跑 `npm ci` → JS 语法检查 → 带**覆盖率门禁**（行 ≥ 80%）的测试（仓库托管 Gitee，镜像到 GitHub 即自动运行）。
 
