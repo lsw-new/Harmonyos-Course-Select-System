@@ -37,6 +37,26 @@ function issue(email) {
   return code;
 }
 
+// 列出当前未过期验证码的元信息（供管理端监控）。
+// 安全约束：不返回验证码明文——否则管理端可借码接管任意邮箱的注册/找回流程。
+function list() {
+  const now = Date.now();
+  const out = [];
+  for (const [email, rec] of store) {
+    if (now > rec.expiresAt) { continue; }
+    out.push({
+      email,
+      sentAt: rec.sentAt,
+      expiresAt: rec.expiresAt,
+      remainingMs: rec.expiresAt - now,
+      attempts: rec.attempts,
+      maxAttempts: MAX_ATTEMPTS
+    });
+  }
+  out.sort((a, b) => b.sentAt - a.sentAt);
+  return out;
+}
+
 // 校验验证码；成功即消费（一次性）。返回 { ok } 或 { ok:false, reason }
 function verify(email, code) {
   const key = normalize(email);
@@ -73,4 +93,4 @@ if (typeof sweeper.unref === 'function') {
   sweeper.unref();
 }
 
-module.exports = { canIssue, issue, verify };
+module.exports = { canIssue, issue, verify, list };

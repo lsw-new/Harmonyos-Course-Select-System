@@ -46,6 +46,7 @@
         <button class="nav-item" data-section="grades">成绩打分</button>
         <button class="nav-item" data-section="approvals">审批中心</button>
         <button class="nav-item" data-section="notice">通知发布</button>
+        <button class="nav-item" data-section="codes">验证码监控</button>
         <button class="nav-item" data-section="audit">审计日志</button>
         <button class="nav-item" data-section="db">数据库管理</button>
       </nav>
@@ -136,6 +137,17 @@
           <p id="notice-msg" class="form-error" hidden></p>
           <button type="submit" class="btn btn-primary">发布通知</button>
         </form>
+      </section>
+
+      <!-- 验证码监控 -->
+      <section id="section-codes" class="section" hidden>
+        <h2>验证码监控</h2>
+        <p class="muted">实时显示哪些邮箱请求了注册 / 找回密码验证码，以及验证码自动销毁倒计时（有效期 5 分钟，校验成功或过期即销毁）。出于安全考虑不显示验证码内容；数据存于后端进程内存，服务重启后清空。</p>
+        <div class="toolbar">
+          <button id="codes-refresh" class="btn">刷新</button>
+          <span id="codes-updated" class="muted" style="margin:auto 0"></span>
+        </div>
+        <div id="codes-table" class="table-wrap"></div>
       </section>
 
       <!-- 审计日志 -->

@@ -6,6 +6,7 @@ const { adminRequired, authRequired } = require('../auth');
 const { serverError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
 const { mapApproval } = require('../mappers');
+const codeStore = require('../codeStore');
 
 const router = express.Router();
 
@@ -346,6 +347,11 @@ router.delete('/api/admin/calendar/:id', permissionRequired('system.config:delet
   } catch (e) {
     serverError(res, '删除校历事件失败', e);
   }
+});
+
+// 验证码监控：列出哪些邮箱请求了验证码及自动销毁时间（进程内存数据，不含验证码明文）
+router.get('/api/admin/verification-codes', permissionRequired('system.config:view', 'system.config:update'), (req, res) => {
+  res.json(ok(codeStore.list()));
 });
 
 module.exports = router;

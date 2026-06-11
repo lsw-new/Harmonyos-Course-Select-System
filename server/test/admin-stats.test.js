@@ -140,3 +140,32 @@ describe('课程管理 CRUD', () => {
     expect(res.body.data.deleted).toBe(true);
   });
 });
+
+describe('GET /api/admin/verification-codes（验证码监控）', () => {
+  const codeStore = require('../src/codeStore');
+
+  test('学生 token → 403', async () => {
+    const res = await request(app).get('/api/admin/verification-codes').set('Authorization', stu);
+    expect(res.status).toBe(403);
+  });
+
+  test('无权限管理员 → 403（fail-closed）', async () => {
+    __mock.setRoutes([{ match: /FROM dtest2\.admin_profiles ap/, result: [] }]);
+    const res = await request(app).get('/api/admin/verification-codes').set('Authorization', adm);
+    expect(res.status).toBe(403);
+  });
+
+  test('返回有效验证码元信息且不含验证码明文', async () => {
+    __mock.setRoutes([PERM_GRANT]);
+    codeStore.issue('monitor-test@example.com');
+    const res = await request(app).get('/api/admin/verification-codes').set('Authorization', adm);
+    expect(res.status).toBe(200);
+    const entry = res.body.data.find((c) => c.email === 'monitor-test@example.com');
+    expect(entry).toBeDefined();
+    expect(entry.code).toBeUndefined();
+    expect(entry.expiresAt - entry.sentAt).toBe(5 * 60 * 1000);
+    expect(entry.remainingMs).toBeGreaterThan(0);
+    expect(entry.attempts).toBe(0);
+    expect(entry.maxAttempts).toBe(5);
+  });
+});

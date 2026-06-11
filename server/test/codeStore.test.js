@@ -89,6 +89,35 @@ describe('codeStore', () => {
     });
   });
 
+  test('list 仅返回未过期验证码元信息，按请求时间倒序且不含明文', () => {
+    const codeStore = loadStore();
+
+    codeStore.issue('old@example.com');
+    jest.advanceTimersByTime(2 * 60 * 1000);
+    codeStore.issue('fresh@example.com');
+    jest.advanceTimersByTime(3 * 60 * 1000 + 1); // old 已过 5 分钟 TTL，fresh 仍有效
+
+    const items = codeStore.list();
+    expect(items).toHaveLength(1);
+    expect(items[0].email).toBe('fresh@example.com');
+    expect(items[0].code).toBeUndefined();
+    expect(items[0].expiresAt - items[0].sentAt).toBe(5 * 60 * 1000);
+    expect(items[0].remainingMs).toBe(2 * 60 * 1000 - 1);
+    expect(items[0].attempts).toBe(0);
+    expect(items[0].maxAttempts).toBe(5);
+  });
+
+  test('list 多条有效验证码按 sentAt 倒序排列', () => {
+    const codeStore = loadStore();
+
+    codeStore.issue('first@example.com');
+    jest.advanceTimersByTime(90 * 1000);
+    codeStore.issue('second@example.com');
+
+    const emails = codeStore.list().map((c) => c.email);
+    expect(emails).toEqual(['second@example.com', 'first@example.com']);
+  });
+
   test('normalizes empty emails and tolerates sweepers without unref', () => {
     jest.resetModules();
     jest.spyOn(global, 'setInterval').mockImplementation(() => ({}));

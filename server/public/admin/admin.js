@@ -123,6 +123,7 @@
     grades: loadGrades,
     approvals: loadApprovals,
     notice: () => undefined,
+    codes: loadCodes,
     audit: loadAudit,
     db: loadDbTables
   };
@@ -515,6 +516,75 @@
       btn.disabled = false;
     }
   });
+
+  // ---------- 验证码监控 ----------
+
+  let codesData = [];
+  let codesTimer = 0;
+
+  function fmtTimeSec(value) {
+    if (!value) { return ''; }
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) { return String(value); }
+    const p = (n) => (n < 10 ? '0' + n : '' + n);
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
+
+  function fmtCountdown(ms) {
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${m}:${s < 10 ? '0' + s : s}`;
+  }
+
+  async function loadCodes() {
+    const wrap = $('#codes-table');
+    wrap.innerHTML = '<div class="empty">加载中…</div>';
+    try {
+      codesData = await api('/admin/verification-codes');
+      $('#codes-updated').textContent = '更新于 ' + fmtTimeSec(Date.now());
+      renderCodes();
+      // 每秒重绘倒计时；离开本区域后定时器自动停止
+      if (!codesTimer) {
+        codesTimer = setInterval(() => {
+          if ($('#section-codes').hidden) {
+            clearInterval(codesTimer);
+            codesTimer = 0;
+            return;
+          }
+          renderCodes();
+        }, 1000);
+      }
+    } catch (e) {
+      wrap.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+  }
+
+  function renderCodes() {
+    const wrap = $('#codes-table');
+    const now = Date.now();
+    const live = codesData.filter((c) => c.expiresAt > now);
+    if (live.length === 0) {
+      wrap.innerHTML = '<div class="empty">当前没有有效验证码（用户请求注册 / 找回密码验证码后会出现在这里）</div>';
+      return;
+    }
+    const rows = live.map((c) => {
+      const remain = c.expiresAt - now;
+      const pill = remain <= 60 * 1000 ? 'bad' : (remain <= 2 * 60 * 1000 ? 'warn' : 'ok');
+      return `<tr>
+        <td>${esc(c.email)}</td>
+        <td>${esc(fmtTimeSec(c.sentAt))}</td>
+        <td>${esc(fmtTimeSec(c.expiresAt))}</td>
+        <td><span class="pill ${pill}">${fmtCountdown(remain)}</span></td>
+        <td>${c.attempts} / ${c.maxAttempts}</td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<table>
+      <thead><tr><th>请求邮箱</th><th>请求时间</th><th>自动销毁时间</th><th>剩余有效期</th><th>已校验次数</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  }
+
+  $('#codes-refresh').addEventListener('click', loadCodes);
 
   // ---------- 审计日志 ----------
 
