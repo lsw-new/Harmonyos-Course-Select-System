@@ -85,7 +85,7 @@ async function syncTasksWithCourses(studentId) {
            JOIN dtest2.courses c ON c.course_id = csi.course_id
           WHERE csi.class_name = $2
          UNION
-         SELECT s.course_id, $3, COALESCE(ct.teacher_name, c2.teacher, '')
+         SELECT s.course_id, $3, COALESCE(ct.teacher, c2.teacher, '')
            FROM dtest2.selections s
            JOIN dtest2.courses c2 ON c2.course_id = s.course_id
            LEFT JOIN dtest2.course_teachers ct ON ct.course_id = s.course_id
