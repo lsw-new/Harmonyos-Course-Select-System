@@ -153,6 +153,13 @@
       <!-- 审计日志 -->
       <section id="section-audit" class="section" hidden>
         <h2>审计日志</h2>
+        <p class="muted">全部 API 写操作（选课 / 退课 / 资料修改 / 管理操作）与登录等认证事件自动落库；可按账号分开查看每个账号的操作轨迹。</p>
+        <div class="toolbar">
+          <select id="audit-operator">
+            <option value="">全部账号</option>
+          </select>
+          <button id="audit-refresh" class="btn">刷新</button>
+        </div>
         <div id="audit-table" class="table-wrap"></div>
       </section>
 

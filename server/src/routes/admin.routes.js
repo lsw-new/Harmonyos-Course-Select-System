@@ -432,19 +432,45 @@ router.get('/api/admin/roles', permissionRequired('roles.manage:view'), async (r
   }
 });
 
-// ---- 操作日志 ----
+// ---- 操作日志（?type= 按操作类型、?operator= 按账号过滤）----
 router.get('/api/admin/audit-logs', permissionRequired('audit.view:view'), async (req, res) => {
   const type = req.query.type ? String(req.query.type) : null;
+  const operator = req.query.operator ? String(req.query.operator) : null;
   try {
     const r = await pool.query(
       `SELECT log_id, COALESCE(operator_name, '') AS operator_name, COALESCE(operator_id, '') AS operator_id,
               action, action_type, target, result, COALESCE(ip, '') AS ip, created_at
-       FROM dtest2.audit_logs WHERE ($1::text IS NULL OR action_type = $1) ORDER BY created_at DESC LIMIT 200`,
-      [type]
+       FROM dtest2.audit_logs
+       WHERE ($1::text IS NULL OR action_type = $1)
+         AND ($2::text IS NULL OR operator_id = $2)
+       ORDER BY created_at DESC LIMIT 200`,
+      [type, operator]
     );
     res.json(ok(r.rows.map(mapAuditLog)));
   } catch (e) {
     serverError(res, '查询操作日志失败', e);
+  }
+});
+
+// ---- 操作日志账号清单（按账号分组：账号 / 姓名 / 日志条数 / 最近操作时间）----
+router.get('/api/admin/audit-operators', permissionRequired('audit.view:view'), async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT operator_id, MAX(COALESCE(operator_name, '')) AS operator_name,
+              COUNT(*)::int AS log_count, MAX(created_at) AS last_at
+       FROM dtest2.audit_logs
+       WHERE COALESCE(operator_id, '') <> ''
+       GROUP BY operator_id
+       ORDER BY MAX(created_at) DESC`
+    );
+    res.json(ok(r.rows.map((row) => ({
+      operatorId: row.operator_id,
+      operatorName: row.operator_name || '',
+      logCount: row.log_count,
+      lastAt: row.last_at
+    }))));
+  } catch (e) {
+    serverError(res, '查询日志账号失败', e);
   }
 });
 

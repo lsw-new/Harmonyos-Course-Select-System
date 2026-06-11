@@ -29,6 +29,8 @@ app.use('/admin', express.static(path.join(__dirname, '..', 'public', 'admin')))
 app.use(globalLimiter);
 // 300kb：兼容压缩后 base64 头像（默认 100kb 不够）
 app.use(express.json({ limit: '300kb' }));
+// 审计落库：自动记录全部 /api 写操作 + 认证事件（响应结束后异步写，不阻断业务）
+app.use(require('./middleware/audit').auditTrail());
 
 // ---- 健康检查（/api/health 供公网经 nginx /api 反代访问；裸 /health 供本机直连）----
 app.get(['/health', '/api/health'], async (req, res) => {

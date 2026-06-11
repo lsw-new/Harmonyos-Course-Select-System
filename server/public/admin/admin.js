@@ -588,29 +588,47 @@
 
   // ---------- 审计日志 ----------
 
+  async function loadAuditOperators() {
+    const sel = $('#audit-operator');
+    const current = sel.value;
+    try {
+      const ops = await api('/admin/audit-operators');
+      const options = ['<option value="">全部账号</option>'].concat(ops.map((o) =>
+        `<option value="${esc(o.operatorId)}">${esc(o.operatorName || o.operatorId)}（${esc(o.operatorId)} · ${o.logCount} 条）</option>`));
+      sel.innerHTML = options.join('');
+      sel.value = current;
+    } catch (e) { /* 账号清单加载失败不阻断日志表 */ }
+  }
+
   async function loadAudit() {
     const wrap = $('#audit-table');
     wrap.innerHTML = '<div class="empty">加载中…</div>';
+    loadAuditOperators();
+    const operator = $('#audit-operator').value;
     try {
-      const list = await api('/admin/audit-logs');
+      const list = await api('/admin/audit-logs' + (operator ? '?operator=' + encodeURIComponent(operator) : ''));
       if (list.length === 0) {
-        wrap.innerHTML = '<div class="empty">暂无日志</div>';
+        wrap.innerHTML = '<div class="empty">暂无日志（任意账号登录或发生写操作后自动出现）</div>';
         return;
       }
       const rows = list.map((l) => `
         <tr>
-          <td>${esc(fmtTime(l.timestamp))}</td><td>${esc(l.operatorName)}</td>
+          <td>${esc(fmtTime(l.timestamp))}</td>
+          <td>${esc(l.operatorName || '—')}<br><small class="muted">${esc(l.operatorId || '')}</small></td>
           <td>${esc(l.action)}</td><td>${esc(l.target)}</td>
           <td><span class="pill ${l.result === 'success' ? 'ok' : 'bad'}">${l.result === 'success' ? '成功' : '失败'}</span></td>
           <td>${esc(l.ip || '')}</td>
         </tr>`).join('');
       wrap.innerHTML = `<table>
-        <thead><tr><th>时间</th><th>操作人</th><th>操作</th><th>对象</th><th>结果</th><th>IP</th></tr></thead>
+        <thead><tr><th>时间</th><th>账号</th><th>操作</th><th>对象</th><th>结果</th><th>IP</th></tr></thead>
         <tbody>${rows}</tbody></table>`;
     } catch (e) {
       wrap.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
     }
   }
+
+  $('#audit-refresh').addEventListener('click', loadAudit);
+  $('#audit-operator').addEventListener('change', loadAudit);
 
   // ---------- 数据库管理 ----------
 
