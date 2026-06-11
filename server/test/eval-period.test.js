@@ -63,3 +63,58 @@ describe('开关关闭时的提交拦截', () => {
     expect(__mock.executed('BEGIN')).toBe(false);
   });
 });
+
+describe('GET /api/evaluations 评教任务与当前课程同步', () => {
+  const CLASS_ROW = { match: /SELECT COALESCE\(\s*\(SELECT class_name/, result: [{ class_name: '23计算机科学与技术U9' }] };
+  const TASK_ROWS = {
+    match: /FROM dtest2\.evaluation_tasks et/,
+    result: [{ task_id: 'eval-c1-2023307020941', term: '2025-2026-2', teacher_name: '方坚', status: 'open',
+      open_time: null, close_time: null, code: 'c1', name: '课程1', category: 'required', questionnaire_name: '问卷' }]
+  };
+
+  test('开放期 + 班级可定位 → 同步补齐并清理后返回列表', async () => {
+    __mock.setRoutes([CLASS_ROW, TASK_ROWS]);
+    const res = await request(app).get('/api/evaluations').set('Authorization', stu);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(__mock.executed('INSERT INTO dtest2.evaluation_tasks')).toBe(true);
+    expect(__mock.executed('DELETE FROM dtest2.evaluation_tasks')).toBe(true);
+    expect(__mock.executed('COMMIT')).toBe(true);
+  });
+
+  test('评教期关闭 → 不触发同步，仅查列表', async () => {
+    __mock.setRoutes([PERIOD_CLOSED, TASK_ROWS]);
+    const res = await request(app).get('/api/evaluations').set('Authorization', stu);
+    expect(res.status).toBe(200);
+    expect(__mock.executed('INSERT INTO dtest2.evaluation_tasks')).toBe(false);
+  });
+
+  test('班级为待完善 → 跳过同步避免误删', async () => {
+    __mock.setRoutes([
+      { match: /SELECT COALESCE\(\s*\(SELECT class_name/, result: [{ class_name: '待完善' }] },
+      TASK_ROWS
+    ]);
+    const res = await request(app).get('/api/evaluations').set('Authorization', stu);
+    expect(res.status).toBe(200);
+    expect(__mock.executed('INSERT INTO dtest2.evaluation_tasks')).toBe(false);
+    expect(__mock.executed('DELETE FROM dtest2.evaluation_tasks')).toBe(false);
+  });
+
+  test('同步失败 → 回滚且不阻断列表返回', async () => {
+    __mock.setRoutes([
+      CLASS_ROW,
+      { match: /INSERT INTO dtest2\.evaluation_tasks/, result: new Error('insert boom') },
+      TASK_ROWS
+    ]);
+    const res = await request(app).get('/api/evaluations').set('Authorization', stu);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(__mock.executed('ROLLBACK')).toBe(true);
+  });
+
+  test('管理员 token 查询 → 不触发学生课程同步', async () => {
+    __mock.setRoutes([TASK_ROWS]);
+    const res = await request(app).get('/api/evaluations?studentId=2023307020941').set('Authorization', adm);
+    expect(__mock.executed('INSERT INTO dtest2.evaluation_tasks')).toBe(false);
+  });
+});

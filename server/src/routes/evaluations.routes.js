@@ -54,6 +54,67 @@ router.put('/api/admin/eval-period', permissionRequired('evaluations.manage:upda
   }
 });
 
+const CURRENT_TERM = '2025-2026-2';
+
+// 评教任务与学生当前课程实时同步（幂等）：当前课程 = 本班课表课程（JOIN courses 守外键）
+// ∪ 当前已选课程；缺失任务补齐，不再修读且未提交的 open 任务清理（已提交答卷保留作记录）。
+// 目的：管理员打开评教期后，学生「有什么课就评什么课」，不依赖注册时刻的快照。
+async function syncTasksWithCourses(studentId) {
+  const cls = await pool.query(
+    `SELECT COALESCE(
+       (SELECT class_name FROM dtest2.class_students WHERE student_id=$1),
+       (SELECT class_name FROM dtest2.student_profiles WHERE student_id=$1)
+     ) AS class_name`,
+    [studentId]
+  );
+  const className = (cls.rows[0] && cls.rows[0].class_name) || '';
+  if (className === '' || className === '待完善') {
+    return; // 无法定位班级时不做同步，避免误删
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `INSERT INTO dtest2.evaluation_tasks
+         (task_id, template_id, student_id, course_id, term, teacher_name, status, open_time, close_time)
+       SELECT 'eval-' || cur.course_id || '-' || $1, 'qt-default', $1, cur.course_id, cur.term, cur.teacher, 'open',
+              now() - interval '1 day', timestamptz '2026-07-15 23:59:59+08'
+       FROM (
+         SELECT DISTINCT csi.course_id, csi.term, csi.teacher
+           FROM dtest2.class_schedule_items csi
+           JOIN dtest2.courses c ON c.course_id = csi.course_id
+          WHERE csi.class_name = $2
+         UNION
+         SELECT s.course_id, $3, COALESCE(ct.teacher_name, c2.teacher, '')
+           FROM dtest2.selections s
+           JOIN dtest2.courses c2 ON c2.course_id = s.course_id
+           LEFT JOIN dtest2.course_teachers ct ON ct.course_id = s.course_id
+          WHERE s.student_id = $1 AND s.status = 'selected'
+       ) cur
+       WHERE EXISTS (SELECT 1 FROM dtest2.evaluation_templates WHERE template_id = 'qt-default')
+       ON CONFLICT (task_id) DO NOTHING`,
+      [studentId, className, CURRENT_TERM]
+    );
+    await client.query(
+      `DELETE FROM dtest2.evaluation_tasks et
+       WHERE et.student_id = $1 AND et.status = 'open'
+         AND NOT EXISTS (SELECT 1 FROM dtest2.evaluation_submissions es WHERE es.task_id = et.task_id)
+         AND et.course_id NOT IN (
+           SELECT csi.course_id FROM dtest2.class_schedule_items csi WHERE csi.class_name = $2
+           UNION
+           SELECT s.course_id FROM dtest2.selections s WHERE s.student_id = $1 AND s.status = 'selected'
+         )`,
+      [studentId, className]
+    );
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 // ---- 评教任务 ----
 router.get('/api/evaluations', authRequired, async (req, res) => {
   const studentId = currentStudentId(req);
@@ -61,6 +122,16 @@ router.get('/api/evaluations', authRequired, async (req, res) => {
     return res.status(400).json(fail('缺少 studentId'));
   }
   const term = req.query.term ? String(req.query.term) : null;
+  // 评教开放期内先与当前课程同步（学生本人请求才触发）；同步失败不阻断列表查询
+  if (req.auth && req.auth.role === 'student') {
+    try {
+      if (await isEvalPeriodOpen()) {
+        await syncTasksWithCourses(studentId);
+      }
+    } catch (e) {
+      console.error('[dtest2-api] 评教任务同步失败:', e.stack);
+    }
+  }
   try {
     // 课程信息优先取选课目录，目录没有的班级课表课程回退 course_teachers / class_schedule_items
     const r = await pool.query(
