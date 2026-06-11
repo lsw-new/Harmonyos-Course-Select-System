@@ -11,6 +11,7 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "check:syntax": "node scripts/check-syntax.js",
+    "smoke:live": "node scripts/smoke-live.js",
     "security:audit": "npm audit --registry=https://registry.npmjs.org/ --audit-level=low",
     "security:audit:prod": "npm audit --registry=https://registry.npmjs.org/ --omit=dev --audit-level=low"
   },

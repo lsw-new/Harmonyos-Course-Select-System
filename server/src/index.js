@@ -30,8 +30,8 @@ app.use(globalLimiter);
 // 300kb：兼容压缩后 base64 头像（默认 100kb 不够）
 app.use(express.json({ limit: '300kb' }));
 
-// ---- 健康检查 ----
-app.get('/health', async (req, res) => {
+// ---- 健康检查（/api/health 供公网经 nginx /api 反代访问；裸 /health 供本机直连）----
+app.get(['/health', '/api/health'], async (req, res) => {
   try {
     const r = await pool.query('SELECT now() AS now');
     res.json(ok({ db: 'ok', now: r.rows[0].now }));
