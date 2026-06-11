@@ -119,7 +119,7 @@ router.post('/api/auth/register', authLimiter, async (req, res) => {
   let rosterRow;
   try {
     const roster = await pool.query(
-      'SELECT student_id, name, class_name FROM dtest2.class_students WHERE student_id=$1',
+      'SELECT student_id, name, class_name, college, major FROM dtest2.class_students WHERE student_id=$1',
       [studentId]
     );
     if (roster.rowCount === 0) {
@@ -149,13 +149,17 @@ router.post('/api/auth/register', authLimiter, async (req, res) => {
       `INSERT INTO dtest2.accounts (account_id, role, password_hash, salt, status) VALUES ($1,'student',$2,$3,'active')`,
       [studentId, passwordHash, '']
     );
-    // 班级/年级直接取自名册（姓名已校验与名册一致），学院/专业仍待学生登录后补全
+    // 班级/年级/学院/专业直接取自名册（姓名已校验与名册一致）；名册缺值时兜底'待完善'
     const grade = `${studentId.slice(0, 4)}级`;
+    const college = rosterRow.college || '待完善';
+    const major = rosterRow.major || '待完善';
     await client.query(
       `INSERT INTO dtest2.student_profiles (student_id, name, college, major, class_name, grade, email)
-       VALUES ($1,$2,'待完善','待完善',$3,$4,$5)
-       ON CONFLICT (student_id) DO UPDATE SET name=EXCLUDED.name, class_name=EXCLUDED.class_name, grade=EXCLUDED.grade, email=EXCLUDED.email`,
-      [studentId, rosterRow.name, rosterRow.class_name, grade, email]
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (student_id) DO UPDATE SET name=EXCLUDED.name, class_name=EXCLUDED.class_name, grade=EXCLUDED.grade, email=EXCLUDED.email,
+         college = CASE WHEN dtest2.student_profiles.college = '待完善' THEN EXCLUDED.college ELSE dtest2.student_profiles.college END,
+         major   = CASE WHEN dtest2.student_profiles.major   = '待完善' THEN EXCLUDED.major   ELSE dtest2.student_profiles.major   END`,
+      [studentId, rosterRow.name, college, major, rosterRow.class_name, grade, email]
     );
     // 按班级生成本班课程的评教任务（教师绑定来自班级课表）；
     // JOIN courses 与 EXISTS 模板守住外键——课表/模板未导入时静默跳过，不阻断注册
