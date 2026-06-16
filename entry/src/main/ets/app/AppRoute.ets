@@ -45,6 +45,7 @@ export class Routes {
   static readonly AdminNotice = 'pages/AdminNoticePage';
   static readonly AdminEval = 'pages/AdminEvalPage';
   static readonly AdminApprovals = 'pages/AdminApprovalsPage';
+  static readonly AdminFeedback = 'pages/AdminFeedbackPage';
   static readonly AdminProfile = 'pages/AdminProfilePage';
   static readonly AdminRolePerm = 'pages/AdminRolePermPage';
   static readonly AdminAuditLog = 'pages/AdminAuditLogPage';
@@ -87,7 +88,7 @@ const STUDENT_ROUTES: string[] = [
 const ADMIN_ROUTES: string[] = [
   Routes.AdminDashboard, Routes.AdminStudents, Routes.AdminCourses,
   Routes.AdminSelection, Routes.AdminGrades, Routes.AdminNotice,
-  Routes.AdminEval, Routes.AdminApprovals, Routes.AdminProfile,
+  Routes.AdminEval, Routes.AdminApprovals, Routes.AdminFeedback, Routes.AdminProfile,
   Routes.AdminRolePerm, Routes.AdminAuditLog, Routes.AdminCalendar,
   Routes.AdminSysConfig, Routes.AdminPassword, Routes.AdminStudentDetail,
   Routes.AdminApprovalDetail, Routes.AdminCourseDetail, Routes.ImportResult, Routes.AuditLogDetail,
@@ -147,6 +148,8 @@ function routePermissionFor(url: string): RoutePerm | undefined {
     case Routes.AdminApprovals:
     case Routes.AdminApprovalDetail:
       return new RoutePerm('approvals.handle', 'view');
+    case Routes.AdminFeedback:
+      return new RoutePerm('feedback.handle', 'view');
     case Routes.AdminRolePerm:
       return new RoutePerm('roles.manage', 'view');
     case Routes.AdminAuditLog:

@@ -3,6 +3,9 @@
 // 各业务页改造为系统路由表的 NavDestination，经 route_map.json 按名懒加载。
 import { AppRoute, Routes } from '../app/AppRoute';
 import { SessionStorage } from '../common/storage/SessionStorage';
+import { NoticeAlertCenter } from '../common/services/NoticeAlertCenter';
+import { NoticeAlertOverlay } from '../common/widgets/NoticeAlertOverlay';
+import { CourseRepository } from '../repositories/CourseRepository';
 
 @Entry
 @Component
@@ -14,14 +17,21 @@ struct Index {
       start = session.getRole() === 'admin' ? Routes.AdminDashboard : Routes.Home;
     }
     AppRoute.go(start);
+    NoticeAlertCenter.start(() => CourseRepository.get().getNotices());
   }
 
   build() {
-    Navigation(AppRoute.stack) {
+    Stack() {
+      Navigation(AppRoute.stack) {
+      }
+      .hideNavBar(true)
+      .mode(NavigationMode.Stack)
+      .width('100%')
+      .height('100%')
+      NoticeAlertOverlay()
     }
-    .hideNavBar(true)
-    .mode(NavigationMode.Stack)
     .width('100%')
     .height('100%')
+    .alignContent(Alignment.Center)
   }
 }

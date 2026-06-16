@@ -437,7 +437,13 @@ export class ProfileRepository extends BaseRepository {
       contact: f.contact,
       screenshots: [],
       submittedAt: f.submittedAt,
-      state: f.state as FeedbackState
+      state: f.state as FeedbackState,
+      reply: f.reply ?? '',
+      repliedBy: f.repliedBy ?? '',
+      repliedByName: f.repliedByName ?? '',
+      repliedAt: f.repliedAt ?? '',
+      studentId: f.studentId ?? '',
+      studentName: f.studentName ?? ''
     };
     return item;
   }

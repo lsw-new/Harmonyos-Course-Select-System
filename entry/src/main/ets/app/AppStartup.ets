@@ -7,6 +7,8 @@ import { SessionStorage } from '../common/storage/SessionStorage';
 import { apiClient } from '../common/http/ApiClient';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { FileService } from '../common/services/FileService';
+import { CacheManager } from '../common/storage/CacheManager';
+import { FontScale } from '../common/storage/FontScale';
 import { AppRoute, Routes } from './AppRoute';
 
 export class AppStartup {
@@ -24,6 +26,7 @@ export class AppStartup {
         });
     });
     FileService.configure(context);
+    CacheManager.configure(context);
     // 本地 RDB 初始化失败不应阻断启动：降级为 Preferences 回退，仓储层通过 isReady() 判断
     try {
       await AppDatabase.init(context);
@@ -33,6 +36,8 @@ export class AppStartup {
     }
     const preferences = PreferenceStorage.get();
     await preferences.init(context);
+    // 字号档位写入 AppStorage，使 TopBar 等订阅者首屏即按用户设置呈现
+    await FontScale.init();
     const session = SessionStorage.get();
     await session.restore();
     // 用安全存储对齐 token（Asset Store Kit 为权威来源，旧会话回填迁移）

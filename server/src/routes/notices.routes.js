@@ -15,7 +15,7 @@ router.get('/api/notices', authRequired, async (req, res) => {
   const category = req.query.category ? String(req.query.category) : null;
   try {
     const r = await pool.query(
-      `SELECT n.notice_id, n.title, n.publisher, n.summary, n.content, n.category, n.published_at,
+      `SELECT n.notice_id, n.title, n.publisher, n.summary, n.content, n.category, n.urgency, n.published_at,
               CASE WHEN nr.notice_id IS NULL THEN false ELSE true END AS is_read
        FROM dtest2.notices n
        LEFT JOIN dtest2.notice_reads nr ON nr.notice_id = n.notice_id AND nr.student_id = $1
@@ -34,7 +34,7 @@ router.get('/api/notices/:id', authRequired, async (req, res) => {
   const studentId = currentStudentId(req);
   try {
     const r = await pool.query(
-      `SELECT n.notice_id, n.title, n.publisher, n.summary, n.content, n.category, n.published_at,
+      `SELECT n.notice_id, n.title, n.publisher, n.summary, n.content, n.category, n.urgency, n.published_at,
               CASE WHEN nr.notice_id IS NULL THEN false ELSE true END AS is_read
        FROM dtest2.notices n
        LEFT JOIN dtest2.notice_reads nr ON nr.notice_id = n.notice_id AND nr.student_id = $1

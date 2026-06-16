@@ -26,6 +26,7 @@ export class NoticeStore {
       content: draft.content.trim(),
       isRead: false,
       category: draft.category,
+      urgency: draft.urgency,
       attachments: []
     };
     if (AppDatabase.isReady()) {
@@ -98,6 +99,7 @@ export class NoticeStore {
         content: item.content,
         isRead: true,
         category: item.category,
+        urgency: item.urgency,
         attachments: item.attachments
       };
       return updated;
@@ -203,7 +205,8 @@ export class NoticeStore {
         n.summary,
         n.content,
         CASE WHEN nr.notice_id IS NULL THEN 'false' ELSE 'true' END AS is_read,
-        n.category
+        n.category,
+        n.urgency
       FROM notices n
       LEFT JOIN notice_reads nr
         ON nr.notice_id = n.notice_id AND nr.student_id = ${AppDatabase.sqlText(ownerId)}
@@ -213,6 +216,7 @@ export class NoticeStore {
     const items: Notice[] = [];
     try {
       while (resultSet.goToNextRow()) {
+        const urgencyRaw = resultSet.getString(resultSet.getColumnIndex('urgency'));
         const item: Notice = {
           id: resultSet.getString(resultSet.getColumnIndex('notice_id')),
           title: resultSet.getString(resultSet.getColumnIndex('title')),
@@ -222,6 +226,7 @@ export class NoticeStore {
           content: resultSet.getString(resultSet.getColumnIndex('content')),
           isRead: resultSet.getString(resultSet.getColumnIndex('is_read')) === 'true',
           category: resultSet.getString(resultSet.getColumnIndex('category')),
+          urgency: urgencyRaw && urgencyRaw.length > 0 ? urgencyRaw : 'normal',
           attachments: []
         };
         items.push(item);
@@ -246,6 +251,7 @@ export class NoticeStore {
         content: item.content,
         isRead: isRead,
         category: item.category,
+        urgency: item.urgency,
         attachments: item.attachments
       };
       return updated;

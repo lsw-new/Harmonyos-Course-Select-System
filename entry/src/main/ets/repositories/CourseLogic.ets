@@ -407,6 +407,7 @@ export class CourseLogic {
       content: n.content,
       isRead: n.isRead,
       category: n.category,
+      urgency: (n.urgency && n.urgency.length > 0) ? n.urgency : 'normal',
       attachments: []
     };
     return item;

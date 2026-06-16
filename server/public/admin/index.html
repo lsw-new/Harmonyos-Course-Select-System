@@ -45,6 +45,8 @@
         <button class="nav-item" data-section="selection">选课管理</button>
         <button class="nav-item" data-section="grades">成绩打分</button>
         <button class="nav-item" data-section="approvals">审批中心</button>
+        <button class="nav-item" data-section="feedback">意见反馈</button>
+        <button class="nav-item" data-section="evaluations">评教管理</button>
         <button class="nav-item" data-section="notice">通知发布</button>
         <button class="nav-item" data-section="codes">验证码监控</button>
         <button class="nav-item" data-section="audit">审计日志</button>
@@ -103,6 +105,47 @@
           <button id="approval-refresh" class="btn">刷新</button>
         </div>
         <div id="approvals-list"></div>
+      </section>
+
+      <!-- 意见反馈 -->
+      <section id="section-feedback" class="section" hidden>
+        <h2>意见反馈</h2>
+        <p class="muted">学生端「我的 → 意见反馈」提交的全部反馈；可按状态/类型筛选，单条可写回复并切换处理状态（已提交 → 处理中 → 已关闭），保存后学生端立即可见。</p>
+        <div class="toolbar">
+          <select id="feedback-state">
+            <option value="">全部状态</option>
+            <option value="submitted">已提交</option>
+            <option value="processing">处理中</option>
+            <option value="closed">已关闭</option>
+          </select>
+          <select id="feedback-category">
+            <option value="">全部类型</option>
+            <option value="bug">Bug</option>
+            <option value="suggestion">建议</option>
+            <option value="service">服务</option>
+            <option value="other">其他</option>
+          </select>
+          <button id="feedback-refresh" class="btn">刷新</button>
+        </div>
+        <div id="feedback-list"></div>
+      </section>
+
+      <!-- 评教管理 -->
+      <section id="section-evaluations" class="section" hidden>
+        <h2>评教管理</h2>
+        <p class="muted">开启评教期后，系统自动为所有学生按「本班课表 ∪ 已选课程」生成评教任务（去重、幂等）。如发现学生缺任务，可手动「立即同步」补齐。</p>
+        <div class="form-card" id="eval-period-card">
+          <div class="form-row" style="align-items:center">
+            <div>
+              <strong>评教期状态：</strong>
+              <span id="eval-period-state" class="muted">加载中…</span>
+            </div>
+            <button id="eval-period-toggle" class="btn btn-primary" disabled>切换状态</button>
+            <button id="eval-period-sync" class="btn" disabled>立即同步评教任务</button>
+            <button id="eval-period-refresh" class="btn">刷新</button>
+          </div>
+          <p id="eval-period-msg" class="muted" style="margin-top:8px"></p>
+        </div>
       </section>
 
       <!-- 通知发布 -->

@@ -156,6 +156,7 @@ export interface RemoteNotice {
   content: string;
   isRead: boolean;
   category: string;
+  urgency?: string;
   attachments: string[];
 }
 
@@ -192,6 +193,17 @@ export interface RemoteFeedback {
   screenshots: string[];
   submittedAt: string;
   state: string;
+  reply?: string;
+  repliedBy?: string;
+  repliedByName?: string;
+  repliedAt?: string;
+  studentId?: string;
+  studentName?: string;
+}
+
+interface FeedbackHandleBody {
+  reply?: string;
+  state?: string;
 }
 
 export interface RemoteEvalTask {
@@ -748,6 +760,21 @@ export class RemoteApi {
   static async adminReject(id: string, comment: string): Promise<void> {
     const body: CommentBody = { comment: comment };
     await apiClient.post<Object>('/admin/approvals/' + encodeURIComponent(id) + '/reject', body);
+  }
+
+  static async adminListFeedback(state?: string, category?: string): Promise<RemoteFeedback[]> {
+    const parts: string[] = [];
+    if (state && state.length > 0) parts.push('state=' + encodeURIComponent(state));
+    if (category && category.length > 0) parts.push('category=' + encodeURIComponent(category));
+    const path = '/admin/feedback' + (parts.length > 0 ? '?' + parts.join('&') : '');
+    return apiClient.get<RemoteFeedback[]>(path);
+  }
+
+  static async adminHandleFeedback(id: string, reply: string, state: string): Promise<RemoteFeedback> {
+    const body: FeedbackHandleBody = {};
+    if (reply.length > 0) body.reply = reply;
+    if (state.length > 0) body.state = state;
+    return apiClient.patch<RemoteFeedback>('/admin/feedback/' + encodeURIComponent(id), body);
   }
 
   static async adminListRoles(): Promise<RemoteRole[]> {

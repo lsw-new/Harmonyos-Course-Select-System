@@ -7,7 +7,7 @@ import {
   GradeAuditItem, GradeInputPayload, GradeRejectPayload, GradeScoreRow, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
   AdminPermissionAction
 } from '../models/Admin';
-import { LeaveRequest, ApprovalState } from '../models/Misc';
+import { LeaveRequest, ApprovalState, FeedbackItem, FeedbackCategory, FeedbackState } from '../models/Misc';
 import {
   mockAdminDashboard, mockAdminStudents, mockAdminCourses, mockSelectionRounds,
   mockGradeAudits, mockEvaluationStats, mockApprovals, mockApprovalDetail
@@ -17,7 +17,7 @@ import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AuthorizationService } from '../common/security/AuthorizationService';
 import { NoticeStore } from '../common/services/NoticeStore';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, GradeScoreEntry, AdminCourseBody, RemoteAdminRound } from '../common/remote/RemoteApi';
+import { RemoteApi, GradeScoreEntry, AdminCourseBody, RemoteAdminRound, RemoteFeedback } from '../common/remote/RemoteApi';
 import { CourseLogic } from './CourseLogic';
 import { AdminLogic } from './AdminLogic';
 import { AdminRdbStore } from './AdminRdbStore';
@@ -844,5 +844,55 @@ export class AdminRepository extends BaseRepository {
     }
     await this.updateLinkedLeave(id, 'rejected', comment.trim());
     return this.delay<boolean>(true);
+  }
+
+  // ====== 意见反馈处理（管理端） ======
+  // 学生端提交→后端落库→管理端在此读取并回复/变更状态→学生端可见回复
+
+  private remoteToFeedback(f: RemoteFeedback): FeedbackItem {
+    const item: FeedbackItem = {
+      id: f.id,
+      category: f.category as FeedbackCategory,
+      title: f.title,
+      content: f.content,
+      contact: f.contact,
+      screenshots: [],
+      submittedAt: f.submittedAt,
+      state: f.state as FeedbackState,
+      reply: f.reply ?? '',
+      repliedBy: f.repliedBy ?? '',
+      repliedByName: f.repliedByName ?? '',
+      repliedAt: f.repliedAt ?? '',
+      studentId: f.studentId ?? '',
+      studentName: f.studentName ?? ''
+    };
+    return item;
+  }
+
+  async getFeedbackList(state?: string, category?: string): Promise<FeedbackItem[]> {
+    if (!this.hasAdminPermission('feedback.handle', 'view')) {
+      return this.rejectUnauthorized();
+    }
+    if (AppConfig.useRemote) {
+      const remote = await RemoteApi.adminListFeedback(state, category);
+      return this.delayCopy<FeedbackItem[]>(remote.map((f) => this.remoteToFeedback(f)));
+    }
+    return this.delay<FeedbackItem[]>([]);
+  }
+
+  async handleFeedback(id: string, reply: string, state: string): Promise<FeedbackItem> {
+    if (!this.hasAdminPermission('feedback.handle', 'update')) {
+      return this.rejectUnauthorized();
+    }
+    const trimmedReply: string = reply.trim();
+    const trimmedState: string = state.trim();
+    if (trimmedReply.length === 0 && trimmedState.length === 0) {
+      return this.reject('请填写回复或选择新状态');
+    }
+    if (!AppConfig.useRemote) {
+      return this.reject('该操作需要联网');
+    }
+    const remote = await RemoteApi.adminHandleFeedback(id, trimmedReply, trimmedState);
+    return this.delay<FeedbackItem>(this.remoteToFeedback(remote));
   }
 }

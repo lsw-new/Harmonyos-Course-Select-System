@@ -143,4 +143,8 @@ export class HttpClient {
   delete<T>(path: string, body?: Object): Promise<T> {
     return this.request<T>(path, { method: 'DELETE', body });
   }
+
+  patch<T>(path: string, body?: Object): Promise<T> {
+    return this.request<T>(path, { method: 'PATCH', body });
+  }
 }

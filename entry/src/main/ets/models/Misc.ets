@@ -27,6 +27,12 @@ export interface FeedbackItem {
   screenshots: string[];
   submittedAt: string;
   state: 'submitted' | 'processing' | 'closed';
+  reply?: string;
+  repliedBy?: string;
+  repliedByName?: string;
+  repliedAt?: string;
+  studentId?: string;
+  studentName?: string;
 }
 
 export interface PracticeEntry {

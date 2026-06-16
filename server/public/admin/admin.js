@@ -122,6 +122,8 @@
     selection: loadSelection,
     grades: loadGrades,
     approvals: loadApprovals,
+    feedback: loadFeedback,
+    evaluations: loadEvalPeriod,
     notice: () => undefined,
     codes: loadCodes,
     audit: loadAudit,
@@ -483,6 +485,167 @@
       loadApprovals();
     } catch (e) {
       toast(e.message);
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- 意见反馈 ----------
+
+  const FEEDBACK_STATE_LABEL = {
+    submitted: ['已提交', 'warn'],
+    processing: ['处理中', 'info'],
+    closed: ['已关闭', 'ok']
+  };
+  const FEEDBACK_CATEGORY_LABEL = {
+    bug: 'Bug',
+    suggestion: '建议',
+    service: '服务',
+    other: '其他'
+  };
+
+  async function loadFeedback() {
+    const wrap = $('#feedback-list');
+    wrap.innerHTML = '<div class="empty">加载中…</div>';
+    const state = $('#feedback-state').value;
+    const category = $('#feedback-category').value;
+    const params = [];
+    if (state) { params.push('state=' + encodeURIComponent(state)); }
+    if (category) { params.push('category=' + encodeURIComponent(category)); }
+    const qs = params.length ? '?' + params.join('&') : '';
+    try {
+      const list = await api('/admin/feedback' + qs);
+      if (list.length === 0) {
+        wrap.innerHTML = '<div class="empty">暂无反馈记录</div>';
+        return;
+      }
+      wrap.innerHTML = list.map((f) => {
+        const st = FEEDBACK_STATE_LABEL[f.state] || [f.state, 'info'];
+        const cat = FEEDBACK_CATEGORY_LABEL[f.category] || f.category;
+        const replied = f.reply ? `
+          <div class="meta" style="margin-top:8px;background:#f6f8fa;padding:8px;border-radius:6px">
+            <strong>回复：</strong>${esc(f.reply)}<br>
+            <span class="muted">${esc(f.repliedByName || f.repliedBy || '管理员')} · ${esc(fmtTime(f.repliedAt))}</span>
+          </div>` : '';
+        const stateOptions = ['submitted', 'processing', 'closed'].map((s) => {
+          const label = FEEDBACK_STATE_LABEL[s][0];
+          return `<option value="${s}"${s === f.state ? ' selected' : ''}>${label}</option>`;
+        }).join('');
+        return `<div class="approval-card">
+          <div class="task-head">
+            <span class="title">[${esc(cat)}] ${esc(f.title)}</span>
+            <span class="pill ${st[1]}">${esc(st[0])}</span>
+          </div>
+          <div class="meta">
+            ${esc(f.studentName || '匿名学生')}（${esc(f.studentId || '—')}）· ${esc(fmtTime(f.submittedAt))}
+            ${f.contact ? '· 联系方式：' + esc(f.contact) : ''}
+            <br>${esc(f.content)}
+          </div>
+          ${replied}
+          <textarea rows="2" placeholder="管理员回复（学生可见，可留空仅切换状态）" data-fb-reply="${esc(f.id)}">${esc(f.reply || '')}</textarea>
+          <div class="task-actions">
+            <label class="muted" style="margin:auto 0">状态：
+              <select data-fb-state="${esc(f.id)}">${stateOptions}</select>
+            </label>
+            <button class="btn btn-primary" data-fb-save="${esc(f.id)}">保存</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      wrap.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+  }
+
+  $('#feedback-refresh').addEventListener('click', loadFeedback);
+  $('#feedback-state').addEventListener('change', loadFeedback);
+  $('#feedback-category').addEventListener('change', loadFeedback);
+  $('#feedback-list').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('button[data-fb-save]');
+    if (!btn) { return; }
+    const id = btn.dataset.fbSave;
+    const replyEl = document.querySelector(`textarea[data-fb-reply="${CSS.escape(id)}"]`);
+    const stateEl = document.querySelector(`select[data-fb-state="${CSS.escape(id)}"]`);
+    const reply = replyEl ? replyEl.value.trim() : '';
+    const state = stateEl ? stateEl.value : '';
+    if (!reply && !state) { return toast('请填写回复或修改状态'); }
+    btn.disabled = true;
+    try {
+      await api('/admin/feedback/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        body: { reply, state }
+      });
+      toast('反馈已保存');
+      loadFeedback();
+    } catch (e) {
+      toast(e.message);
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- 评教管理 ----------
+
+  let evalPeriodCurrent = null;
+
+  async function loadEvalPeriod() {
+    const stateEl = $('#eval-period-state');
+    const msgEl = $('#eval-period-msg');
+    const toggle = $('#eval-period-toggle');
+    const sync = $('#eval-period-sync');
+    stateEl.textContent = '加载中…';
+    msgEl.textContent = '';
+    toggle.disabled = true;
+    sync.disabled = true;
+    try {
+      const data = await api('/eval-period');
+      evalPeriodCurrent = Boolean(data && data.open);
+      stateEl.innerHTML = evalPeriodCurrent
+        ? '<span class="pill ok">已开启 · 学生可见评教任务</span>'
+        : '<span class="pill warn">已关闭 · 学生端无法看到评教</span>';
+      toggle.textContent = evalPeriodCurrent ? '关闭评教期' : '开启评教期';
+      toggle.disabled = false;
+      sync.disabled = false;
+    } catch (e) {
+      stateEl.textContent = e.message;
+    }
+  }
+
+  $('#eval-period-refresh').addEventListener('click', loadEvalPeriod);
+
+  $('#eval-period-toggle').addEventListener('click', async () => {
+    const btn = $('#eval-period-toggle');
+    const msgEl = $('#eval-period-msg');
+    if (evalPeriodCurrent === null) { return; }
+    const next = !evalPeriodCurrent;
+    btn.disabled = true;
+    msgEl.textContent = next ? '正在开启并同步全员评教任务…' : '正在关闭评教期…';
+    try {
+      const res = await api('/admin/eval-period', { method: 'PUT', body: { open: next } });
+      const synced = (res && typeof res.synced === 'number') ? res.synced : 0;
+      msgEl.textContent = next
+        ? `已开启评教期，本次自动同步新增 ${synced} 条评教任务。`
+        : '已关闭评教期，学生端立即不再显示评教入口。';
+      toast(next ? '评教期已开启' : '评教期已关闭');
+      await loadEvalPeriod();
+    } catch (e) {
+      msgEl.textContent = e.message;
+      toast(e.message);
+      btn.disabled = false;
+    }
+  });
+
+  $('#eval-period-sync').addEventListener('click', async () => {
+    const btn = $('#eval-period-sync');
+    const msgEl = $('#eval-period-msg');
+    btn.disabled = true;
+    msgEl.textContent = '正在按本班课表 ∪ 已选课程为全体学生补齐评教任务…';
+    try {
+      const res = await api('/admin/eval-period/sync', { method: 'POST' });
+      const synced = (res && typeof res.synced === 'number') ? res.synced : 0;
+      msgEl.textContent = `同步完成，本次新增 ${synced} 条评教任务（已存在的任务不重复创建）。`;
+      toast(`同步完成：新增 ${synced} 条`);
+    } catch (e) {
+      msgEl.textContent = e.message;
+      toast(e.message);
+    } finally {
       btn.disabled = false;
     }
   });

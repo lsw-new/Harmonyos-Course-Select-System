@@ -7,7 +7,7 @@ const { pool } = require('../db');
 const { ok, fail } = require('../envelope');
 const { serverError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
-const { mapStudent, mapGradeTask, mapApproval, mapAuditLog, mapTemplate } = require('../mappers');
+const { mapStudent, mapGradeTask, mapApproval, mapAuditLog, mapTemplate, mapFeedback } = require('../mappers');
 
 const router = express.Router();
 
@@ -385,6 +385,7 @@ router.post('/api/admin/notices', permissionRequired('notices.publish:publish', 
       content: row.content,
       isRead: false,
       category: row.category,
+      urgency: urgency,
       attachments: []
     }));
   } catch (e) {
@@ -556,6 +557,97 @@ router.delete('/api/admin/eval/templates/:id', permissionRequired('evaluations.m
     res.json(ok({ deleted: true }));
   } catch (e) {
     serverError(res, '删除问卷模板失败', e);
+  }
+});
+
+// ---- 意见反馈：列表（可按状态/类型过滤）----
+const FEEDBACK_STATES = ['submitted', 'processing', 'closed'];
+const FEEDBACK_CATEGORIES_ADMIN = ['bug', 'suggestion', 'service', 'other'];
+router.get('/api/admin/feedback', permissionRequired('feedback.handle:view'), async (req, res) => {
+  const state = req.query.state ? String(req.query.state) : null;
+  const category = req.query.category ? String(req.query.category) : null;
+  try {
+    const r = await pool.query(
+      `SELECT f.feedback_id, f.student_id, f.category, f.title, f.content,
+              COALESCE(f.contact, '') AS contact, f.state, f.submitted_at,
+              f.reply, f.replied_by, f.replied_at,
+              COALESCE(s.name, '') AS student_name,
+              COALESCE(a.name, '') AS replied_by_name
+       FROM dtest2.feedback_items f
+       LEFT JOIN dtest2.student_profiles s ON s.student_id = f.student_id
+       LEFT JOIN dtest2.admin_profiles a ON a.admin_id = f.replied_by
+       WHERE ($1::text IS NULL OR f.state = $1)
+         AND ($2::text IS NULL OR f.category = $2)
+       ORDER BY f.submitted_at DESC LIMIT 500`,
+      [state, category]
+    );
+    res.json(ok(r.rows.map(mapFeedback)));
+  } catch (e) {
+    serverError(res, '查询意见反馈失败', e);
+  }
+});
+
+// ---- 意见反馈：详情 ----
+router.get('/api/admin/feedback/:id', permissionRequired('feedback.handle:view'), async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT f.feedback_id, f.student_id, f.category, f.title, f.content,
+              COALESCE(f.contact, '') AS contact, f.state, f.submitted_at,
+              f.reply, f.replied_by, f.replied_at,
+              COALESCE(s.name, '') AS student_name,
+              COALESCE(a.name, '') AS replied_by_name
+       FROM dtest2.feedback_items f
+       LEFT JOIN dtest2.student_profiles s ON s.student_id = f.student_id
+       LEFT JOIN dtest2.admin_profiles a ON a.admin_id = f.replied_by
+       WHERE f.feedback_id = $1`,
+      [req.params.id]
+    );
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('反馈记录不存在'));
+    }
+    res.json(ok(mapFeedback(r.rows[0])));
+  } catch (e) {
+    serverError(res, '查询反馈详情失败', e);
+  }
+});
+
+// ---- 意见反馈：处理（修改状态 + 回复，可二选一或同时）----
+router.patch('/api/admin/feedback/:id', permissionRequired('feedback.handle:update'), async (req, res) => {
+  const b = req.body || {};
+  const nextState = b.state ? String(b.state).trim() : '';
+  const reply = typeof b.reply === 'string' ? b.reply.trim() : '';
+  if (nextState && FEEDBACK_STATES.indexOf(nextState) < 0) {
+    return res.status(400).json(fail('反馈状态不合法'));
+  }
+  if (!nextState && !reply) {
+    return res.status(400).json(fail('请填写回复或更新状态'));
+  }
+  const adminId = (req.auth && req.auth.sub) ? String(req.auth.sub) : '';
+  try {
+    const cur = await pool.query(`SELECT state FROM dtest2.feedback_items WHERE feedback_id=$1`, [req.params.id]);
+    if (cur.rowCount === 0) {
+      return res.status(404).json(fail('反馈记录不存在'));
+    }
+    const updates = [];
+    const params = [req.params.id];
+    let i = 2;
+    if (nextState) { updates.push(`state=$${i++}`); params.push(nextState); }
+    if (reply) {
+      updates.push(`reply=$${i++}`); params.push(reply);
+      updates.push(`replied_by=$${i++}`); params.push(adminId);
+      updates.push(`replied_at=now()`);
+    }
+    updates.push(`updated_at=now()`);
+    const r = await pool.query(
+      `UPDATE dtest2.feedback_items SET ${updates.join(', ')} WHERE feedback_id=$1
+       RETURNING feedback_id, student_id, category, title, content,
+                 COALESCE(contact, '') AS contact, state, submitted_at,
+                 reply, replied_by, replied_at`,
+      params
+    );
+    res.json(ok(mapFeedback(r.rows[0])));
+  } catch (e) {
+    serverError(res, '处理意见反馈失败', e);
   }
 });
 

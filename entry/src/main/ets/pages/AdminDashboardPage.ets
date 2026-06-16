@@ -36,7 +36,8 @@ struct AdminDashboardPage {
     new AdminModule('selection', '选课管理', Routes.AdminSelection, 'selection.manage'),
     new AdminModule('grades', '成绩审核', Routes.AdminGrades, 'grades.approve'),
     new AdminModule('evaluation', '评教管理', Routes.AdminEval, 'evaluation.manage'),
-    new AdminModule('notice', '通知发布', Routes.AdminNotice, 'notices.publish')
+    new AdminModule('notice', '通知发布', Routes.AdminNotice, 'notices.publish'),
+    new AdminModule('feedback', '意见反馈', Routes.AdminFeedback, 'feedback.handle')
   ];
 
   // P2-03：仅展示当前管理员有 view 权限的功能入口（低权限管理员看不到无权模块）

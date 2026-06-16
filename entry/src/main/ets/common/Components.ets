@@ -64,11 +64,13 @@ export struct Monogram {
 }
 
 // 顶栏（含返回 + 中间标题）
+// 字号档位通过 AppStorage('fontScaleRatio') 即时缩放标题/副标题，无需重启
 @Component
 export struct TopBar {
   @Prop title: ResourceStr = '';
   @Prop subtitle: ResourceStr = '';
   @Prop showBack: boolean = true;
+  @StorageProp('fontScaleRatio') fontRatio: number = 1.0;
   onBack?: () => void;
 
   build() {
@@ -88,12 +90,12 @@ export struct TopBar {
 
       Column() {
         Text(this.title)
-          .fontSize(18)
+          .fontSize(18 * this.fontRatio)
           .fontStyle(FontStyle.Italic)
           .fontColor(ElysiaTheme.ROSE_700)
           .fontFamily(ElysiaTheme.FONT_DISPLAY)
         Text(this.subtitle)
-          .fontSize(11)
+          .fontSize(11 * this.fontRatio)
           .fontColor(ElysiaTheme.INK_SOFT)
           .margin({ top: 2 })
           .letterSpacing(3)

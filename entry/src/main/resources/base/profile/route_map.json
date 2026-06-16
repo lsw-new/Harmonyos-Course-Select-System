@@ -21,6 +21,11 @@
                           "buildFunction":  "AdminAuditLogPageBuilder"
                       },
                       {
+                          "name":  "pages/AdminFeedbackPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminFeedbackPage.ets",
+                          "buildFunction":  "AdminFeedbackPageBuilder"
+                      },
+                      {
                           "name":  "pages/AdminCalendarPage",
                           "pageSourceFile":  "src/main/ets/pages/AdminCalendarPage.ets",
                           "buildFunction":  "AdminCalendarPageBuilder"

@@ -26,6 +26,7 @@ const RULES = [
   { re: /^POST \/api\/admin\/grades\/([^/]+)\/reject$/, label: '成绩驳回', type: 'grades', target: '$1' },
   { re: /^POST \/api\/admin\/approvals\/([^/]+)\/approve$/, label: '审批通过', type: 'approval', target: '$1' },
   { re: /^POST \/api\/admin\/approvals\/([^/]+)\/reject$/, label: '审批驳回', type: 'approval', target: '$1' },
+  { re: /^PATCH \/api\/admin\/feedback\/([^/]+)$/, label: '处理意见反馈', type: 'feedback', target: '$1' },
   { re: /^POST \/api\/admin\/notices$/, label: '发布通知', type: 'notice', target: '通知中心' },
   { re: /^POST \/api\/admin\/courses$/, label: '新增课程', type: 'course', target: '课程目录' },
   { re: /^PUT \/api\/admin\/courses\/([^/]+)$/, label: '编辑课程', type: 'course', target: '$1' },

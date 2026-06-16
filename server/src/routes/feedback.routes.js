@@ -17,8 +17,12 @@ router.get('/api/feedback', authRequired, async (req, res) => {
   }
   try {
     const r = await pool.query(
-      `SELECT feedback_id, category, title, content, COALESCE(contact, '') AS contact, state, submitted_at
-       FROM dtest2.feedback_items WHERE student_id = $1 ORDER BY submitted_at DESC`,
+      `SELECT f.feedback_id, f.category, f.title, f.content, COALESCE(f.contact, '') AS contact,
+              f.state, f.submitted_at, f.reply, f.replied_by, f.replied_at,
+              COALESCE(a.name, '') AS replied_by_name
+       FROM dtest2.feedback_items f
+       LEFT JOIN dtest2.admin_profiles a ON a.admin_id = f.replied_by
+       WHERE f.student_id = $1 ORDER BY f.submitted_at DESC`,
       [studentId]
     );
     res.json(ok(r.rows.map(mapFeedback)));
@@ -46,7 +50,8 @@ router.post('/api/feedback', authRequired, async (req, res) => {
     const r = await pool.query(
       `INSERT INTO dtest2.feedback_items (feedback_id, student_id, category, title, content, contact, state, submitted_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, 'submitted', now(), now())
-       RETURNING feedback_id, category, title, content, COALESCE(contact, '') AS contact, state, submitted_at`,
+       RETURNING feedback_id, student_id, category, title, content, COALESCE(contact, '') AS contact,
+                 state, submitted_at, reply, replied_by, replied_at`,
       [id, studentId, category, title, content, contact || null]
     );
     res.json(ok(mapFeedback(r.rows[0])));

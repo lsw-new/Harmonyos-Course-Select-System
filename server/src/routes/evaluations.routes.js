@@ -36,6 +36,7 @@ router.get('/api/eval-period', authRequired, async (req, res) => {
 });
 
 // ---- 评教期开关：写（仅评教管理权限；管理员打开后学生才能评价）----
+// 打开时自动批量同步所有在册学生的评教任务，确保「开关一打学生立刻有任务」。
 router.put('/api/admin/eval-period', permissionRequired('evaluations.manage:update'), async (req, res) => {
   const open = (req.body || {}).open;
   if (typeof open !== 'boolean') {
@@ -48,18 +49,50 @@ router.put('/api/admin/eval-period', permissionRequired('evaluations.manage:upda
        ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = now()`,
       [EVAL_PERIOD_KEY, JSON.stringify(open)]
     );
-    res.json(ok({ open }));
+    let synced = 0;
+    if (open) {
+      try {
+        synced = await syncAllStudents();
+      } catch (e) {
+        console.error('[dtest2-api] 评教开启时全员同步失败:', e.stack);
+      }
+    }
+    res.json(ok({ open, synced }));
   } catch (e) {
     serverError(res, '更新评教开关失败', e);
   }
 });
 
+// ---- 管理端手动重新同步所有学生评教任务（按当前班级课表+已选课程）----
+router.post('/api/admin/eval-period/sync', permissionRequired('evaluations.manage:update'), async (req, res) => {
+  try {
+    const synced = await syncAllStudents();
+    res.json(ok({ synced }));
+  } catch (e) {
+    serverError(res, '同步评教任务失败', e);
+  }
+});
+
 const CURRENT_TERM = '2025-2026-2';
 
-// 评教任务与学生当前课程实时同步（幂等）：当前课程 = 本班课表课程（JOIN courses 守外键）
-// ∪ 当前已选课程；缺失任务补齐，不再修读且未提交的 open 任务清理（已提交答卷保留作记录）。
+// 选取一个可用问卷模板：优先 qt-default，否则任意一个 enabled 模板，再否则任意模板。
+// 兼容线上没有 qt-default 或只配置过其他模板的情况，避免「有课无任务」的隐式过滤。
+async function resolveDefaultTemplateId() {
+  const r = await pool.query(
+    `SELECT template_id FROM dtest2.evaluation_templates
+      ORDER BY (template_id = 'qt-default') DESC,
+               (status = 'enabled') DESC,
+               template_id ASC
+      LIMIT 1`
+  );
+  return r.rowCount > 0 ? r.rows[0].template_id : null;
+}
+
+// 评教任务与学生当前课程实时同步（幂等）：当前课程 = 本班课表课程 ∪ 当前已选课程；
+// 课程不再绑定 courses 表（class_schedule_items.course_name/teacher 即可独立成 task），
+// 缺失任务补齐，不再修读且未提交的 open 任务清理（已提交答卷保留作记录）。
 // 目的：管理员打开评教期后，学生「有什么课就评什么课」，不依赖注册时刻的快照。
-async function syncTasksWithCourses(studentId) {
+async function syncTasksWithCourses(studentId, templateIdOverride) {
   const cls = await pool.query(
     `SELECT COALESCE(
        (SELECT class_name FROM dtest2.class_students WHERE student_id=$1),
@@ -69,31 +102,33 @@ async function syncTasksWithCourses(studentId) {
   );
   const className = (cls.rows[0] && cls.rows[0].class_name) || '';
   if (className === '' || className === '待完善') {
-    return; // 无法定位班级时不做同步，避免误删
+    return 0; // 无法定位班级时不做同步，避免误删
+  }
+  const templateId = templateIdOverride || (await resolveDefaultTemplateId());
+  if (!templateId) {
+    return 0; // 无任何问卷模板时直接跳过，避免外键失败
   }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query(
+    const ins = await client.query(
       `INSERT INTO dtest2.evaluation_tasks
          (task_id, template_id, student_id, course_id, term, teacher_name, status, open_time, close_time)
-       SELECT 'eval-' || cur.course_id || '-' || $1, 'qt-default', $1, cur.course_id, cur.term, cur.teacher, 'open',
+       SELECT 'eval-' || cur.course_id || '-' || $1, $4, $1, cur.course_id, cur.term, cur.teacher, 'open',
               now() - interval '1 day', timestamptz '2026-07-15 23:59:59+08'
        FROM (
          SELECT DISTINCT csi.course_id, csi.term, csi.teacher
            FROM dtest2.class_schedule_items csi
-           JOIN dtest2.courses c ON c.course_id = csi.course_id
           WHERE csi.class_name = $2
          UNION
          SELECT s.course_id, $3, COALESCE(ct.teacher, c2.teacher, '')
            FROM dtest2.selections s
-           JOIN dtest2.courses c2 ON c2.course_id = s.course_id
+           LEFT JOIN dtest2.courses c2 ON c2.course_id = s.course_id
            LEFT JOIN dtest2.course_teachers ct ON ct.course_id = s.course_id
           WHERE s.student_id = $1 AND s.status = 'selected'
        ) cur
-       WHERE EXISTS (SELECT 1 FROM dtest2.evaluation_templates WHERE template_id = 'qt-default')
        ON CONFLICT (task_id) DO NOTHING`,
-      [studentId, className, CURRENT_TERM]
+      [studentId, className, CURRENT_TERM, templateId]
     );
     await client.query(
       `DELETE FROM dtest2.evaluation_tasks et
@@ -107,12 +142,30 @@ async function syncTasksWithCourses(studentId) {
       [studentId, className]
     );
     await client.query('COMMIT');
+    return ins.rowCount || 0;
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
     throw e;
   } finally {
     client.release();
   }
+}
+
+// 全员同步：扫描所有有 student_profiles 的账号，逐个 syncTasksWithCourses。
+// 仅在管理员打开评教期 / 手动触发时使用；失败逐条记录，不阻塞整体。
+async function syncAllStudents() {
+  const templateId = await resolveDefaultTemplateId();
+  if (!templateId) return 0;
+  const r = await pool.query(`SELECT student_id FROM dtest2.student_profiles`);
+  let total = 0;
+  for (const row of r.rows) {
+    try {
+      total += await syncTasksWithCourses(row.student_id, templateId);
+    } catch (e) {
+      console.error('[dtest2-api] 全员同步评教任务 - 学生失败', row.student_id, e.message);
+    }
+  }
+  return total;
 }
 
 // ---- 评教任务 ----
@@ -137,14 +190,14 @@ router.get('/api/evaluations', authRequired, async (req, res) => {
     const r = await pool.query(
       `SELECT et.task_id, et.term, et.teacher_name, et.status, et.open_time, et.close_time,
               COALESCE(c.code, et.course_id, '') AS code,
-              COALESCE(c.name, ct.course_name, '') AS name,
+              COALESCE(c.name, ct.course_name, csi.course_name, '') AS name,
               COALESCE(c.category, csi.course_type, '') AS category,
               COALESCE(tpl.name, '') AS questionnaire_name
        FROM dtest2.evaluation_tasks et
        LEFT JOIN dtest2.courses c ON c.course_id = et.course_id
        LEFT JOIN dtest2.course_teachers ct ON ct.course_id = et.course_id
        LEFT JOIN LATERAL (
-         SELECT course_type FROM dtest2.class_schedule_items
+         SELECT course_type, course_name FROM dtest2.class_schedule_items
          WHERE course_id = et.course_id LIMIT 1
        ) csi ON true
        LEFT JOIN dtest2.evaluation_templates tpl ON tpl.template_id = et.template_id

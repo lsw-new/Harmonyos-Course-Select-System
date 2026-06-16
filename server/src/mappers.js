@@ -108,6 +108,7 @@ function mapNotice(row) {
     content: row.content,
     isRead: row.is_read === true,
     category: row.category,
+    urgency: row.urgency || 'normal',
     attachments: []
   };
 }
@@ -135,7 +136,13 @@ function mapFeedback(row) {
     contact: row.contact || '',
     screenshots: [],
     submittedAt: row.submitted_at,
-    state: row.state
+    state: row.state,
+    reply: row.reply || '',
+    repliedBy: row.replied_by || '',
+    repliedByName: row.replied_by_name || '',
+    repliedAt: row.replied_at || '',
+    studentId: row.student_id || '',
+    studentName: row.student_name || ''
   };
 }
 

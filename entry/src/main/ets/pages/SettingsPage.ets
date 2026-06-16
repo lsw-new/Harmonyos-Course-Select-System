@@ -6,6 +6,8 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
+import { FontScale } from '../common/storage/FontScale';
+import { CacheManager } from '../common/storage/CacheManager';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { Toast } from '../common/widgets/Feedback';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
@@ -33,6 +35,8 @@ struct SettingsPage {
   @State fontScale: string = 'normal';
   @State showLogoutConfirm: boolean = false;
   @State showFontSheet: boolean = false;
+  @State cacheText: string = '统计中…';
+  @State clearing: boolean = false;
 
   private fontOptions: FontScaleOption[] = [
     new FontScaleOption('small', '小', 13),
@@ -50,6 +54,7 @@ struct SettingsPage {
     PreferenceStorage.get().getBoolean('homeworkReminder', true).then((v: boolean) => { this.homeworkReminder = v; });
     PreferenceStorage.get().getBoolean('biometric', false).then((v: boolean) => { this.biometric = v; });
     PreferenceStorage.get().getString('fontScale', 'normal').then((v: string) => { this.fontScale = v; });
+    this.refreshCacheSize();
   }
 
   private togglePref(key: string, value: boolean): void {
@@ -58,9 +63,36 @@ struct SettingsPage {
 
   private selectFontScale(key: string): void {
     this.fontScale = key;
-    PreferenceStorage.get().putString('fontScale', key);
+    FontScale.set(key);
     this.showFontSheet = false;
-    Toast.show(this.getUIContext(), '字体大小已保存，重新进入页面后全局生效');
+    Toast.show(this.getUIContext(), '字体大小已应用，全局即时生效');
+  }
+
+  private refreshCacheSize(): void {
+    this.cacheText = '统计中…';
+    CacheManager.getSizeBytes()
+      .then((bytes: number) => { this.cacheText = CacheManager.formatBytes(bytes); })
+      .catch(() => { this.cacheText = '未知'; });
+  }
+
+  private clearCache(): void {
+    if (this.clearing) {
+      return;
+    }
+    this.clearing = true;
+    this.cacheText = '清理中…';
+    CacheManager.clear()
+      .then((freed: number) => {
+        this.clearing = false;
+        Toast.show(this.getUIContext(), `缓存已清除，释放 ${CacheManager.formatBytes(freed)}`);
+        this.refreshCacheSize();
+      })
+      .catch((e: Object) => {
+        this.clearing = false;
+        const msg = (e instanceof Error) ? e.message : String(e);
+        Toast.show(this.getUIContext(), `清除失败：${msg}`);
+        this.refreshCacheSize();
+      });
   }
 
   private fontScaleLabel(): string {
@@ -163,10 +195,7 @@ struct SettingsPage {
                 this.biometric = v;
                 this.togglePref('biometric', v);
               })
-              this.LinkRow('清除缓存', '12.3 MB', () => {
-                PreferenceStorage.get().putBoolean('cacheCleared', true);
-                Toast.show(this.getUIContext(), '缓存已清除');
-              })
+              this.LinkRow('清除缓存', this.cacheText, () => { this.clearCache(); })
               this.LinkRow('检查更新', 'V1.0.0', () => {
                 Toast.show(this.getUIContext(), '已是最新版本');
               })

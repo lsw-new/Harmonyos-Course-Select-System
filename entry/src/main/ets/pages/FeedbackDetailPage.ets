@@ -185,6 +185,19 @@ struct FeedbackDetailPage {
                 )
               }.width('100%')
 
+              // 管理员回复（有回复时展示）
+              if ((this.feedback!.reply ?? '').length > 0) {
+                Column({ space: 6 }) {
+                  Text('管理员回复').fontSize(12).fontColor(ElysiaTheme.INK_MUTE)
+                  Text(`${this.feedback!.repliedByName ?? '管理员'} · ${this.feedback!.repliedAt ?? ''}`)
+                    .fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+                  Text(this.feedback!.reply!)
+                    .fontSize(13).fontColor(ElysiaTheme.INK).lineHeight(20).margin({ top: 4 })
+                }.width('100%').alignItems(HorizontalAlign.Start).padding(16)
+                .backgroundColor('#FFF7FA').borderRadius(18)
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+              }
+
               // 操作按钮
               Row({ space: 12 }) {
                 GhostButton({
