@@ -125,19 +125,28 @@ struct AdminFeedbackPage {
     return ElysiaTheme.INK_MUTE;
   }
 
-  @Builder ChipRow(chips: FilterChip[], active: string, onPick: (v: string) => void, keyPrefix: string) {
-    Scroll() {
-      Row({ space: 8 }) {
-        ForEach(chips, (c: FilterChip) => {
-          Text(c.label).fontSize(11)
-            .fontColor(active === c.value ? Color.White : ElysiaTheme.ROSE_700)
-            .padding({ left: 12, right: 12, top: 5, bottom: 5 })
-            .backgroundColor(active === c.value ? ElysiaTheme.ROSE_500 : '#FFE9F1')
-            .borderRadius(999)
-            .onClick(() => onPick(c.value))
-        }, (c: FilterChip) => `${keyPrefix}-${c.value}`)
-      }
-    }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off)
+  @Builder ChipRow(groupLabel: string, chips: FilterChip[], active: string, onPick: (v: string) => void, keyPrefix: string) {
+    Row({ space: 10 }) {
+      // 行首标签：区分「状态」「分类」两行，避免两个「全部」混淆
+      Text(groupLabel).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).width(28)
+      Scroll() {
+        Row({ space: 8 }) {
+          // key 含选中态：ArkUI 的 ForEach 在 key 稳定时不会因外部 active 变化重建项，
+          // 导致 active===c.value 配色只在首帧算一次、点其它 chip 高亮不动（一直卡“全部”）。
+          // 把选中态并进 key，切换时翻转的 chip 的 key 变化 → 重渲染 → 高亮跟着动。
+          ForEach(chips, (c: FilterChip) => {
+            Text(c.label).fontSize(12)
+              .fontWeight(active === c.value ? FontWeight.Bold : FontWeight.Normal)
+              .fontColor(active === c.value ? Color.White : ElysiaTheme.ROSE_700)
+              .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+              .backgroundColor(active === c.value ? ElysiaTheme.ROSE_500 : ElysiaTheme.pillBg())
+              .border({ width: 1, color: active === c.value ? ElysiaTheme.ROSE_500 : ElysiaTheme.hairline() })
+              .borderRadius(999)
+              .onClick(() => onPick(c.value))
+          }, (c: FilterChip) => `${keyPrefix}-${c.value}-${active === c.value}`)
+        }
+      }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).layoutWeight(1)
+    }.width('100%')
   }
 
   @Builder FeedbackCard(item: FeedbackItem) {
@@ -220,12 +229,14 @@ struct AdminFeedbackPage {
         Row({ space: 8 }) {
           ForEach(this.stateOptions, (opt: FilterChip) => {
             Text(opt.label).fontSize(12)
+              .fontWeight(this.nextState === opt.value ? FontWeight.Bold : FontWeight.Normal)
               .fontColor(this.nextState === opt.value ? Color.White : ElysiaTheme.ROSE_700)
               .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-              .backgroundColor(this.nextState === opt.value ? ElysiaTheme.ROSE_500 : '#FFE9F1')
+              .backgroundColor(this.nextState === opt.value ? ElysiaTheme.ROSE_500 : ElysiaTheme.pillBg())
+              .border({ width: 1, color: this.nextState === opt.value ? ElysiaTheme.ROSE_500 : ElysiaTheme.hairline() })
               .borderRadius(999)
               .onClick(() => { this.nextState = opt.value; })
-          }, (opt: FilterChip) => `nst-${opt.value}`)
+          }, (opt: FilterChip) => `nst-${opt.value}-${this.nextState === opt.value}`)
         }
 
         if (this.formError.length > 0) {
@@ -266,15 +277,19 @@ struct AdminFeedbackPage {
 
         if (this.activeId.length === 0) {
           Column({ space: 10 }) {
-            this.ChipRow(this.stateChips, this.stateFilter, (v: string) => {
+            this.ChipRow('状态', this.stateChips, this.stateFilter, (v: string) => {
               this.stateFilter = v;
               this.loadList();
             }, 'st')
-            this.ChipRow(this.categoryChips, this.categoryFilter, (v: string) => {
+            this.ChipRow('分类', this.categoryChips, this.categoryFilter, (v: string) => {
               this.categoryFilter = v;
               this.loadList();
             }, 'cat')
-          }.width('100%').padding({ left: 16, right: 16, top: 8 })
+          }.width('100%').padding({ left: 14, right: 14, top: 12, bottom: 12 })
+          .backgroundColor(ElysiaTheme.SURFACE).borderRadius(16)
+          .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+          .shadow({ radius: 10, color: '#14D8546B', offsetX: 0, offsetY: 3 })
+          .margin({ left: 16, right: 16, top: 8 })
 
           if (this.loading) {
             Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
