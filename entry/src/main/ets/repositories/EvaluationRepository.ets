@@ -184,7 +184,11 @@ export class EvaluationRepository extends BaseRepository {
     if (!periodOpen) {
       return this.reject('管理员未开放评教，暂不能填写问卷');
     }
-    const tasks = await this.getTaskItems();
+    // 用 getTasks()（含远程路径）核验任务存在性：remote 模式任务来自后端实时同步，
+    // 含当前已选的选修课（如「博物馆展览鉴赏」）；而 getTaskItems() 只读本地/mock，
+    // 会漏掉这些远程任务，导致明明在列表里、打开问卷却报「评教任务不存在」。
+    // 本地模式下 getTasks() 内部仍回退 getTaskItems()，零回归。
+    const tasks = await this.getTasks();
     const task = tasks.find((t) => t.id === taskId);
     if (!task) {
       return this.reject('评教任务不存在', 'notFound');
