@@ -1,8 +1,9 @@
-// 消息中心 · Message Center
+// 消息中心 · 个人系统消息（请假/成绩/选课/评教 回执）。
+// 与公告（NoticesPage）彻底区分：这里只显示与本人事务相关的系统消息，点开跳到对应页面。
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, PrimaryButton, GhostButton } from '../common/Components';
-import { CourseRepository } from '../repositories/CourseRepository';
-import { Notice } from '../models/Notice';
+import { MessageRepository } from '../repositories/MessageRepository';
+import { Message } from '../models/Message';
 import { HttpError } from '../common/http/HttpError';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes, NavigateOptions } from '../app/AppRoute';
@@ -15,16 +16,23 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 struct MessageCenterPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
-  @State notices: Notice[] = [];
+  @State messages: Message[] = [];
   @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.MessageCenter)) {
       return;
     }
-    CourseRepository.get().getNotices().then((list: Notice[]) => {
-      this.notices = list;
+    this.reload();
+  }
+
+  private reload(): void {
+    this.loading = true;
+    this.errorMsg = '';
+    MessageRepository.get().getMessages().then((list: Message[]) => {
+      this.messages = list;
       this.loading = false;
+      AppStorage.setOrCreate<number>('home.unreadMessage', this.unreadCount());
     }).catch((e: object) => {
       this.loading = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
@@ -33,22 +41,78 @@ struct MessageCenterPage {
 
   private unreadCount(): number {
     let count: number = 0;
-    this.notices.forEach((n: Notice) => {
-      if (!n.isRead) {
+    this.messages.forEach((m: Message) => {
+      if (!m.isRead) {
         count += 1;
       }
     });
     return count;
   }
 
-  private categoryCount(): number {
-    const cats: string[] = [];
-    this.notices.forEach((n: Notice) => {
-      if (cats.indexOf(n.category) < 0) {
-        cats.push(n.category);
+  private kindCount(): number {
+    const kinds: string[] = [];
+    this.messages.forEach((m: Message) => {
+      if (kinds.indexOf(m.kind) < 0) {
+        kinds.push(m.kind);
       }
     });
-    return cats.length;
+    return kinds.length;
+  }
+
+  private kindLabel(kind: string): string {
+    if (kind === 'leave') {
+      return '请假';
+    }
+    if (kind === 'grade') {
+      return '成绩';
+    }
+    if (kind === 'selection') {
+      return '选课';
+    }
+    if (kind === 'eval') {
+      return '评教';
+    }
+    return '消息';
+  }
+
+  private setReadFlag(id: string): void {
+    this.messages = this.messages.map((m: Message): Message => {
+      if (m.id !== id) {
+        return m;
+      }
+      const copy: Message = {
+        id: m.id, kind: m.kind, title: m.title, body: m.body,
+        timestamp: m.timestamp, isRead: true, route: m.route, param: m.param
+      };
+      return copy;
+    });
+    AppStorage.setOrCreate<number>('home.unreadMessage', this.unreadCount());
+  }
+
+  private openMessage(item: Message): void {
+    MessageRepository.get().markRead(item.id);
+    this.setReadFlag(item.id);
+    if (item.param !== undefined) {
+      const opts: NavigateOptions = { params: item.param };
+      AppRoute.go(item.route, opts);
+    } else {
+      AppRoute.go(item.route);
+    }
+  }
+
+  private markAll(): void {
+    MessageRepository.get().markAllRead().then(() => {
+      this.messages = this.messages.map((m: Message): Message => {
+        const copy: Message = {
+          id: m.id, kind: m.kind, title: m.title, body: m.body,
+          timestamp: m.timestamp, isRead: true, route: m.route, param: m.param
+        };
+        return copy;
+      });
+      Toast.show(this.getUIContext(), '已标记全部为已读');
+    }).catch(() => {
+      Toast.show(this.getUIContext(), '操作失败，请稍后重试');
+    });
   }
 
   @Builder MetricCol(value: string, label: string, color: string) {
@@ -61,10 +125,10 @@ struct MessageCenterPage {
     .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
   }
 
-  @Builder MessageRow(item: Notice) {
+  @Builder MessageRow(item: Message) {
     Row({ space: 10 }) {
       Column()
-        .width(10).height(38).borderRadius(6)
+        .width(10).height(44).borderRadius(6)
         .linearGradient({
           angle: 180,
           colors: item.isRead
@@ -75,19 +139,22 @@ struct MessageCenterPage {
         Row({ space: 6 }) {
           Text(item.title)
             .fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-            .layoutWeight(1).maxLines(1)
-          Pill({ text: item.category })
+            .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+          Pill({ text: this.kindLabel(item.kind) })
         }
-        Text(item.publishedAt).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+        Text(item.body)
+          .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+          .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+        if (item.timestamp.length > 0) {
+          Text(item.timestamp).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+        }
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18)
     .shadow({ radius: 12, color: '#18D85487', offsetX: 0, offsetY: 4 })
     .onClick(() => {
-      const p: Record<string, Object> = { 'id': item.id };
-      const opts: NavigateOptions = { params: p };
-      AppRoute.go(Routes.NoticeDetail, opts);
+      this.openMessage(item);
     })
   }
 
@@ -104,13 +171,13 @@ struct MessageCenterPage {
         if (this.loading) {
           Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
-          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.aboutToAppear() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
+          Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.reload() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
           Scroll() {
             Column({ space: 14 }) {
               // Hero 区
               Column({ space: 6 }) {
-                Text(this.unreadCount() > 0 ? `今日未读 ${this.unreadCount()} 条` : $r('app.string.messagecenter_no_unread'))
+                Text(this.unreadCount() > 0 ? `未读消息 ${this.unreadCount()} 条` : $r('app.string.messagecenter_no_unread'))
                   .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).lineHeight(26)
                 Text($r('app.string.messagecenter_hero_sub'))
                   .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
@@ -120,9 +187,9 @@ struct MessageCenterPage {
 
               // 指标卡
               Row({ space: 10 }) {
-                this.MetricCol(`${this.notices.length}`, '全部', ElysiaTheme.ROSE_500)
+                this.MetricCol(`${this.messages.length}`, '全部', ElysiaTheme.ROSE_500)
                 this.MetricCol(`${this.unreadCount()}`, '未读', '#D9B675')
-                this.MetricCol(`${this.categoryCount()}`, '分类数', '#B589FF')
+                this.MetricCol(`${this.kindCount()}`, '类型', '#B589FF')
               }.width('100%')
 
               // 操作按钮
@@ -133,18 +200,18 @@ struct MessageCenterPage {
                 })
                 PrimaryButton({
                   text: $r('app.string.messagecenter_btn_mark_all'),
-                  onTap: () => Toast.show(this.getUIContext(), '已标记全部为已读')
+                  onTap: () => this.markAll()
                 })
               }.width('100%')
 
               // 消息列表
-              if (this.notices.length === 0) {
+              if (this.messages.length === 0) {
                 EmptyState({ title: $r('app.string.messagecenter_empty') })
               } else {
                 Column({ space: 10 }) {
-                  ForEach(this.notices, (item: Notice) => {
+                  ForEach(this.messages, (item: Message) => {
                     this.MessageRow(item)
-                  }, (item: Notice) => item.id)
+                  }, (item: Message) => item.id)
                 }.width('100%')
               }
 

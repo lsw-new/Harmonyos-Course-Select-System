@@ -12,6 +12,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { CourseRepository } from '../repositories/CourseRepository';
+import { MessageRepository } from '../repositories/MessageRepository';
 import { CourseLogic } from '../repositories/CourseLogic';
 import { HomeSummary, QuickEntry, DownloadFile, RecentLogin, TermInfo } from '../models/Home';
 import { ScheduleItem } from '../models/Course';
@@ -32,6 +33,8 @@ struct HomePage {
   @StorageProp('breakpoint') bp: string = 'sm';
   // 未读通知角标走 AppStorage，跨页响应式刷新：阅读通知后由详情页回写，无需重载首页
   @StorageProp('home.unreadNotice') unreadBadge: number = 0;
+  // 未读消息角标（个人系统消息，区别于公告）：后台计算并回写 AppStorage，对话框图标显示
+  @StorageProp('home.unreadMessage') unreadMsgBadge: number = 0;
   @State query: string = '';
   @State searchActive: boolean = false;
   @State courseHits: ScheduleItem[] = [];
@@ -52,6 +55,15 @@ struct HomePage {
     // 快路径：会话内存资料同步种入，欢迎区（头像/姓名）在摘要网络请求回来前即可渲染
     this.profile = SessionStorage.get().getStudent();
     this.loadData();
+    this.loadMessageBadge();
+  }
+
+  // 后台计算未读消息数（不阻塞首页渲染），刷新对话框图标角标
+  private loadMessageBadge(): void {
+    MessageRepository.get().getUnreadCount().then((c: number) => {
+      AppStorage.setOrCreate<number>('home.unreadMessage', c);
+    }).catch(() => {
+    });
   }
 
   private refreshNow(): void {
@@ -166,20 +178,20 @@ struct HomePage {
           if (this.loading) {
             // 欢迎区不等摘要：会话资料已同步种入，头像/姓名/铃铛先行渲染
             if (this.profile !== undefined) {
-              this.WelcomeBlock(this.profile!, this.unreadBadge)
+              this.WelcomeBlock(this.profile!, this.unreadBadge, this.unreadMsgBadge)
             }
             Blank().height(80)
             LoadingState({ tip: $r('app.string.home_loading') })
           } else if (this.errorMsg.length > 0) {
             if (this.profile !== undefined) {
-              this.WelcomeBlock(this.profile!, this.unreadBadge)
+              this.WelcomeBlock(this.profile!, this.unreadBadge, this.unreadMsgBadge)
             }
             Blank().height(80)
             ErrorState({ message: this.errorMsg, onRetry: () => this.loadData() })
           } else if (this.summary !== undefined && this.profile !== undefined) {
             Scroll() {
               Column() {
-                this.WelcomeBlock(this.profile!, this.unreadBadge)
+                this.WelcomeBlock(this.profile!, this.unreadBadge, this.unreadMsgBadge)
                 if (this.searchActive) {
                   this.SearchResults()
                 } else {
@@ -215,7 +227,7 @@ struct HomePage {
     .width('100%').height('100%')
   }
 
-  @Builder WelcomeBlock(p: UserProfile, unread: number) {
+  @Builder WelcomeBlock(p: UserProfile, unread: number, unreadMsg: number) {
     Column() {
       SafeTop()
       Row() {
@@ -252,12 +264,21 @@ struct HomePage {
               .margin({ top: -4, right: -4 })
           }
         }
-        Button({ type: ButtonType.Circle }) { AppIcon({ name: 'chat', iconSize: 16 }) }
-          .width(34).height(34).backgroundColor(ElysiaTheme.glassSoft())
-          .border({ width: 1, color: ElysiaTheme.hairline() })
-          .accessibilityText('消息中心')
-          .margin({ left: 8 })
-          .onClick(() => AppRoute.go(Routes.MessageCenter))
+        Stack({ alignContent: Alignment.TopEnd }) {
+          Button({ type: ButtonType.Circle }) { AppIcon({ name: 'chat', iconSize: 16 }) }
+            .width(34).height(34).backgroundColor(ElysiaTheme.glassSoft())
+            .border({ width: 1, color: ElysiaTheme.hairline() })
+            .accessibilityText('消息中心')
+            .onClick(() => AppRoute.go(Routes.MessageCenter))
+          if (unreadMsg > 0) {
+            Text(unreadMsg > 9 ? '9+' : `${unreadMsg}`)
+              .fontSize(9).fontColor(Color.White).fontWeight(FontWeight.Bold)
+              .padding({ left: 5, right: 5, top: 1, bottom: 1 })
+              .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(8)
+              .margin({ top: -4, right: -4 })
+          }
+        }
+        .margin({ left: 8 })
       }
       .width('100%').padding({ left: 18, right: 18, top: 12 })
 
