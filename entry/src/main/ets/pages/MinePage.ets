@@ -266,10 +266,8 @@ struct MinePage {
               .padding({ left: 16, right: 16 })
 
               RoseDivider({ label: $r('app.string.mine_affairs') })
-              this.EntryGroup(this.makeAffairs())
-
-              RoseDivider({ label: $r('app.string.mine_prefs') })
-              this.EntryGroup(this.prefs)
+              // 去掉中间「偏好与系统」分隔，把两组菜单并进同一张 EntryGroup 连成一整段
+              this.EntryGroup(this.makeAffairs().concat(this.prefs))
 
               SafeBottom()
             }
