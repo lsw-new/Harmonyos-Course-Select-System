@@ -6,24 +6,11 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
-import { FontScale } from '../common/storage/FontScale';
 import { CacheManager } from '../common/storage/CacheManager';
 import { FileService } from '../common/services/FileService';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { Toast } from '../common/widgets/Feedback';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
-
-// 字体档位定义
-class FontScaleOption {
-  key: string = '';
-  label: string = '';
-  size: number = 14;
-  constructor(key: string, label: string, size: number) {
-    this.key = key;
-    this.label = label;
-    this.size = size;
-  }
-}
 
 @Component
 struct SettingsPage {
@@ -33,17 +20,9 @@ struct SettingsPage {
   @State dndMode: boolean = false;
   @State homeworkReminder: boolean = true;
   @State biometric: boolean = false;
-  @State fontScale: string = 'normal';
   @State showLogoutConfirm: boolean = false;
-  @State showFontSheet: boolean = false;
-  @State cacheText: string = '统计中…';
+  @State cacheText: string = '点击清除';
   @State clearing: boolean = false;
-
-  private fontOptions: FontScaleOption[] = [
-    new FontScaleOption('small', '小', 13),
-    new FontScaleOption('normal', '标准', 15),
-    new FontScaleOption('large', '大', 18)
-  ];
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.Settings)) {
@@ -54,7 +33,6 @@ struct SettingsPage {
     PreferenceStorage.get().getBoolean('dndMode', false).then((v: boolean) => { this.dndMode = v; });
     PreferenceStorage.get().getBoolean('homeworkReminder', true).then((v: boolean) => { this.homeworkReminder = v; });
     PreferenceStorage.get().getBoolean('biometric', false).then((v: boolean) => { this.biometric = v; });
-    PreferenceStorage.get().getString('fontScale', 'normal').then((v: string) => { this.fontScale = v; });
     this.refreshCacheSize();
   }
 
@@ -62,18 +40,12 @@ struct SettingsPage {
     PreferenceStorage.get().putBoolean(key, value);
   }
 
-  private selectFontScale(key: string): void {
-    this.fontScale = key;
-    FontScale.set(key);
-    this.showFontSheet = false;
-    Toast.show(this.getUIContext(), '字体大小已应用，全局即时生效');
-  }
-
+  // 缓存大小：后台静默统计，绝不长期停留在「统计中」。算出来就显示真实大小，
+  // 否则保持「点击清除」这个可操作占位（扫描慢/异常都不卡 UI）。
   private refreshCacheSize(): void {
-    this.cacheText = '统计中…';
     CacheManager.getSizeBytes()
-      .then((bytes: number) => { this.cacheText = CacheManager.formatBytes(bytes); })
-      .catch(() => { this.cacheText = '未知'; });
+      .then((bytes: number) => { this.cacheText = bytes > 0 ? CacheManager.formatBytes(bytes) : '点击清除'; })
+      .catch(() => { this.cacheText = '点击清除'; });
   }
 
   private clearCache(): void {
@@ -99,24 +71,6 @@ struct SettingsPage {
         Toast.show(this.getUIContext(), `清除失败：${msg}`);
         this.refreshCacheSize();
       });
-  }
-
-  private fontScaleLabel(): string {
-    for (let i = 0; i < this.fontOptions.length; i++) {
-      if (this.fontOptions[i].key === this.fontScale) {
-        return this.fontOptions[i].label;
-      }
-    }
-    return '标准';
-  }
-
-  private fontSampleSize(): number {
-    for (let i = 0; i < this.fontOptions.length; i++) {
-      if (this.fontOptions[i].key === this.fontScale) {
-        return this.fontOptions[i].size;
-      }
-    }
-    return 15;
   }
 
   private logout(): void {
@@ -160,8 +114,8 @@ struct SettingsPage {
 
         Scroll() {
           Column({ space: 14 }) {
+            // 所有设置项并为一整段，不再分块
             Column() {
-              Text($r('app.string.settings_sec_notify')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.ToggleRow('消息推送', '接收系统通知', this.pushEnabled, (v: boolean) => {
                 this.pushEnabled = v;
                 this.togglePref('push', v);
@@ -178,25 +132,6 @@ struct SettingsPage {
                 this.homeworkReminder = v;
                 this.togglePref('homeworkReminder', v);
               })
-            }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
-
-            Column() {
-              Text($r('app.string.settings_sec_appearance')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-              this.LinkRow('字体大小', this.fontScaleLabel(), () => {
-                this.showFontSheet = true;
-              })
-              // 字体大小实时预览（本页即时生效）
-              Text(`预览：景德镇艺术职业大学 · 字号 ${this.fontSampleSize()}`)
-                .fontSize(this.fontSampleSize())
-                .fontColor(ElysiaTheme.INK_SOFT)
-                .width('100%')
-                .padding({ top: 10, bottom: 4 })
-            }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
-
-            Column() {
-              Text($r('app.string.settings_sec_security')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
               this.ToggleRow('生物识别登录', '指纹/面容', this.biometric, (v: boolean) => {
                 this.biometric = v;
                 this.togglePref('biometric', v);
@@ -205,10 +140,6 @@ struct SettingsPage {
               this.LinkRow('检查更新', 'V1.0.0', () => {
                 Toast.show(this.getUIContext(), '已是最新版本');
               })
-            }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
-
-            Column() {
               this.LinkRow('用户协议', '', () => {
                 const p: Record<string, Object> = { 'type': 'agreement' };
                 AppRoute.go(Routes.Doc, { params: p });
@@ -260,38 +191,7 @@ struct SettingsPage {
         .backgroundColor('#66000000')
         .onClick(() => { this.showLogoutConfirm = false; })
       }
-
-      if (this.showFontSheet) {
-        Column() {
-          Column({ space: 6 }) {
-            Text($r('app.string.settings_font_title')).fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-              .width('100%').textAlign(TextAlign.Start).margin({ bottom: 6 })
-            ForEach(this.fontOptions, (opt: FontScaleOption) => {
-              this.FontOptionRow(opt)
-            }, (opt: FontScaleOption) => opt.key)
-          }.padding(20).width('100%')
-          .backgroundColor(ElysiaTheme.SURFACE)
-          .borderRadius({ topLeft: 22, topRight: 22 })
-          .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: -6 })
-        }.width('100%').height('100%')
-        .justifyContent(FlexAlign.End)
-        .backgroundColor('#66000000')
-        .onClick(() => { this.showFontSheet = false; })
-      }
     }.width('100%').height('100%')
-  }
-
-  @Builder FontOptionRow(opt: FontScaleOption) {
-    Row() {
-      Text(opt.label).fontSize(opt.size).fontColor(ElysiaTheme.INK).layoutWeight(1)
-      if (opt.key === this.fontScale) {
-        AppIcon({ name: 'check', iconSize: 16 })
-      }
-    }
-    .width('100%').padding({ top: 12, bottom: 12, left: 12, right: 12 })
-    .borderRadius(12)
-    .backgroundColor(opt.key === this.fontScale ? ElysiaTheme.SURFACE_GLOW : Color.Transparent)
-    .onClick(() => { this.selectFontScale(opt.key); })
   }
 }
 
