@@ -43,6 +43,12 @@ export class FileService {
     return base;
   }
 
+  // 清空当前用户的下载历史。缓存清理时调用：下载的附件已从 cacheDir 删除，
+  // 历史记录指向的文件已不存在，故一并清空，保持一致。
+  static async clearDownloadHistory(): Promise<void> {
+    await LocalDataStore.saveArray<DownloadRecord>(FileService.scopedKey(KEY_DOWNLOAD_HISTORY), []);
+  }
+
   // 选择头像并压缩为可持久化的 base64 data URL：
   // 相册 URI 仅本次进程有效、不可跨端，故选图后立即缩放至 256px + JPEG 80 压缩，
   // 编码为 data:image/jpeg;base64,... 存档（联机模式随资料落服务器，全端同步显示）。

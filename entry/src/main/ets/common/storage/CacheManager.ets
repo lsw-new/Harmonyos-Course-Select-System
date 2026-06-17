@@ -36,7 +36,10 @@ export class CacheManager {
     for (let i = 0; i < dirs.length; i++) {
       await CacheManager.cleanDir(dirs[i]);
     }
-    return before;
+    // 真实释放量 = 清理前 − 清理后（被占用/受限文件可能残留，避免虚报）
+    const after = await CacheManager.getSizeBytes();
+    const freed = before - after;
+    return freed > 0 ? freed : 0;
   }
 
   private static async dirSize(path: string): Promise<number> {
@@ -79,19 +82,14 @@ export class CacheManager {
     if (!path || path.length === 0) {
       return;
     }
-    let exists = false;
-    try {
-      exists = await fs.access(path);
-    } catch (e) {
-      exists = false;
-    }
-    if (!exists) {
-      return;
-    }
+    // 直接用 listFile 探目录（与 dirSize 同款），不依赖 fs.access 的返回语义——
+    // 此前 `exists = await fs.access(path)` 若拿到非 boolean 会误判为空、提前 return，
+    // 导致一个文件都不删，却仍上报清理前的字节数（清了个寂寞）。
     let entries: string[] = [];
     try {
       entries = await fs.listFile(path);
     } catch (e) {
+      // 目录不存在 / 不可读：无可清理
       return;
     }
     for (let i = 0; i < entries.length; i++) {

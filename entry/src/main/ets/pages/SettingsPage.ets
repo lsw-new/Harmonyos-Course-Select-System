@@ -8,6 +8,7 @@ import { SessionStorage } from '../common/storage/SessionStorage';
 import { PreferenceStorage } from '../common/storage/PreferenceStorage';
 import { FontScale } from '../common/storage/FontScale';
 import { CacheManager } from '../common/storage/CacheManager';
+import { FileService } from '../common/services/FileService';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { Toast } from '../common/widgets/Feedback';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
@@ -83,8 +84,13 @@ struct SettingsPage {
     this.cacheText = '清理中…';
     CacheManager.clear()
       .then((freed: number) => {
+        // 附件已从 cacheDir 删除，下载历史一并清空（本地、快，不阻塞反馈）
+        FileService.clearDownloadHistory();
         this.clearing = false;
-        Toast.show(this.getUIContext(), `缓存已清除，释放 ${CacheManager.formatBytes(freed)}`);
+        const msg = freed > 0
+          ? `缓存已清除，释放 ${CacheManager.formatBytes(freed)}`
+          : '缓存已清理，当前无可清理内容';
+        Toast.show(this.getUIContext(), msg);
         this.refreshCacheSize();
       })
       .catch((e: Object) => {
