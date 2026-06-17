@@ -729,7 +729,10 @@ export class AdminRepository extends BaseRepository {
   }
 
   async getApprovalDetail(id: string): Promise<ApprovalDetail> {
-    const approvals = await this.getApprovalItems();
+    // 用 getApprovals()（含远程路径）查头部：remote 模式审批来自后端 approval_instances（列表已走远程），
+    // 而 getApprovalItems() 只读本地/mock，会漏掉远程审批导致「审批记录不存在」。
+    // 后端 /admin/approvals 不带 status 返回全部状态，故各状态详情都能命中；本地模式 getApprovals 内部回退本地，零回归。
+    const approvals = await this.getApprovals();
     const head = approvals.find((a) => a.id === id);
     if (!head) {
       return this.reject('审批记录不存在', 'notFound');
