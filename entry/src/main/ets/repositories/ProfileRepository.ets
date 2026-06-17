@@ -428,6 +428,56 @@ export class ProfileRepository extends BaseRepository {
     return this.delay<LeaveRequest>(item);
   }
 
+  // 撤回请假：remote 走后端撤回端点；本地置 withdrawn 并落库/落本地存储。
+  async withdrawLeave(leaveId: string): Promise<LeaveRequest> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.withdrawLeave(student.studentId, leaveId);
+          return this.delay<LeaveRequest>(this.remoteToLeave(remote));
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
+    }
+    if (AppDatabase.isReady()) {
+      const items = await this.getLeaveRequestsFromRdb();
+      const found: LeaveRequest | undefined = items.find((it: LeaveRequest) => it.id === leaveId);
+      if (found === undefined) {
+        return this.reject('请假记录不存在', 'notFound');
+      }
+      const updated: LeaveRequest = {
+        id: found.id, type: found.type, startDate: found.startDate, endDate: found.endDate,
+        reason: found.reason, attachments: found.attachments, state: 'withdrawn',
+        submittedAt: found.submittedAt, feedback: found.feedback
+      };
+      await this.saveLeaveToRdb(updated);
+      return this.delay<LeaveRequest>(updated);
+    }
+    const localItems = await this.getLocalLeaves();
+    let target: LeaveRequest | undefined = undefined;
+    const next = localItems.map((it: LeaveRequest): LeaveRequest => {
+      if (it.id !== leaveId) {
+        return it;
+      }
+      const u: LeaveRequest = {
+        id: it.id, type: it.type, startDate: it.startDate, endDate: it.endDate,
+        reason: it.reason, attachments: it.attachments, state: 'withdrawn',
+        submittedAt: it.submittedAt, feedback: it.feedback
+      };
+      target = u;
+      return u;
+    });
+    if (target === undefined) {
+      return this.reject('请假记录不存在', 'notFound');
+    }
+    this.localLeaves = next;
+    this.isLeavesLoaded = true;
+    await LocalDataStore.saveArray<LeaveRequest>(KEY_LOCAL_LEAVES, next);
+    return this.delay<LeaveRequest>(target);
+  }
+
   private remoteToFeedback(f: RemoteFeedback): FeedbackItem {
     const item: FeedbackItem = {
       id: f.id,

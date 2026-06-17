@@ -581,6 +581,12 @@ export class RemoteApi {
     return apiClient.post<RemoteLeave>('/leave', body);
   }
 
+  static async withdrawLeave(studentId: string, leaveId: string): Promise<RemoteLeave> {
+    // 撤回端点从 JWT 取学号，body 仅占位（保持与既有 post 调用风格一致）
+    const body: StudentIdBody = { studentId: studentId };
+    return apiClient.post<RemoteLeave>('/leave/' + encodeURIComponent(leaveId) + '/withdraw', body);
+  }
+
   static async listFeedback(studentId: string): Promise<RemoteFeedback[]> {
     return apiClient.get<RemoteFeedback[]>('/feedback?studentId=' + encodeURIComponent(studentId));
   }

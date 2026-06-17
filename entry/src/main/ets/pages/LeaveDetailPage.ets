@@ -16,6 +16,8 @@ struct LeaveDetailPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State leave: LeaveRequest | null = null;
+  @State showWithdrawConfirm: boolean = false;
+  @State withdrawing: boolean = false;
   @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
@@ -61,6 +63,41 @@ struct LeaveDetailPage {
     if (state === 'rejected') return ElysiaTheme.ROSE_ACCENT;
     if (state === 'pending') return '#D9B675';
     return ElysiaTheme.INK_MUTE;
+  }
+
+  // 仅审批中 / 已通过可撤回；已驳回、已撤回不可
+  private canWithdraw(): boolean {
+    if (this.leave === null) {
+      return false;
+    }
+    return this.leave.state === 'pending' || this.leave.state === 'approved';
+  }
+
+  private onWithdrawTap(): void {
+    if (this.withdrawing || this.leave === null) {
+      return;
+    }
+    if (!this.canWithdraw()) {
+      Toast.show(this.getUIContext(), this.leave.state === 'withdrawn' ? '该申请已撤回' : '当前状态不可撤回');
+      return;
+    }
+    this.showWithdrawConfirm = true;
+  }
+
+  private doWithdraw(): void {
+    if (this.withdrawing || this.leave === null) {
+      return;
+    }
+    this.showWithdrawConfirm = false;
+    this.withdrawing = true;
+    ProfileRepository.get().withdrawLeave(this.leave.id).then((updated: LeaveRequest) => {
+      this.leave = updated;
+      this.withdrawing = false;
+      Toast.show(this.getUIContext(), '已撤回该请假申请');
+    }).catch((e: object) => {
+      this.withdrawing = false;
+      Toast.show(this.getUIContext(), (e instanceof HttpError) ? (e as HttpError).message : '撤回失败');
+    });
   }
 
   @Builder InfoRow(label: string, value: string) {
@@ -189,8 +226,8 @@ struct LeaveDetailPage {
               // 操作按钮
               Row({ space: 12 }) {
                 GhostButton({
-                  text: $r('app.string.leavedetail_btn_withdraw'),
-                  onTap: () => Toast.show(this.getUIContext(), '撤回功能暂未开放')
+                  text: this.withdrawing ? '撤回中…' : '撤回申请',
+                  onTap: () => this.onWithdrawTap()
                 })
                 PrimaryButton({
                   text: $r('app.string.leavedetail_btn_supplement'),
@@ -206,6 +243,29 @@ struct LeaveDetailPage {
       .width('100%')
       .height('100%')
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
+
+      if (this.showWithdrawConfirm) {
+        Column() {
+          Column({ space: 14 }) {
+            Text('撤回请假申请').fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            Text('撤回后该申请将作废，如仍需请假请重新提交。').fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+            Row({ space: 12 }) {
+              Text('取消').fontSize(14).fontColor(ElysiaTheme.INK_SOFT)
+                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
+                .backgroundColor(ElysiaTheme.SURFACE_GLOW).borderRadius(999)
+                .onClick(() => { this.showWithdrawConfirm = false; })
+              Text('确认撤回').fontSize(14).fontColor(ElysiaTheme.SURFACE).fontWeight(FontWeight.Bold)
+                .padding({ left: 24, right: 24, top: 10, bottom: 10 })
+                .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(999)
+                .onClick(() => { this.doWithdraw(); })
+            }.margin({ top: 8 })
+          }.padding(24).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
+          .shadow({ radius: 20, color: '#40000000', offsetX: 0, offsetY: 8 })
+        }.width('100%').height('100%')
+        .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+        .backgroundColor('#66000000')
+        .onClick(() => { this.showWithdrawConfirm = false; })
+      }
     }.width('100%').height('100%')
   }
 }

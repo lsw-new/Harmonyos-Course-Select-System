@@ -81,4 +81,52 @@ router.post('/api/leave', authRequired, async (req, res) => {
   }
 });
 
+// ---- 撤回请假（仅本人；pending/approved 可撤回，置 withdrawn 并同步关闭审批实例）----
+// 注：approval_steps 的 status CHECK 不含 'withdrawn'，故只动 leave_requests 与 approval_instances（两者 CHECK 均含 withdrawn）。
+const WITHDRAWABLE_STATES = ['pending', 'approved'];
+router.post('/api/leave/:id/withdraw', authRequired, async (req, res) => {
+  const studentId = currentStudentId(req);
+  const leaveId = ((req.params.id) || '').trim();
+  if (!studentId || !leaveId) {
+    return res.status(400).json(fail('参数不完整'));
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const cur = await client.query(
+      `SELECT status FROM dtest2.leave_requests WHERE leave_id = $1 AND student_id = $2 FOR UPDATE`,
+      [leaveId, studentId]
+    );
+    if (cur.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json(fail('请假记录不存在'));
+    }
+    const status = cur.rows[0].status;
+    if (WITHDRAWABLE_STATES.indexOf(status) < 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail(status === 'withdrawn' ? '该申请已撤回' : '当前状态不可撤回'));
+    }
+    const r = await client.query(
+      `UPDATE dtest2.leave_requests SET status = 'withdrawn', updated_at = now()
+       WHERE leave_id = $1 AND student_id = $2
+       RETURNING leave_id, type, to_char(start_date, 'YYYY-MM-DD') AS start_date, to_char(end_date, 'YYYY-MM-DD') AS end_date,
+                 reason, status, COALESCE(feedback, '') AS feedback, submitted_at`,
+      [leaveId, studentId]
+    );
+    // leave -> approval 闭环：审批实例同步置 withdrawn；approval_steps 的 CHECK 不含 withdrawn 故不动
+    await client.query(
+      `UPDATE dtest2.approval_instances SET status = 'withdrawn', updated_at = now()
+       WHERE biz_type = 'leave' AND biz_id = $1`,
+      [leaveId]
+    );
+    await client.query('COMMIT');
+    res.json(ok(mapLeave(r.rows[0])));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    serverError(res, '撤回请假失败', e);
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
