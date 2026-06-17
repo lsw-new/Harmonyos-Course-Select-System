@@ -153,6 +153,8 @@ export struct PrimaryButton {
     Button(this.text)
       .height(46)
       .width('100%')
+      // 与 GhostButton 并排放进 Row 时收缩适配，避免第二个按钮溢出屏幕右缘（Row 子项默认 flexShrink=0）
+      .flexShrink(1)
       .fontSize(14)
       .fontWeight(FontWeight.Bold)
       .fontColor(Color.White)
@@ -176,6 +178,8 @@ export struct GhostButton {
     Button(this.text)
       .height(42)
       .width('100%')
+      // 与 PrimaryButton 并排放进 Row 时收缩适配，避免溢出屏幕右缘（Row 子项默认 flexShrink=0）
+      .flexShrink(1)
       .fontSize(13)
       .fontWeight(FontWeight.Medium)
       .fontColor(ElysiaTheme.ROSE_700)
