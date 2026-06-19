@@ -15,17 +15,37 @@ const CATEGORY_CN = { required: '必修', elective: '选修', public: '公选', 
 // ---- 仪表盘（登录管理员即可：跨域只读计数，入口页）----
 router.get('/api/admin/dashboard', adminRequired, async (req, res) => {
   try {
-    const counts = await pool.query(
-      `SELECT
-         (SELECT count(*) FROM dtest2.student_profiles) AS students,
-         (SELECT count(*) FROM dtest2.class_students) AS roster,
-         (SELECT count(*) FROM dtest2.courses) AS courses,
-         (SELECT count(*) FROM dtest2.approval_instances WHERE status='pending') AS pending_approvals,
-         (SELECT count(*) FROM dtest2.grade_tasks WHERE status='pendingAudit') AS grade_pending,
-         (SELECT count(*) FROM dtest2.grade_tasks WHERE status='published') AS grade_published,
-         (SELECT count(*) FROM dtest2.evaluation_tasks WHERE status='submitted') AS eval_submitted,
-         (SELECT count(*) FROM dtest2.notices) AS notices`
-    );
+    // 四组查询彼此无依赖：并行执行，仪表盘响应时间从 4×RTT 收敛到 ~1×RTT
+    const [counts, trend, dist, approvals] = await Promise.all([
+      pool.query(
+        `SELECT
+           (SELECT count(*) FROM dtest2.student_profiles) AS students,
+           (SELECT count(*) FROM dtest2.class_students) AS roster,
+           (SELECT count(*) FROM dtest2.courses) AS courses,
+           (SELECT count(*) FROM dtest2.approval_instances WHERE status='pending') AS pending_approvals,
+           (SELECT count(*) FROM dtest2.grade_tasks WHERE status='pendingAudit') AS grade_pending,
+           (SELECT count(*) FROM dtest2.grade_tasks WHERE status='published') AS grade_published,
+           (SELECT count(*) FROM dtest2.evaluation_tasks WHERE status='submitted') AS eval_submitted,
+           (SELECT count(*) FROM dtest2.notices) AS notices`
+      ),
+      // 近 7 天选课操作趋势（按选课时间聚合，真实数据；无记录的日期补 0）
+      pool.query(
+        `SELECT to_char(d.day, 'MM-DD') AS label, COALESCE(s.cnt, 0)::int AS value
+         FROM generate_series(current_date - interval '6 days', current_date, interval '1 day') AS d(day)
+         LEFT JOIN (SELECT date_trunc('day', created_at) AS day, count(*) AS cnt
+                    FROM dtest2.selections GROUP BY 1) s ON s.day = d.day
+         ORDER BY d.day`
+      ),
+      // 课程类型分布（真实 GROUP BY）
+      pool.query(
+        `SELECT category, count(*)::int AS value FROM dtest2.courses GROUP BY category ORDER BY value DESC`
+      ),
+      // 待处理审批（前 5 条）
+      pool.query(
+        `SELECT approval_id, biz_type, applicant_name, applicant_id, title, COALESCE(reason, '') AS reason, status, is_urgent, submitted_at
+         FROM dtest2.approval_instances WHERE status='pending' ORDER BY submitted_at DESC LIMIT 5`
+      )
+    ]);
     const c = counts.rows[0];
     const statCards = [
       { key: 'students', label: '注册学生', value: Number(c.students), color: '#F2709C' },
@@ -36,28 +56,9 @@ router.get('/api/admin/dashboard', adminRequired, async (req, res) => {
       { key: 'evalSubmitted', label: '评教已提交', value: Number(c.eval_submitted), color: '#D9B675' }
     ];
 
-    // 近 7 天选课操作趋势（按选课时间聚合，真实数据；无记录的日期补 0）
-    const trend = await pool.query(
-      `SELECT to_char(d.day, 'MM-DD') AS label, COALESCE(s.cnt, 0)::int AS value
-       FROM generate_series(current_date - interval '6 days', current_date, interval '1 day') AS d(day)
-       LEFT JOIN (SELECT date_trunc('day', created_at) AS day, count(*) AS cnt
-                  FROM dtest2.selections GROUP BY 1) s ON s.day = d.day
-       ORDER BY d.day`
-    );
-
-    // 课程类型分布（真实 GROUP BY）
-    const dist = await pool.query(
-      `SELECT category, count(*)::int AS value FROM dtest2.courses GROUP BY category ORDER BY value DESC`
-    );
     const courseTypeDistribution = dist.rows.map((row) => {
       return { name: CATEGORY_CN[row.category] || row.category, value: Number(row.value) };
     });
-
-    // 待处理审批（前 5 条）
-    const approvals = await pool.query(
-      `SELECT approval_id, biz_type, applicant_name, applicant_id, title, COALESCE(reason, '') AS reason, status, is_urgent, submitted_at
-       FROM dtest2.approval_instances WHERE status='pending' ORDER BY submitted_at DESC LIMIT 5`
-    );
 
     res.json(ok({
       statCards,

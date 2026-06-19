@@ -66,9 +66,9 @@ function coursesConflict(a, b) {
     return false;
   }
   const wa = parseCourseWeeks(a.weeks_text);
-  const wb = parseCourseWeeks(b.weeks_text);
+  const wb = new Set(parseCourseWeeks(b.weeks_text));
   for (const w of wa) {
-    if (wb.indexOf(w) >= 0) {
+    if (wb.has(w)) {
       return true;
     }
   }
