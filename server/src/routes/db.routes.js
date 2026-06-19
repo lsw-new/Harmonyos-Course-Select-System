@@ -4,7 +4,7 @@
 const express = require('express');
 const { pool } = require('../db');
 const { ok, fail } = require('../envelope');
-const { serverError } = require('../middleware/errorHandler');
+const { serverError, pgClientError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
 
 const router = express.Router();
@@ -157,11 +157,8 @@ router.post('/api/admin/db/tables/:table/rows', GUARD, async (req, res) => {
     );
     res.json(ok({ inserted: true, row: r.rows[0] }));
   } catch (e) {
-    if (e && e.code) {
-      // pg 约束类错误回精确原因（23xxx=完整性约束、22xxx=数据格式），便于在页面直接纠正
-      return res.status(400).json(fail(`写入失败：${e.message}`));
-    }
-    serverError(res, '新增数据失败', e);
+    // pg 约束类错误回「分类安全文案」（不暴露 e.message 中的表名/约束名），便于在页面直接纠正
+    return pgClientError(res, '新增数据失败', e);
   }
 });
 
@@ -201,10 +198,7 @@ router.put('/api/admin/db/tables/:table/rows', GUARD, async (req, res) => {
     }
     res.json(ok({ updated: true, row: r.rows[0] }));
   } catch (e) {
-    if (e && e.code) {
-      return res.status(400).json(fail(`更新失败：${e.message}`));
-    }
-    serverError(res, '更新数据失败', e);
+    return pgClientError(res, '更新数据失败', e);
   }
 });
 
@@ -236,11 +230,8 @@ router.delete('/api/admin/db/tables/:table/rows', GUARD, async (req, res) => {
     }
     res.json(ok({ deleted: true }));
   } catch (e) {
-    if (e && e.code) {
-      // 外键引用等约束错误给精确提示（如先删子表行）
-      return res.status(400).json(fail(`删除失败：${e.message}`));
-    }
-    serverError(res, '删除数据失败', e);
+    // 外键引用等约束错误给分类提示（如先删子表行），不泄露约束名
+    return pgClientError(res, '删除数据失败', e);
   }
 });
 

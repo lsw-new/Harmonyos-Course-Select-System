@@ -3,7 +3,7 @@
 const express = require('express');
 const { pool } = require('../db');
 const { ok, fail } = require('../envelope');
-const { serverError } = require('../middleware/errorHandler');
+const { serverError, pgClientError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
 const { mapCourse, COURSE_COLUMNS, SELECTED_COUNT_JOIN } = require('../mappers');
 
@@ -99,10 +99,7 @@ router.post('/api/admin/courses', permissionRequired('courses.manage:create'), a
     );
     res.json(ok(await fetchCourse(courseId)));
   } catch (e) {
-    if (e && e.code) {
-      return res.status(400).json(fail(`新增课程失败：${e.message}`));
-    }
-    serverError(res, '新增课程失败', e);
+    return pgClientError(res, '新增课程失败', e);
   }
 });
 
@@ -126,10 +123,7 @@ router.put('/api/admin/courses/:id', permissionRequired('courses.manage:update')
     }
     res.json(ok(await fetchCourse(req.params.id)));
   } catch (e) {
-    if (e && e.code) {
-      return res.status(400).json(fail(`编辑课程失败：${e.message}`));
-    }
-    serverError(res, '编辑课程失败', e);
+    return pgClientError(res, '编辑课程失败', e);
   }
 });
 
@@ -145,10 +139,7 @@ router.delete('/api/admin/courses/:id', permissionRequired('courses.manage:delet
     if (e && e.code === '23503') {
       return res.status(409).json(fail('该课程已被选课/成绩/评教记录引用，不能删除（可改为「归档」状态）'));
     }
-    if (e && e.code) {
-      return res.status(400).json(fail(`删除课程失败：${e.message}`));
-    }
-    serverError(res, '删除课程失败', e);
+    return pgClientError(res, '删除课程失败', e);
   }
 });
 

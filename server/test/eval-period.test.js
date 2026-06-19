@@ -66,6 +66,8 @@ describe('开关关闭时的提交拦截', () => {
 
 describe('GET /api/evaluations 评教任务与当前课程同步', () => {
   const CLASS_ROW = { match: /SELECT COALESCE\(\s*\(SELECT class_name/, result: [{ class_name: '23计算机科学与技术U9' }] };
+  // 同步前需解析到可用问卷模板，否则 syncTasksWithCourses 会在 INSERT 前提前返回（不进事务）
+  const TEMPLATE = { match: /FROM dtest2\.evaluation_templates/, result: [{ template_id: 'qt-default' }] };
   const TASK_ROWS = {
     match: /FROM dtest2\.evaluation_tasks et/,
     result: [{ task_id: 'eval-c1-2023307020941', term: '2025-2026-2', teacher_name: '方坚', status: 'open',
@@ -73,7 +75,7 @@ describe('GET /api/evaluations 评教任务与当前课程同步', () => {
   };
 
   test('开放期 + 班级可定位 → 同步补齐并清理后返回列表', async () => {
-    __mock.setRoutes([CLASS_ROW, TASK_ROWS]);
+    __mock.setRoutes([CLASS_ROW, TEMPLATE, TASK_ROWS]);
     const res = await request(app).get('/api/evaluations').set('Authorization', stu);
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
@@ -103,6 +105,7 @@ describe('GET /api/evaluations 评教任务与当前课程同步', () => {
   test('同步失败 → 回滚且不阻断列表返回', async () => {
     __mock.setRoutes([
       CLASS_ROW,
+      TEMPLATE,
       { match: /INSERT INTO dtest2\.evaluation_tasks/, result: new Error('insert boom') },
       TASK_ROWS
     ]);

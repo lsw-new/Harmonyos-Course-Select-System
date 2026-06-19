@@ -74,6 +74,8 @@ describe('POST /api/admin/grades/:id/scores', () => {
     __mock.setRoutes([
       PERM_GRANT,
       { match: /FOR UPDATE/, result: [taskRow] },
+      // 打分名单校验：本班已注册学生集合（含被打分的学号）
+      { match: /SELECT cs\.student_id\s+FROM dtest2\.class_students cs/, result: [{ student_id: '2023307020941' }] },
       { match: /INSERT INTO dtest2\.grades/, result: [] },
       { match: /UPDATE dtest2\.grades g SET rank/, result: [] },
       { match: /SELECT[\s\S]*count\(\*\)[\s\S]*class_students/, result: [{ total: '2', scored: '1' }] },
@@ -90,6 +92,20 @@ describe('POST /api/admin/grades/:id/scores', () => {
     // 写入分数时不直接发布（published_at=NULL），审核通过才发布
     const gradeInsert = __mock.getLog().find((e) => e.sql.indexOf('INSERT INTO dtest2.grades') >= 0);
     expect(gradeInsert.sql).toContain('NULL');
+  });
+
+  test('打分名单含非本班学生 → 400 且回滚（不写成绩）', async () => {
+    __mock.setRoutes([
+      PERM_GRANT,
+      { match: /FOR UPDATE/, result: [taskRow] },
+      // 名册只含 941；提交里却含一个不在名册的学号 → 应被拒绝
+      { match: /SELECT cs\.student_id\s+FROM dtest2\.class_students cs/, result: [{ student_id: '2023307020941' }] }
+    ]);
+    const res = await request(app).post('/api/admin/grades/gt-VDZ02119204/scores').set('Authorization', adm)
+      .send({ scores: [{ studentId: '9999999999999', score: 88 }] });
+    expect(res.status).toBe(400);
+    expect(__mock.executed('ROLLBACK')).toBe(true);
+    expect(__mock.executed('INSERT INTO dtest2.grades')).toBe(false);
   });
 });
 

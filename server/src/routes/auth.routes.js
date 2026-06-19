@@ -33,7 +33,8 @@ router.post('/api/auth/login', authLimiter, async (req, res) => {
     }
     const a = r.rows[0];
     if (a.status !== 'active') {
-      return res.status(403).json(fail('账号状态异常：' + a.status));
+      // 不回数据库枚举值（disabled/suspended…），避免暴露账号管理策略
+      return res.status(403).json(fail('账号已被禁用或暂停使用，请联系管理员'));
     }
     const passOk = await verifyPassword(password, a.salt, a.password_hash);
     if (!passOk) {
@@ -113,8 +114,12 @@ router.post('/api/auth/register', authLimiter, async (req, res) => {
   if (!studentId || !name || !EMAIL_RE.test(email) || !code || !password) {
     return res.status(400).json(fail('注册信息不完整'));
   }
-  if (password.length < 6) {
-    return res.status(400).json(fail('密码至少 6 位'));
+  if (password.length < 8) {
+    return res.status(400).json(fail('密码至少 8 位'));
+  }
+  // bcrypt 静默截断 72 字节以上输入，会造成「长密码任意后缀都能登录」的旁路；显式上限拒绝
+  if (password.length > 72) {
+    return res.status(400).json(fail('密码长度不能超过 72 个字符'));
   }
   let rosterRow;
   try {
@@ -197,8 +202,11 @@ router.post('/api/auth/reset-password', authLimiter, async (req, res) => {
   if (!account || !EMAIL_RE.test(email) || !code || !newPassword) {
     return res.status(400).json(fail('找回密码信息不完整'));
   }
-  if (newPassword.length < 6) {
-    return res.status(400).json(fail('密码至少 6 位'));
+  if (newPassword.length < 8) {
+    return res.status(400).json(fail('密码至少 8 位'));
+  }
+  if (newPassword.length > 72) {
+    return res.status(400).json(fail('密码长度不能超过 72 个字符'));
   }
   try {
     const acc = await pool.query('SELECT account_id, role FROM dtest2.accounts WHERE account_id=$1', [account]);

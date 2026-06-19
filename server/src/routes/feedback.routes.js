@@ -45,6 +45,16 @@ router.post('/api/feedback', authRequired, async (req, res) => {
   if (FEEDBACK_CATEGORIES.indexOf(category) < 0) {
     return res.status(400).json(fail('反馈类型不合法'));
   }
+  // 自由文本字段长度上限，防止单字段塞满请求体（DoS）与存储膨胀
+  if (title.length > 100) {
+    return res.status(400).json(fail('反馈标题不能超过 100 字'));
+  }
+  if (content.length > 5000) {
+    return res.status(400).json(fail('反馈内容不能超过 5000 字'));
+  }
+  if (contact.length > 100) {
+    return res.status(400).json(fail('联系方式不能超过 100 字'));
+  }
   try {
     const id = `fb-${Date.now()}`;
     const r = await pool.query(

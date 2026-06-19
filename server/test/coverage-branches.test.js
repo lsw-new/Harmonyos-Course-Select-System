@@ -111,7 +111,9 @@ describe('db.routes 异常与边界分支', () => {
     const r400 = await request(app).post('/api/admin/db/tables/class_students/rows').set('Authorization', adm)
       .send({ values: { name: 'x' } });
     expect(r400.status).toBe(400);
-    expect(r400.body.error).toContain('duplicate key');
+    // 安全：pg 约束错误回「分类文案」，不泄露 e.message 中的约束名/表名等 schema 细节
+    expect(r400.body.error).toContain('唯一约束');
+    expect(r400.body.error).not.toContain('duplicate key');
 
     __mock.setRoutes([PERM, TABLE_OK, COLUMNS, PK,
       { match: /INSERT INTO/, result: new Error('conn reset') }]);

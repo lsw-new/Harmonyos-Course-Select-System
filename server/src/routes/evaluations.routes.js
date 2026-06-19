@@ -223,6 +223,15 @@ router.post('/api/evaluations/:taskId/submit', authRequired, async (req, res) =>
   if (!Array.isArray(answers) || answers.length === 0) {
     return res.status(400).json(fail('答案为空'));
   }
+  // 限制答卷条目数与结构，防止超大/畸形 JSON 拖垮序列化与 JSONB 存储
+  if (answers.length > 100) {
+    return res.status(400).json(fail('答案条目过多'));
+  }
+  for (const ans of answers) {
+    if (typeof ans !== 'object' || ans === null) {
+      return res.status(400).json(fail('答案格式不合法'));
+    }
+  }
   // 服务端权威校验：评教期未开放一律拒绝提交（不依赖客户端判断）
   try {
     if (!(await isEvalPeriodOpen())) {
@@ -253,7 +262,8 @@ router.post('/api/evaluations/:taskId/submit', authRequired, async (req, res) =>
       [subId, taskId, studentId, JSON.stringify(answers)]
     );
     await client.query(
-      `UPDATE dtest2.evaluation_tasks SET status='submitted', submitted_at=now() WHERE task_id=$1`, [taskId]
+      `UPDATE dtest2.evaluation_tasks SET status='submitted', submitted_at=now() WHERE task_id=$1 AND student_id=$2`,
+      [taskId, studentId]
     );
     await client.query('COMMIT');
     res.json(ok({ submitted: true }));

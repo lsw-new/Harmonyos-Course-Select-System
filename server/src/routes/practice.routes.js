@@ -76,7 +76,8 @@ router.post('/api/practice/:id/signup', authRequired, async (req, res) => {
       [projectId, studentId]
     );
     await client.query('COMMIT');
-    const updated = await pool.query(`${PRACTICE_SELECT} WHERE p.project_id = $2 LIMIT 1`, [studentId, projectId]);
+    // COMMIT 后用同一 client（仍持有至 finally release）读回，避免事务块内混用 pool 另取连接
+    const updated = await client.query(`${PRACTICE_SELECT} WHERE p.project_id = $2 LIMIT 1`, [studentId, projectId]);
     res.json(ok(mapPractice(updated.rows[0])));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);

@@ -258,7 +258,7 @@ describe('auth 异常分支', () => {
 
     __mock.setRoutes([{ match: /FROM dtest2\.class_students/, result: boom() }]);
     expect((await request(app).post('/api/auth/register')
-      .send({ studentId: '2023307020941', name: '李仕炜', email: 'a@test.com', emailCode: '1', password: '123456' })).status).toBe(500);
+      .send({ studentId: '2023307020941', name: '李仕炜', email: 'a@test.com', emailCode: '1', password: '12345678' })).status).toBe(500);
 
     const code = codeStore.issue('reg-tx@test.com');
     __mock.setRoutes([
@@ -266,7 +266,7 @@ describe('auth 异常分支', () => {
       { match: /SELECT 1 FROM dtest2\.accounts/, result: boom() }
     ]);
     const r = await request(app).post('/api/auth/register')
-      .send({ studentId: '2023307020941', name: '李仕炜', email: 'reg-tx@test.com', emailCode: code, password: '123456' });
+      .send({ studentId: '2023307020941', name: '李仕炜', email: 'reg-tx@test.com', emailCode: code, password: '12345678' });
     expect(r.status).toBe(500);
     expect(__mock.executed('ROLLBACK')).toBe(true);
   });
@@ -282,12 +282,12 @@ describe('auth 异常分支', () => {
       { match: /SELECT email FROM dtest2\.student_profiles/, result: [{ email: 'reset@test.com' }] }
     ]);
     const rCode = await request(app).post('/api/auth/reset-password')
-      .send({ account: '2023307020941', contact: 'reset@test.com', verifyCode: '000000', newPassword: '123456' });
+      .send({ account: '2023307020941', contact: 'reset@test.com', verifyCode: '000000', newPassword: '12345678' });
     expect(rCode.status).toBe(400);
 
     __mock.setRoutes([{ match: /SELECT account_id, role FROM dtest2\.accounts/, result: boom() }]);
     expect((await request(app).post('/api/auth/reset-password')
-      .send({ account: '2023307020941', contact: 'reset@test.com', verifyCode: '1', newPassword: '123456' })).status).toBe(500);
+      .send({ account: '2023307020941', contact: 'reset@test.com', verifyCode: '1', newPassword: '12345678' })).status).toBe(500);
   });
 
   test('登录：底层查询抛错 → 500', async () => {

@@ -172,17 +172,37 @@ router.post('/api/admin/grades/:id/scores', permissionRequired('grades.input:upd
       await client.query('ROLLBACK');
       return res.status(409).json(fail('成绩已发布，不可再打分'));
     }
+    // 校验打分名单：仅允许给本教学班「已注册」学生打分，杜绝向任意学号写成绩（数据污染）
+    const roster = await client.query(
+      `SELECT cs.student_id FROM dtest2.class_students cs
+       JOIN dtest2.student_profiles sp ON sp.student_id = cs.student_id
+       WHERE cs.class_name = $1`,
+      [t.teaching_class_name]
+    );
+    const allowed = new Set(roster.rows.map((x) => x.student_id));
+    const sids = [];
+    const scoreVals = [];
+    const gradePoints = [];
     for (const s of scores) {
       const sid = s.studentId.trim();
+      if (!allowed.has(sid)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json(fail('打分名单包含不属于该教学班的学生'));
+      }
       const score = Number(s.score);
-      await client.query(
-        `INSERT INTO dtest2.grades (grade_id, task_id, student_id, course_id, term, score, grade_point, rank, published_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 0, NULL)
-         ON CONFLICT (student_id, course_id, term) DO UPDATE
-           SET score=EXCLUDED.score, grade_point=EXCLUDED.grade_point, task_id=EXCLUDED.task_id, published_at=NULL`,
-        [`g-${t.course_id}-${sid}`, req.params.id, sid, t.course_id, t.term, score, gradePointOf(score)]
-      );
+      sids.push(sid);
+      scoreVals.push(score);
+      gradePoints.push(gradePointOf(score));
     }
+    // 批量 UPSERT：原本逐人一条 INSERT（47 人=47 次往返、占用行锁更久）合并为 1 条 UNNEST 语句
+    await client.query(
+      `INSERT INTO dtest2.grades (grade_id, task_id, student_id, course_id, term, score, grade_point, rank, published_at)
+       SELECT 'g-' || $2 || '-' || x.sid, $1, x.sid, $2, $3, x.score, x.gp, 0, NULL
+       FROM unnest($4::text[], $5::numeric[], $6::numeric[]) AS x(sid, score, gp)
+       ON CONFLICT (student_id, course_id, term) DO UPDATE
+         SET score=EXCLUDED.score, grade_point=EXCLUDED.grade_point, task_id=EXCLUDED.task_id, published_at=NULL`,
+      [req.params.id, t.course_id, t.term, sids, scoreVals, gradePoints]
+    );
     // 重算该课程本学期排名（同分同名次）
     await client.query(
       `UPDATE dtest2.grades g SET rank = r.rnk
@@ -211,7 +231,8 @@ router.post('/api/admin/grades/:id/scores', permissionRequired('grades.input:upd
       [req.params.id, progress, nextStatus]
     );
     await client.query('COMMIT');
-    const updated = await pool.query(
+    // COMMIT 后用同一 client（仍持有至 finally release）读回，避免事务块内混用 pool 另取连接
+    const updated = await client.query(
       `SELECT gt.task_id, gt.teaching_class_name, gt.teacher_name, gt.input_progress, gt.status, gt.reject_reason, gt.updated_at,
               COALESCE(c.name, '') AS course_name
        FROM dtest2.grade_tasks gt LEFT JOIN dtest2.courses c ON c.course_id = gt.course_id WHERE gt.task_id=$1`,

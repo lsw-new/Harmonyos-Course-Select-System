@@ -44,6 +44,9 @@ router.post('/api/leave', authRequired, async (req, res) => {
   if (LEAVE_TYPES.indexOf(type) < 0) {
     return res.status(400).json(fail('请假类型不合法'));
   }
+  if (reason.length > 500) {
+    return res.status(400).json(fail('请假理由不能超过 500 字'));
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
