@@ -89,6 +89,12 @@ app.use(require('./routes/evaluations.routes'));
 // ---- 实践域（列表 / 详情 / 报名含行锁 / 取消报名）已抽到 ./routes/practice.routes ----
 app.use(require('./routes/practice.routes'));
 
+// ---- 成绩申诉域（学生提交 / 管理端受理驳回）----
+app.use(require('./routes/grade-appeals.routes'));
+
+// ---- 考试安排域（学生按班级/已选查考试 / 管理端 CRUD）----
+app.use(require('./routes/exams.routes'));
+
 // ================= 管理端域（需 role=admin + 细粒度权限）=================
 // 学生管理 / 成绩审核录入 / 审批 / 通知发布 / 角色权限 / 操作日志 / 评教模板
 // 全部端点已抽到 ./routes/admin.routes（permissionRequired 细粒度鉴权）
