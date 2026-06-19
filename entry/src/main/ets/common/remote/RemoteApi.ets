@@ -184,6 +184,47 @@ interface StudentIdBody {
   studentId: string;
 }
 
+export interface RemoteExam {
+  examId: string;
+  courseId: string;
+  courseName: string;
+  courseCode: string;
+  term: string;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  seatNo: string;
+  examType: string;
+}
+
+export interface RemoteLoginHistory {
+  id: string;
+  action: string;
+  result: string;
+  ip: string;
+  time: string;
+}
+
+export interface RemoteGradeAppeal {
+  appealId: string;
+  studentId: string;
+  taskId: string;
+  courseId: string;
+  term: string;
+  reason: string;
+  status: string;
+  reply: string;
+  handledBy: string;
+  handledAt: string;
+  submittedAt: string;
+  updatedAt: string;
+}
+
+interface AppealBody {
+  reason: string;
+}
+
 export interface RemoteFeedback {
   id: string;
   category: string;
@@ -629,6 +670,24 @@ export class RemoteApi {
   static async practiceCancel(studentId: string, id: string): Promise<RemotePractice> {
     const body: StudentIdBody = { studentId: studentId };
     return apiClient.delete<RemotePractice>('/practice/' + encodeURIComponent(id) + '/signup', body);
+  }
+
+  static async listExams(studentId: string, term?: string): Promise<RemoteExam[]> {
+    let path = '/exams?studentId=' + encodeURIComponent(studentId);
+    if (term && term.length > 0 && term !== '全部') {
+      path += '&term=' + encodeURIComponent(term);
+    }
+    return apiClient.get<RemoteExam[]>(path);
+  }
+
+  static async loginHistory(): Promise<RemoteLoginHistory[]> {
+    return apiClient.get<RemoteLoginHistory[]>('/profile/login-history');
+  }
+
+  // 成绩申诉：gradeId 即学生端 GET /api/grades 返回的 id（=grade_id），学号由后端从 JWT 取
+  static async submitGradeAppeal(gradeId: string, reason: string): Promise<RemoteGradeAppeal> {
+    const body: AppealBody = { reason: reason };
+    return apiClient.post<RemoteGradeAppeal>('/grades/' + encodeURIComponent(gradeId) + '/appeal', body);
   }
 
   // ===== 管理端（需管理员 token）=====

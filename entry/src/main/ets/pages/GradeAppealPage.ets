@@ -18,6 +18,7 @@ struct GradeAppealPage {
   @State grade: GradeRecord | null = null;
   @State reason: string = '';
   @State formError: string = '';
+  @State submitting: boolean = false;
   @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
@@ -45,14 +46,28 @@ struct GradeAppealPage {
   }
 
   private submitAppeal(): void {
+    if (this.submitting) {
+      return;
+    }
     if (this.reason.trim().length === 0) {
       this.formError = '请填写复核理由';
       Toast.show(this.getUIContext(), '请填写复核理由');
       return;
     }
+    if (this.grade === null) {
+      Toast.show(this.getUIContext(), '成绩信息缺失，无法提交');
+      return;
+    }
     this.formError = '';
-    Toast.show(this.getUIContext(), '申诉已提交，请等待复核');
-    AppRoute.back();
+    this.submitting = true;
+    AcademicRepository.get().submitAppeal(this.grade.id, this.reason).then(() => {
+      this.submitting = false;
+      Toast.show(this.getUIContext(), '申诉已提交，请等待复核');
+      AppRoute.back();
+    }).catch((e: object) => {
+      this.submitting = false;
+      Toast.show(this.getUIContext(), (e instanceof HttpError) ? (e as HttpError).message : '提交失败，请稍后重试');
+    });
   }
 
   private saveDraft(): void {

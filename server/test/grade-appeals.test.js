@@ -11,10 +11,10 @@ const PERM_GRANT = { match: /FROM dtest2\.admin_profiles ap/, result: [{ ok: 1 }
 const PERM_DENY = { match: /FROM dtest2\.admin_profiles ap/, result: [] };
 
 const GRADE_OK = {
-  match: /FROM dtest2\.grades g\s+JOIN dtest2\.grade_tasks gt/,
-  result: [{ course_id: 'VDZ02119204', term: '2025-2026-2' }]
+  match: /FROM dtest2\.grades g\s+WHERE g\.grade_id/,
+  result: [{ task_id: 'gt-VDZ02119204', course_id: 'VDZ02119204', term: '2025-2026-2' }]
 };
-const GRADE_NONE = { match: /FROM dtest2\.grades g\s+JOIN dtest2\.grade_tasks gt/, result: [] };
+const GRADE_NONE = { match: /FROM dtest2\.grades g\s+WHERE g\.grade_id/, result: [] };
 const NO_DUP = { match: /FROM dtest2\.grade_appeals\s+WHERE task_id/, result: [] };
 const HAS_DUP = { match: /FROM dtest2\.grade_appeals\s+WHERE task_id/, result: [{ ok: 1 }] };
 

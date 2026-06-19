@@ -6,7 +6,7 @@ import { mockGrades, mockGradeSummary, mockExams, mockStudentRecord } from '../m
 import { AppDatabase } from '../common/storage/AppDatabase';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteGrade } from '../common/remote/RemoteApi';
+import { RemoteApi, RemoteGrade, RemoteExam } from '../common/remote/RemoteApi';
 
 export class AcademicRepository extends BaseRepository {
   private static _instance?: AcademicRepository;
@@ -198,11 +198,54 @@ export class AcademicRepository extends BaseRepository {
   }
 
   async getExams(term?: string): Promise<ExamArrangement[]> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.listExams(student.studentId, term);
+          return this.delayCopy<ExamArrangement[]>(remote.map((e: RemoteExam): ExamArrangement => {
+            const item: ExamArrangement = {
+              id: e.examId,
+              term: e.term,
+              courseName: e.courseName,
+              examType: e.examType,
+              date: e.examDate,
+              startTime: e.startTime,
+              endTime: e.endTime,
+              classroom: e.location,
+              seatNo: e.seatNo
+            };
+            return item;
+          }));
+        } catch (e) {
+          if (!AppConfig.allowMockFallbackInRemote) {
+            throw new Error('远程服务异常，请稍后重试');
+          }
+        }
+      }
+    }
     let items = mockExams;
     if (term && term !== '全部') {
       items = items.filter((e) => e.term === term);
     }
     return this.delayCopy<ExamArrangement[]>(items);
+  }
+
+  // 提交成绩申诉（gradeId = 成绩行 id）。remote 模式走后端，失败按配置抛错。
+  async submitAppeal(gradeId: string, reason: string): Promise<boolean> {
+    if (reason.trim().length === 0) {
+      return this.reject('请填写复核理由');
+    }
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.submitGradeAppeal(gradeId, reason.trim());
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : String(e));
+      }
+    }
+    // 非 remote：本地无申诉存储，按演示直接视为已提交
+    return this.delay<boolean>(true);
   }
 
   async getStudentRecord(): Promise<StudentRecord> {

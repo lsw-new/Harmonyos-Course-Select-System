@@ -12,7 +12,7 @@ import { AccountStore } from '../common/storage/AccountStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AssetTokenStore } from '../common/security/AssetTokenStore';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteProfile, RemoteAdminPermission } from '../common/remote/RemoteApi';
+import { RemoteApi, RemoteProfile, RemoteAdminPermission, RemoteLoginHistory } from '../common/remote/RemoteApi';
 import { HttpError } from '../common/http/HttpError';
 
 // P1-03：把后端动作字符串窄化为 AdminPermissionAction（ArkTS 安全，非法值兜底 view）
@@ -280,6 +280,25 @@ export class AuthRepository extends BaseRepository {
   }
 
   async getLoginHistory(): Promise<LoginHistoryItem[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.loginHistory();
+        return this.delayCopy<LoginHistoryItem[]>(remote.map((h: RemoteLoginHistory): LoginHistoryItem => {
+          const item: LoginHistoryItem = {
+            id: h.id,
+            loginTime: h.time,
+            ipAddress: h.ip,
+            location: '',
+            durationMinutes: 0
+          };
+          return item;
+        }));
+      } catch (e) {
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+      }
+    }
     return this.delayCopy<LoginHistoryItem[]>(mockLoginHistory);
   }
 

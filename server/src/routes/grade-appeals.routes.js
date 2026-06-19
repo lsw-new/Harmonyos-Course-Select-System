@@ -30,10 +30,10 @@ function mapAppeal(row) {
   };
 }
 
-// ---- 学生提交成绩申诉（按成绩任务）----
-router.post('/api/grades/:taskId/appeal', authRequired, async (req, res) => {
+// ---- 学生提交成绩申诉（按成绩行 grade_id，学生端 GET /api/grades 返回的 id 即 grade_id）----
+router.post('/api/grades/:gradeId/appeal', authRequired, async (req, res) => {
   const studentId = currentStudentId(req);
-  const taskId = ((req.params.taskId) || '').trim();
+  const gradeId = ((req.params.gradeId) || '').trim();
   const reason = (((req.body || {}).reason) || '').trim();
   if (!studentId) {
     return res.status(400).json(fail('缺少 studentId'));
@@ -45,18 +45,18 @@ router.post('/api/grades/:taskId/appeal', authRequired, async (req, res) => {
     return res.status(400).json(fail('申诉理由不能超过 500 字'));
   }
   try {
-    // 校验该学生对该 task 确有一条成绩（防止越权 / 给不存在的成绩申诉）。
+    // 按 grade_id + 学号定位成绩行（防越权 / 给不存在的成绩申诉），并取出 task_id/course/term。
     const g = await pool.query(
-      `SELECT g.course_id, g.term
+      `SELECT g.task_id, g.course_id, g.term
        FROM dtest2.grades g
-       JOIN dtest2.grade_tasks gt ON gt.task_id = g.task_id
-       WHERE g.task_id = $1 AND g.student_id = $2
+       WHERE g.grade_id = $1 AND g.student_id = $2
        LIMIT 1`,
-      [taskId, studentId]
+      [gradeId, studentId]
     );
     if (g.rowCount === 0) {
       return res.status(404).json(fail('未找到该成绩记录'));
     }
+    const taskId = g.rows[0].task_id;
     // 同一 task+student 已有 pending 申诉 → 409（避免重复申诉）。
     const dup = await pool.query(
       `SELECT 1 FROM dtest2.grade_appeals
