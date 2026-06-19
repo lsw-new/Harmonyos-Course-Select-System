@@ -8,6 +8,7 @@ const { ok, fail } = require('../envelope');
 const { serverError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
 const { mapStudent, mapGradeTask, mapApproval, mapAuditLog, mapTemplate, mapFeedback } = require('../mappers');
+const { genId } = require('../ids');
 
 const router = express.Router();
 
@@ -387,7 +388,7 @@ router.post('/api/admin/notices', permissionRequired('notices.publish:publish', 
     return res.status(400).json(fail('接收类型不合法'));
   }
   try {
-    const id = `notice-${Date.now()}`;
+    const id = genId('notice');
     const summary = content.length > 60 ? content.substring(0, 60) + '...' : content;
     const r = await pool.query(
       `INSERT INTO dtest2.notices
@@ -525,7 +526,7 @@ router.post('/api/admin/eval/templates', permissionRequired('evaluations.manage:
     return res.status(400).json(fail('问卷状态不合法'));
   }
   try {
-    const id = `qt-${Date.now()}`;
+    const id = genId('qt');
     const r = await pool.query(
       `INSERT INTO dtest2.evaluation_templates (template_id, name, description, question_count, status)
        VALUES ($1, $2, $3, $4, $5)

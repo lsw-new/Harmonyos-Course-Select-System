@@ -6,6 +6,7 @@ const { adminRequired, authRequired } = require('../auth');
 const { serverError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
 const { mapApproval } = require('../mappers');
+const { genId } = require('../ids');
 const codeStore = require('../codeStore');
 
 const router = express.Router();
@@ -327,7 +328,7 @@ router.post('/api/admin/calendar', permissionRequired('system.config:create', 's
     return res.status(400).json(fail('事件类型不合法'));
   }
   try {
-    const id = `cal-${Date.now()}`;
+    const id = genId('cal');
     await pool.query(
       `INSERT INTO dtest2.calendar_events (event_id, event_date, title, type) VALUES ($1, $2, $3, $4)`,
       [id, date, title, type]

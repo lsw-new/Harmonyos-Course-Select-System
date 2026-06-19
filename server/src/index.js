@@ -17,6 +17,23 @@ const app = express();
 // 外部直连 :8090 的对端非回环，不会被信任，无法伪造 IP 绕过限流。
 app.set('trust proxy', 'loopback');
 
+// 安全响应头（security-reviewer M6）：手写中间件，零新增依赖。
+// 防 MIME 嗅探 / 点击劫持 / Referer 泄露；HTTPS 由 nginx 终止，HSTS 仅在 https 时附加。
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  // 含敏感数据的 API 响应不缓存（静态 /admin 资源不受影响，已在前面单独挂载）
+  if (req.path.indexOf('/api/') === 0) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+  next();
+});
+
 // P2-01：CORS 收紧。原生 App 不受浏览器 CORS 约束；默认关闭跨域，
 // 仅当 .env 配置 CORS_ORIGINS（逗号分隔）时放行可信域名。
 const CORS_ORIGINS = (process.env.CORS_ORIGINS || '')

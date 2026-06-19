@@ -6,6 +6,7 @@ const { authRequired } = require('../auth');
 const { serverError } = require('../middleware/errorHandler');
 const { currentStudentId } = require('../identity');
 const { mapFeedback } = require('../mappers');
+const { genId } = require('../ids');
 
 const router = express.Router();
 
@@ -56,7 +57,7 @@ router.post('/api/feedback', authRequired, async (req, res) => {
     return res.status(400).json(fail('联系方式不能超过 100 字'));
   }
   try {
-    const id = `fb-${Date.now()}`;
+    const id = genId('fb');
     const r = await pool.query(
       `INSERT INTO dtest2.feedback_items (feedback_id, student_id, category, title, content, contact, state, submitted_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, 'submitted', now(), now())

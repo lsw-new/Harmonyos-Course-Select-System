@@ -6,6 +6,7 @@ const { ok, fail } = require('../envelope');
 const { serverError, pgClientError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
 const { mapCourse, COURSE_COLUMNS, SELECTED_COUNT_JOIN } = require('../mappers');
+const { genId } = require('../ids');
 
 const router = express.Router();
 
@@ -88,7 +89,7 @@ router.post('/api/admin/courses', permissionRequired('courses.manage:create'), a
     return res.status(400).json(fail(v.error));
   }
   try {
-    const courseId = `ac-${Date.now()}`;
+    const courseId = genId('ac');
     await pool.query(
       `INSERT INTO dtest2.courses
          (course_id, code, name, category, credit, teacher, capacity, status,

@@ -7,6 +7,7 @@ const { authRequired } = require('../auth');
 const { serverError } = require('../middleware/errorHandler');
 const { currentStudentId } = require('../identity');
 const { mapLeave, leaveTypeLabel } = require('../mappers');
+const { genId } = require('../ids');
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ router.post('/api/leave', authRequired, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const leaveId = `lv-${Date.now()}`;
+    const leaveId = genId('lv');
     const r = await client.query(
       `INSERT INTO dtest2.leave_requests (leave_id, student_id, type, start_date, end_date, reason, status, submitted_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, 'pending', now(), now())
