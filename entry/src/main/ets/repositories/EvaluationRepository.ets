@@ -215,6 +215,10 @@ export class EvaluationRepository extends BaseRepository {
           return this.reject((e instanceof Error) ? e.message : String(e));
         }
       }
+      // remote 模式却拿不到登录学生：禁止静默落到 mock 本地写（会「提交成功」却只写本地缓存）
+      if (!AppConfig.allowMockFallbackInRemote) {
+        return this.reject('未登录或登录已失效，请重新登录');
+      }
     }
     const tasks = await this.getTaskItems();
     const task = tasks.find((t) => t.id === taskId);

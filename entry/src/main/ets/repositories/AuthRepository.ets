@@ -86,8 +86,11 @@ export class AuthRepository extends BaseRepository {
     if (AppConfig.useRemote) {
       try {
         const remote = await RemoteApi.login(req.studentId.trim(), req.password);
-        // P1-03：使用后端下发的真实 profile，取不到才回退 mock
-        const user: UserProfile = remote.profile ? this.mapStudentProfile(remote.profile) : mockStudentProfile;
+        // 必须拿到后端下发的真实 profile；缺失即视为登录异常，绝不用 mock 李仕炜兜底（防张冠李戴）
+        if (!remote.profile) {
+          throw new Error('NO_PROFILE');
+        }
+        const user: UserProfile = this.mapStudentProfile(remote.profile);
         const remoteResult: LoginResult = { token: remote.token, user: user };
         await AssetTokenStore.setStudentToken(remote.token);
         await SessionStorage.get().setStudentSession(remote.token, user);
@@ -294,12 +297,20 @@ export class AuthRepository extends BaseRepository {
       try {
         const remote = await RemoteApi.login(req.adminId.trim(), req.password);
         if (remote.role === 'admin') {
-          // P1-03：使用后端下发的真实管理员 profile（含真实权限矩阵），取不到才回退 mock
-          const profile: AdminProfile = remote.profile ? this.mapAdminProfile(remote.profile) : mockAdminProfile;
+          // 必须拿到后端真实管理员 profile（含真实权限矩阵）；缺失即视为登录异常，
+          // 绝不用 mockAdminProfile（全权演示号）兜底，否则任意账号会获得全部管理权限
+          if (!remote.profile) {
+            throw new Error('NO_PROFILE');
+          }
+          const profile: AdminProfile = this.mapAdminProfile(remote.profile);
           const remoteResult: AdminLoginResult = { token: remote.token, profile: profile };
           await AssetTokenStore.setAdminToken(remote.token);
           await SessionStorage.get().setAdminSession(remote.token, profile);
           return this.delay<AdminLoginResult>(remoteResult);
+        }
+        // 远程登录成功但该账号不是管理员：生产模式直接拒绝，不静默落到本地 mock 管理员
+        if (!AppConfig.allowMockFallbackInRemote) {
+          return this.reject('该账号无管理员权限');
         }
       } catch (e) {
         // 远程登录失败：生产模式（禁止回退）下直接报错，不静默回退本地 mock 管理员

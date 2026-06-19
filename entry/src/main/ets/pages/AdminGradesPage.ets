@@ -333,7 +333,7 @@ struct AdminGradesPage {
                           .width('100%').textAlign(TextAlign.Center).padding({ top: 8, bottom: 8 })
                       } else {
                         Text($r('app.string.admingrades_score_note')).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
-                        ForEach(this.scoreRows, (row: ScoreEditRow) => {
+                        ForEach(this.scoreRows, (row: ScoreEditRow, idx: number) => {
                           Row({ space: 8 }) {
                             Text(row.name).fontSize(12).fontColor(ElysiaTheme.INK).layoutWeight(1)
                             Text(row.studentId).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
@@ -346,7 +346,11 @@ struct AdminGradesPage {
                               .backgroundColor(ElysiaTheme.glass())
                               .border({ width: 1, color: ElysiaTheme.hairline() })
                               .borderRadius(10)
-                              .onChange((v: string) => { row.scoreText = v; })
+                              // 不可变更新：整体重赋值 @State 数组（替换第 idx 行），不就地 mutate row
+                              .onChange((v: string) => {
+                                this.scoreRows = this.scoreRows.map((r: ScoreEditRow, j: number): ScoreEditRow =>
+                                  j === idx ? { studentId: r.studentId, name: r.name, scoreText: v } : r);
+                              })
                           }.width('100%')
                         }, (row: ScoreEditRow) => row.studentId)
                         Row({ space: 8 }) {

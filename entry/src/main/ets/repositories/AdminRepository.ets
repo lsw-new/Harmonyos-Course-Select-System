@@ -209,7 +209,12 @@ export class AdminRepository extends BaseRepository {
         };
         return this.delayCopy<AdminDashboardSummary>(summary);
       } catch (e) {
-        // 远程失败回退本地汇总，保证仪表盘可用
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现，
+        // 不再用 mock 的假统计数字蒙混管理员（与 getStudents/getApprovals 行为对齐）
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 否则（演示模式）回退本地汇总
       }
     }
     const approvals = await this.getApprovalItems();
