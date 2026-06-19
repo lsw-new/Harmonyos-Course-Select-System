@@ -6,7 +6,7 @@ import { mockGrades, mockGradeSummary, mockExams, mockStudentRecord } from '../m
 import { AppDatabase } from '../common/storage/AppDatabase';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteGrade, RemoteExam } from '../common/remote/RemoteApi';
+import { RemoteApi, RemoteGrade, RemoteExam, RemoteStudentRecord } from '../common/remote/RemoteApi';
 
 export class AcademicRepository extends BaseRepository {
   private static _instance?: AcademicRepository;
@@ -264,6 +264,25 @@ export class AcademicRepository extends BaseRepository {
       const year = student.grade.replace('级', '').trim();
       if (year.length === 4) {
         record.entranceDate = `${year}-09-01`;
+      }
+    }
+    // remote：补真实身份与 GPA/已修学分/门数（后端按已发布成绩实时聚合）；
+    // 失败时不阻断学籍页（保留 session/mock 兜底，GPA 行显示「—」）。
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.studentRecord();
+        record.studentId = remote.studentId;
+        record.name = remote.name;
+        record.college = remote.college;
+        record.administrativeCollege = remote.college;
+        record.major = remote.major;
+        record.className = remote.className;
+        record.grade = remote.grade;
+        record.gpaText = (remote.gpa !== null) ? remote.gpa.toFixed(2) : '—';
+        record.earnedCredits = remote.earnedCredits;
+        record.passedCount = remote.passedCount;
+      } catch (e) {
+        // 远程失败：保留兜底，学籍页仍可展示身份字段
       }
     }
     return record;

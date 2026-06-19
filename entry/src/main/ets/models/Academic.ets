@@ -68,4 +68,8 @@ export interface StudentRecord {
   isOnJob?: boolean;
   remark?: string;
   photoUrl?: string;
+  // 真实聚合（remote /api/profile/record）：平均绩点 / 已修学分 / 已修门数（按已发布成绩计算）
+  gpaText?: string;
+  earnedCredits?: number;
+  passedCount?: number;
 }

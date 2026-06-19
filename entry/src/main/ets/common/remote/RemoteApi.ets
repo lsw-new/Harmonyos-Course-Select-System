@@ -225,6 +225,18 @@ interface AppealBody {
   reason: string;
 }
 
+export interface RemoteStudentRecord {
+  studentId: string;
+  name: string;
+  college: string;
+  major: string;
+  className: string;
+  grade: string;
+  gpa: number | null;
+  earnedCredits: number;
+  passedCount: number;
+}
+
 export interface RemoteFeedback {
   id: string;
   category: string;
@@ -682,6 +694,10 @@ export class RemoteApi {
 
   static async loginHistory(): Promise<RemoteLoginHistory[]> {
     return apiClient.get<RemoteLoginHistory[]>('/profile/login-history');
+  }
+
+  static async studentRecord(): Promise<RemoteStudentRecord> {
+    return apiClient.get<RemoteStudentRecord>('/profile/record');
   }
 
   // 成绩申诉：gradeId 即学生端 GET /api/grades 返回的 id（=grade_id），学号由后端从 JWT 取
