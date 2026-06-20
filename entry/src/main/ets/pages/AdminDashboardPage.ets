@@ -37,6 +37,7 @@ struct AdminDashboardPage {
     new AdminModule('grades', '成绩审核', Routes.AdminGrades, 'grades.approve'),
     new AdminModule('grades', '成绩申诉', Routes.AdminGradeAppeals, 'grades.approve'),
     new AdminModule('course', '考试管理', Routes.AdminExams, 'courses.manage'),
+    new AdminModule('practice', '实践成果', Routes.AdminPracticeSubmissions, 'courses.manage'),
     new AdminModule('evaluation', '评教管理', Routes.AdminEval, 'evaluation.manage'),
     new AdminModule('notice', '通知发布', Routes.AdminNotice, 'notices.publish'),
     new AdminModule('feedback', '意见反馈', Routes.AdminFeedback, 'feedback.handle')

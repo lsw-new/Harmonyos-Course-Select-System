@@ -38,3 +38,21 @@ export interface PracticeSignupRecord {
   id: string;
   signedAt?: string;
 }
+
+// 实践成果提交状态：已提交 / 已评分 / 已通过 / 已驳回
+export type PracticeSubmissionStatus = 'submitted' | 'scored' | 'passed' | 'rejected';
+
+// 学生端·我的实践成果提交（一项目一份）
+export interface PracticeSubmission {
+  submissionId: string;
+  projectId: string;
+  studentId: string;
+  content: string;
+  attachments: string[];
+  status: PracticeSubmissionStatus;
+  score: number | null;
+  feedback: string;
+  scoredAt: string;
+  submittedAt: string;
+  updatedAt: string;
+}

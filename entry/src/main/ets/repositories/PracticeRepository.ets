@@ -7,13 +7,15 @@ import {
   PracticeProject,
   PracticeProjectDetail,
   PracticeCategory,
-  PracticeSignupRecord
+  PracticeSignupRecord,
+  PracticeSubmission,
+  PracticeSubmissionStatus
 } from '../models/PracticeModels';
 import { mockPracticeDetails } from '../mock/mockPractice';
 import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemotePractice } from '../common/remote/RemoteApi';
+import { RemoteApi, RemotePractice, RemotePracticeSubmission } from '../common/remote/RemoteApi';
 
 const KEY_SIGNUPS = 'local.practiceSignups.v1';
 const CATEGORIES: string[] = ['internship', 'research', 'social', 'volunteer'];
@@ -256,5 +258,69 @@ export class PracticeRepository extends BaseRepository {
     const next = signups.filter((x) => x !== id);
     await this.saveSignups(next);
     return this.delayCopy<PracticeProject>(this.toListItem(this.projectDetailFrom(seed, false)));
+  }
+
+  // ===== 实践成果提交（学生联机能力，后端为权威数据源）=====
+  private remoteToSubmission(s: RemotePracticeSubmission): PracticeSubmission {
+    const item: PracticeSubmission = {
+      submissionId: s.submissionId,
+      projectId: s.projectId,
+      studentId: s.studentId,
+      content: s.content,
+      attachments: s.attachments,
+      status: s.status as PracticeSubmissionStatus,
+      score: (s.score === undefined || s.score === null) ? null : s.score,
+      feedback: s.feedback ?? '',
+      scoredAt: s.scoredAt ?? '',
+      submittedAt: s.submittedAt,
+      updatedAt: s.updatedAt
+    };
+    return item;
+  }
+
+  // 提交/重交实践成果：未报名后端返回 403，空内容 400，内容 ≤5000 字
+  async submitReport(projectId: string, content: string, attachments?: string[]): Promise<PracticeSubmission> {
+    const trimmed: string = content.trim();
+    if (trimmed.length === 0) {
+      return this.reject('请填写成果内容');
+    }
+    if (trimmed.length > 5000) {
+      return this.reject('成果内容不能超过 5000 字');
+    }
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.submitPracticeReport(projectId, trimmed, attachments);
+          return this.delay<PracticeSubmission>(this.remoteToSubmission(remote));
+        } catch (e) {
+          return this.reject((e instanceof Error) ? e.message : String(e));
+        }
+      }
+    }
+    // 本地/演示模式：成果提交为联机能力
+    return this.reject('成果提交为联机功能，请在联机模式下使用');
+  }
+
+  // 我的实践成果提交：无则返回 null（本地/演示模式恒为 null）
+  async getMySubmission(projectId: string): Promise<PracticeSubmission | null> {
+    if (AppConfig.useRemote) {
+      const student = SessionStorage.get().getStudent();
+      if (student) {
+        try {
+          const remote = await RemoteApi.getMyPracticeSubmission(projectId);
+          if (remote === null) {
+            return this.delay<PracticeSubmission | null>(null);
+          }
+          return this.delay<PracticeSubmission | null>(this.remoteToSubmission(remote));
+        } catch (e) {
+          if (!AppConfig.allowMockFallbackInRemote) {
+            throw new Error('远程服务异常，请稍后重试');
+          }
+          // 否则回退本地（无提交）
+        }
+      }
+    }
+    return this.delay<PracticeSubmission | null>(null);
   }
 }

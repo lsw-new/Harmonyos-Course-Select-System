@@ -55,6 +55,7 @@ export class Routes {
   static readonly AdminStudentDetail = 'pages/AdminStudentDetailPage';
   static readonly AdminGradeAppeals = 'pages/AdminGradeAppealsPage';
   static readonly AdminExams = 'pages/AdminExamsPage';
+  static readonly AdminPracticeSubmissions = 'pages/AdminPracticeSubmissionsPage';
 
   // 补充详情 / 二级页面（UI 包融入）
   static readonly SelectionResult = 'pages/SelectionResultPage';
@@ -94,7 +95,8 @@ const ADMIN_ROUTES: string[] = [
   Routes.AdminRolePerm, Routes.AdminAuditLog, Routes.AdminCalendar,
   Routes.AdminSysConfig, Routes.AdminPassword, Routes.AdminStudentDetail,
   Routes.AdminApprovalDetail, Routes.AdminCourseDetail, Routes.ImportResult, Routes.AuditLogDetail,
-  Routes.AdminRoundCourses, Routes.AdminGradeAppeals, Routes.AdminExams
+  Routes.AdminRoundCourses, Routes.AdminGradeAppeals, Routes.AdminExams,
+  Routes.AdminPracticeSubmissions
 ];
 
 const PUBLIC_ROUTES: string[] = [
@@ -146,6 +148,8 @@ function routePermissionFor(url: string): RoutePerm | undefined {
     case Routes.AdminGradeAppeals:
       return new RoutePerm('grades.approve', 'view');
     case Routes.AdminExams:
+      return new RoutePerm('courses.manage', 'view');
+    case Routes.AdminPracticeSubmissions:
       return new RoutePerm('courses.manage', 'view');
     case Routes.AdminNotice:
       return new RoutePerm('notices.publish', 'view');

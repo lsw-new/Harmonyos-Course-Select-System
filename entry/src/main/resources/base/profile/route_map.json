@@ -61,6 +61,11 @@
                           "buildFunction":  "AdminExamsPageBuilder"
                       },
                       {
+                          "name":  "pages/AdminPracticeSubmissionsPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminPracticeSubmissionsPage.ets",
+                          "buildFunction":  "AdminPracticeSubmissionsPageBuilder"
+                      },
+                      {
                           "name":  "pages/AdminLoginPage",
                           "pageSourceFile":  "src/main/ets/pages/AdminLoginPage.ets",
                           "buildFunction":  "AdminLoginPageBuilder"

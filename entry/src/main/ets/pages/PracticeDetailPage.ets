@@ -7,7 +7,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { PracticeRepository } from '../repositories/PracticeRepository';
-import { PracticeProjectDetail, PracticeCategory } from '../models/PracticeModels';
+import { PracticeProjectDetail, PracticeCategory, PracticeSubmission, PracticeSubmissionStatus } from '../models/PracticeModels';
 import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
@@ -38,6 +38,13 @@ struct PracticeDetailPage {
   @State errorMsg: string = '';
   @State submitting: boolean = false;
   @State confirmingCancel: boolean = false;
+  // 实践成果提交：当前提交（无则 null）+ 提交浮层 + 表单态
+  @State submission: PracticeSubmission | null = null;
+  @State reportEditing: boolean = false;
+  @State reportContent: string = '';
+  @State reportAttachments: string = '';
+  @State reportSubmitting: boolean = false;
+  @State reportError: string = '';
   @StorageProp('breakpoint') bp: string = 'sm';
   private projectId: string = '';
 
@@ -61,9 +68,79 @@ struct PracticeDetailPage {
     PracticeRepository.get().getDetail(this.projectId).then((d: PracticeProjectDetail) => {
       this.detail = d;
       this.loading = false;
+      if (d.signedUp) {
+        this.loadSubmission();
+      } else {
+        this.submission = null;
+      }
     }).catch((e: object) => {
       this.errorMsg = e instanceof Error ? e.message : '加载失败';
       this.loading = false;
+    });
+  }
+
+  // 加载我的成果提交（已报名才有意义；失败静默，不阻断详情展示）
+  private loadSubmission(): void {
+    PracticeRepository.get().getMySubmission(this.projectId).then((s: PracticeSubmission | null) => {
+      this.submission = s;
+    }).catch(() => {
+      this.submission = null;
+    });
+  }
+
+  private submissionStatusLabel(s: PracticeSubmissionStatus): string {
+    if (s === 'submitted') return '已提交';
+    if (s === 'scored') return '已评分';
+    if (s === 'passed') return '已通过';
+    return '已驳回';
+  }
+
+  private submissionStatusColor(s: PracticeSubmissionStatus): string {
+    if (s === 'submitted') return ElysiaTheme.ROSE_500;
+    if (s === 'scored') return '#D9B675';
+    if (s === 'passed') return ElysiaTheme.SUCCESS;
+    return ElysiaTheme.INK_MUTE;
+  }
+
+  private openReportEditor(): void {
+    const cur = this.submission;
+    this.reportContent = cur !== null ? cur.content : '';
+    this.reportAttachments = (cur !== null && cur.attachments.length > 0) ? cur.attachments.join('\n') : '';
+    this.reportError = '';
+    this.reportEditing = true;
+  }
+
+  private closeReportEditor(): void {
+    this.reportEditing = false;
+    this.reportError = '';
+  }
+
+  private doSubmitReport(): void {
+    if (this.reportSubmitting) {
+      return;
+    }
+    const content: string = this.reportContent.trim();
+    if (content.length === 0) {
+      this.reportError = '请填写成果内容';
+      return;
+    }
+    if (content.length > 5000) {
+      this.reportError = '成果内容不能超过 5000 字';
+      return;
+    }
+    const attachments: string[] = this.reportAttachments
+      .split('\n')
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.length > 0);
+    this.reportSubmitting = true;
+    PracticeRepository.get().submitReport(this.projectId, content, attachments).then((s: PracticeSubmission) => {
+      this.reportSubmitting = false;
+      this.submission = s;
+      this.reportEditing = false;
+      Toast.show(this.getUIContext(), '成果已提交');
+    }).catch((e: object) => {
+      this.reportSubmitting = false;
+      this.reportError = (e instanceof HttpError) ? (e as HttpError).message : '提交失败';
     });
   }
 
@@ -156,6 +233,96 @@ struct PracticeDetailPage {
       if (this.confirmingCancel) {
         this.CancelOverlay()
       }
+
+      // 实践成果提交浮层
+      if (this.reportEditing) {
+        this.ReportOverlay()
+      }
+    }
+    .width('100%').height('100%')
+  }
+
+  @Builder SubmissionCard() {
+    Column({ space: 10 }) {
+      Row() {
+        Text('实践成果').fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
+        if (this.submission !== null) {
+          Pill({
+            text: this.submissionStatusLabel(this.submission!.status),
+            color: this.submissionStatusColor(this.submission!.status),
+            bg: '#FFF0F4'
+          })
+        }
+      }.width('100%')
+
+      if (this.submission === null) {
+        Text('你已报名该项目，可在此提交实践成果，提交后由管理员评阅。')
+          .fontSize(12).fontColor(ElysiaTheme.INK_SOFT).lineHeight(18).width('100%')
+      } else {
+        Column({ space: 6 }) {
+          Text(this.submission!.content).fontSize(12).fontColor(ElysiaTheme.INK).lineHeight(18)
+            .maxLines(4).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
+          if (this.submission!.score !== null) {
+            Text(`评分：${this.submission!.score} 分`).fontSize(12).fontColor(ElysiaTheme.GOLD_700).width('100%')
+          }
+          if (this.submission!.feedback.length > 0) {
+            Column({ space: 2 }) {
+              Text('教师评语').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+              Text(this.submission!.feedback).fontSize(12).fontColor(ElysiaTheme.INK).lineHeight(18)
+            }.width('100%').alignItems(HorizontalAlign.Start).padding(10).backgroundColor('#FFF7FA').borderRadius(10)
+          }
+          Text(`提交时间：${this.submission!.submittedAt}`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).width('100%')
+        }.width('100%').alignItems(HorizontalAlign.Start)
+      }
+
+      PrimaryButton({
+        text: this.submission === null ? '提交成果' : '更新成果',
+        onTap: () => this.openReportEditor()
+      })
+    }
+    .width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder ReportOverlay() {
+    Stack() {
+      Column().width('100%').height('100%').backgroundColor(ElysiaTheme.scrim())
+        .onClick(() => { if (!this.reportSubmitting) { this.closeReportEditor(); } })
+
+      Column({ space: 12 }) {
+        Text(this.submission === null ? '提交实践成果' : '更新实践成果')
+          .fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+
+        Column({ space: 6 }) {
+          Text('成果内容（必填，≤5000 字）').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).width('100%')
+          TextArea({ placeholder: '请描述你的实践成果、收获与总结', text: this.reportContent })
+            .height(140).fontSize(13).fontColor(ElysiaTheme.INK)
+            .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
+            .onChange((v: string) => { this.reportContent = v; })
+        }.width('100%').alignItems(HorizontalAlign.Start)
+
+        Column({ space: 6 }) {
+          Text('附件链接（可选，每行一个）').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).width('100%')
+          TextArea({ placeholder: '如成果文档 / 图片链接，每行一条', text: this.reportAttachments })
+            .height(72).fontSize(13).fontColor(ElysiaTheme.INK)
+            .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(14)
+            .onChange((v: string) => { this.reportAttachments = v; })
+        }.width('100%').alignItems(HorizontalAlign.Start)
+
+        if (this.reportError.length > 0) {
+          Text(this.reportError).fontSize(12).fontColor(ElysiaTheme.ROSE_ACCENT).width('100%')
+        }
+
+        Row({ space: 10 }) {
+          GhostButton({ text: '取消', onTap: () => { if (!this.reportSubmitting) { this.closeReportEditor(); } } }).layoutWeight(1)
+          PrimaryButton({ text: this.reportSubmitting ? '提交中...' : '提交', onTap: () => this.doSubmitReport() }).layoutWeight(1)
+        }.width('100%')
+      }
+      .width('86%').padding(20).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
+      .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+      .shadow({ radius: 24, color: '#33000000', offsetX: 0, offsetY: 8 })
+      .alignItems(HorizontalAlign.Start)
     }
     .width('100%').height('100%')
   }
@@ -223,6 +390,11 @@ struct PracticeDetailPage {
             }
             .width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(22)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+          }
+
+          // 实践成果提交（仅已报名可见）
+          if (d.signedUp) {
+            this.SubmissionCard()
           }
 
           SafeBottom()

@@ -552,6 +552,36 @@ interface AdminAppealHandleBody {
   reply: string;
 }
 
+// ===== 实践成果提交（学生）/ 受理（管理端）=====
+// 单条提交：一项目一学生一份，重交覆盖并重置为 submitted（清空分数/反馈）
+export interface RemotePracticeSubmission {
+  submissionId: string;
+  projectId: string;
+  studentId: string;
+  studentName?: string;
+  projectTitle?: string;
+  content: string;
+  attachments: string[];
+  status: string;
+  score?: number | null;
+  feedback?: string;
+  scoredBy?: string;
+  scoredAt?: string;
+  submittedAt: string;
+  updatedAt: string;
+}
+
+interface PracticeSubmitBody {
+  content: string;
+  attachments?: string[];
+}
+
+interface PracticeScoreBody {
+  score?: number;
+  feedback?: string;
+  status: string;
+}
+
 // 管理端·考试写入体（courseId/term 必填；时间可空但给定须 HH:MM；examType 默认 final）
 export interface AdminExamBody {
   courseId: string;
@@ -716,6 +746,20 @@ export class RemoteApi {
   static async practiceCancel(studentId: string, id: string): Promise<RemotePractice> {
     const body: StudentIdBody = { studentId: studentId };
     return apiClient.delete<RemotePractice>('/practice/' + encodeURIComponent(id) + '/signup', body);
+  }
+
+  // 实践成果提交（学生）：学号由后端从 JWT 取；未报名该项目返回 403
+  static async submitPracticeReport(projectId: string, content: string, attachments?: string[]): Promise<RemotePracticeSubmission> {
+    const body: PracticeSubmitBody = { content: content };
+    if (attachments && attachments.length > 0) {
+      body.attachments = attachments;
+    }
+    return apiClient.post<RemotePracticeSubmission>('/practice/' + encodeURIComponent(projectId) + '/submit', body);
+  }
+
+  // 我的实践成果提交（学生）：无则返回 null
+  static async getMyPracticeSubmission(projectId: string): Promise<RemotePracticeSubmission | null> {
+    return apiClient.get<RemotePracticeSubmission | null>('/practice/' + encodeURIComponent(projectId) + '/submission');
   }
 
   static async listExams(studentId: string, term?: string): Promise<RemoteExam[]> {
@@ -947,6 +991,30 @@ export class RemoteApi {
   static async adminHandleGradeAppeal(id: string, decision: string, reply: string): Promise<RemoteAdminGradeAppeal> {
     const body: AdminAppealHandleBody = { decision: decision, reply: reply };
     return apiClient.post<RemoteAdminGradeAppeal>('/admin/grade-appeals/' + encodeURIComponent(id) + '/handle', body);
+  }
+
+  // ===== 管理端·实践成果受理 =====
+  static async adminListPracticeSubmissions(status?: string, projectId?: string): Promise<RemotePracticeSubmission[]> {
+    const parts: string[] = [];
+    if (status && status.length > 0) {
+      parts.push('status=' + encodeURIComponent(status));
+    }
+    if (projectId && projectId.length > 0) {
+      parts.push('projectId=' + encodeURIComponent(projectId));
+    }
+    const path = '/admin/practice-submissions' + (parts.length > 0 ? '?' + parts.join('&') : '');
+    return apiClient.get<RemotePracticeSubmission[]>(path);
+  }
+
+  static async adminScorePracticeSubmission(id: string, score: number | null, feedback: string, status: string): Promise<RemotePracticeSubmission> {
+    const body: PracticeScoreBody = { status: status };
+    if (score !== null) {
+      body.score = score;
+    }
+    if (feedback.length > 0) {
+      body.feedback = feedback;
+    }
+    return apiClient.post<RemotePracticeSubmission>('/admin/practice-submissions/' + encodeURIComponent(id) + '/score', body);
   }
 
   // ===== 管理端·考试 CRUD =====

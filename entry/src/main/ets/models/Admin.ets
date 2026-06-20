@@ -237,6 +237,32 @@ export interface AdminExamWritePayload {
   examType: string;
 }
 
+// 管理端·实践成果受理
+export type PracticeSubmissionStatus = 'submitted' | 'scored' | 'passed' | 'rejected';
+
+export interface PracticeSubmissionAdminItem {
+  submissionId: string;
+  projectId: string;
+  studentId: string;
+  studentName: string;
+  projectTitle: string;
+  content: string;
+  attachments: string[];
+  status: PracticeSubmissionStatus;
+  score: number | null;
+  feedback: string;
+  scoredBy: string;
+  scoredAt: string;
+  submittedAt: string;
+  updatedAt: string;
+}
+
+export interface PracticeScorePayload {
+  score: number | null;
+  feedback: string;
+  status: PracticeSubmissionStatus;
+}
+
 export interface ApprovalFlowNode {
   id: string;
   nodeName: string;

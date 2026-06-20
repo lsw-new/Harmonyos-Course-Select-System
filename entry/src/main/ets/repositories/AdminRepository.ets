@@ -5,7 +5,8 @@ import {
   AdminDashboardSummary, DashboardStatCard, TrendPoint, DistributionItem,
   StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound, SelectionRoundStatus,
   GradeAuditItem, GradeInputPayload, GradeRejectPayload, GradeScoreRow, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
-  AdminPermissionAction, GradeAppealItem, GradeAppealStatus, AdminExamItem, AdminExamWritePayload
+  AdminPermissionAction, GradeAppealItem, GradeAppealStatus, AdminExamItem, AdminExamWritePayload,
+  PracticeSubmissionAdminItem, PracticeSubmissionStatus, PracticeScorePayload
 } from '../models/Admin';
 import { LeaveRequest, ApprovalState, FeedbackItem, FeedbackCategory, FeedbackState } from '../models/Misc';
 import {
@@ -17,7 +18,7 @@ import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AuthorizationService } from '../common/security/AuthorizationService';
 import { NoticeStore } from '../common/services/NoticeStore';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, GradeScoreEntry, AdminCourseBody, RemoteAdminRound, RemoteFeedback, RemoteAdminGradeAppeal, AdminExamBody, RemoteExam } from '../common/remote/RemoteApi';
+import { RemoteApi, GradeScoreEntry, AdminCourseBody, RemoteAdminRound, RemoteFeedback, RemoteAdminGradeAppeal, AdminExamBody, RemoteExam, RemotePracticeSubmission } from '../common/remote/RemoteApi';
 import { CourseLogic } from './CourseLogic';
 import { AdminLogic } from './AdminLogic';
 import { AdminRdbStore } from './AdminRdbStore';
@@ -949,6 +950,60 @@ export class AdminRepository extends BaseRepository {
     }
     const remote = await RemoteApi.adminHandleGradeAppeal(id, decision, reply.trim());
     return this.delay<GradeAppealItem>(this.remoteToGradeAppeal(remote));
+  }
+
+  // ====== 实践成果受理（管理端） ======
+  // 学生端提交成果→后端落库→管理端在此读取并打分/通过/驳回（权限 courses.manage）
+
+  private remoteToPracticeSubmission(s: RemotePracticeSubmission): PracticeSubmissionAdminItem {
+    const item: PracticeSubmissionAdminItem = {
+      submissionId: s.submissionId,
+      projectId: s.projectId,
+      studentId: s.studentId,
+      studentName: s.studentName ?? '',
+      projectTitle: s.projectTitle ?? '',
+      content: s.content,
+      attachments: s.attachments,
+      status: s.status as PracticeSubmissionStatus,
+      score: (s.score === undefined || s.score === null) ? null : s.score,
+      feedback: s.feedback ?? '',
+      scoredBy: s.scoredBy ?? '',
+      scoredAt: s.scoredAt ?? '',
+      submittedAt: s.submittedAt,
+      updatedAt: s.updatedAt
+    };
+    return item;
+  }
+
+  async getPracticeSubmissions(status?: string, projectId?: string): Promise<PracticeSubmissionAdminItem[]> {
+    if (!this.hasCourseWritePermission('view')) {
+      return this.rejectUnauthorized();
+    }
+    if (AppConfig.useRemote) {
+      const remote = await RemoteApi.adminListPracticeSubmissions(status, projectId);
+      return this.delayCopy<PracticeSubmissionAdminItem[]>(remote.map((s) => this.remoteToPracticeSubmission(s)));
+    }
+    return this.delay<PracticeSubmissionAdminItem[]>([]);
+  }
+
+  async scorePracticeSubmission(id: string, payload: PracticeScorePayload): Promise<PracticeSubmissionAdminItem> {
+    if (!this.hasCourseWritePermission('update')) {
+      return this.rejectUnauthorized();
+    }
+    if (payload.status !== 'scored' && payload.status !== 'passed' && payload.status !== 'rejected') {
+      return this.reject('请选择处理状态');
+    }
+    if (payload.score !== null) {
+      const score = payload.score;
+      if (!Number.isFinite(score) || score < 0 || score > 100) {
+        return this.reject('分数需为 0-100 的数字');
+      }
+    }
+    if (!AppConfig.useRemote) {
+      return this.reject('该操作需要联网');
+    }
+    const remote = await RemoteApi.adminScorePracticeSubmission(id, payload.score, payload.feedback.trim(), payload.status);
+    return this.delay<PracticeSubmissionAdminItem>(this.remoteToPracticeSubmission(remote));
   }
 
   // ====== 考试管理（管理端 CRUD） ======
