@@ -5,16 +5,90 @@ const express = require('express');
 const { pool } = require('../db');
 const { ok, fail } = require('../envelope');
 const { verifyPassword, hashBcrypt, isBcryptHash } = require('../hash');
-const { signToken } = require('../auth');
+const { signToken, authRequired } = require('../auth');
 const { sendVerificationCode } = require('../email');
 const codeStore = require('../codeStore');
 const { authLimiter } = require('../middleware/rateLimit');
-const { serverError } = require('../middleware/errorHandler');
+const { serverError, pgClientError } = require('../middleware/errorHandler');
 const { fetchStudentProfile, fetchAdminProfile } = require('../repositories/profile.repo');
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 const router = express.Router();
+
+// ---- 邮箱双因素认证（2FA）辅助 ----
+// 进程内「待二次校验登录」表：account_id -> { email, expiresAt }。
+// 仅在「密码校验通过且账号开启 2FA」后写入，verify-2fa 必须先命中此表才放行，
+// 杜绝绕过密码步骤直接调 verify-2fa 凭验证码换 token。单实例 pm2 用内存即可，
+// 进程重启即清空（验证码本就短期一次性，用户重走登录即可）。
+const PENDING_2FA_TTL_MS = 5 * 60 * 1000; // 与验证码有效期一致
+const pending2fa = new Map();
+
+function setPending2fa(accountId, email) {
+  pending2fa.set(String(accountId), { email, expiresAt: Date.now() + PENDING_2FA_TTL_MS });
+}
+
+function takePending2fa(accountId) {
+  const rec = pending2fa.get(String(accountId));
+  if (!rec) { return null; }
+  if (Date.now() > rec.expiresAt) {
+    pending2fa.delete(String(accountId));
+    return null;
+  }
+  return rec;
+}
+
+function clearPending2fa(accountId) {
+  pending2fa.delete(String(accountId));
+}
+
+// 定期清理过期待校验项；unref 不阻止进程退出。
+const pendingSweeper = setInterval(() => {
+  const now = Date.now();
+  for (const [key, rec] of pending2fa) {
+    if (now > rec.expiresAt) { pending2fa.delete(key); }
+  }
+}, 60 * 1000);
+if (typeof pendingSweeper.unref === 'function') { pendingSweeper.unref(); }
+
+// 邮箱打码：a***b@domain，避免在「需要二次校验」响应里回明文邮箱（防枚举/信息泄露）。
+function maskEmail(email) {
+  const s = String(email || '');
+  const at = s.indexOf('@');
+  if (at <= 0) { return ''; }
+  const local = s.slice(0, at);
+  const domain = s.slice(at);
+  if (local.length <= 2) { return `${local[0] || ''}*${domain}`; }
+  return `${local[0]}***${local[local.length - 1]}${domain}`;
+}
+
+// 取账号绑定邮箱：学生取 student_profiles.email；管理员取 admin_profiles.email（若有）。
+// 取不到邮箱则返回空串，由调用方决定降级（无邮箱无法 2FA，应放行普通登录避免锁死账号）。
+async function fetchAccountEmail(accountId, role) {
+  try {
+    if (role === 'student') {
+      const r = await pool.query('SELECT email FROM dtest2.student_profiles WHERE student_id=$1', [accountId]);
+      return (r.rowCount > 0 ? (r.rows[0].email || '') : '').trim();
+    }
+    if (role === 'admin') {
+      const r = await pool.query('SELECT email FROM dtest2.admin_profiles WHERE admin_id=$1', [accountId]);
+      return (r.rowCount > 0 ? (r.rows[0].email || '') : '').trim();
+    }
+  } catch (e) { /* 取邮箱失败按无邮箱处理 */ }
+  return '';
+}
+
+// 登录成功后的标准 token + profile 载荷（普通登录与 2FA 二次校验通过共用，保证返回结构一致）。
+async function buildLoginPayload(account) {
+  const token = signToken({ sub: account.account_id, role: account.role });
+  let profile = null;
+  if (account.role === 'student') {
+    profile = await fetchStudentProfile(account.account_id);
+  } else if (account.role === 'admin') {
+    profile = await fetchAdminProfile(account.account_id);
+  }
+  return { token, accountId: account.account_id, role: account.role, profile };
+}
 
 // ---- 登录 ----
 router.post('/api/auth/login', authLimiter, async (req, res) => {
@@ -25,7 +99,7 @@ router.post('/api/auth/login', authLimiter, async (req, res) => {
   }
   try {
     const r = await pool.query(
-      'SELECT account_id, role, password_hash, salt, status FROM dtest2.accounts WHERE account_id=$1',
+      'SELECT account_id, role, password_hash, salt, status, two_factor_enabled FROM dtest2.accounts WHERE account_id=$1',
       [account]
     );
     if (r.rowCount === 0) {
@@ -47,17 +121,115 @@ router.post('/api/auth/login', authLimiter, async (req, res) => {
         await pool.query('UPDATE dtest2.accounts SET password_hash=$2, salt=$3, updated_at=now() WHERE account_id=$1', [a.account_id, upgraded, '']);
       } catch (e) { /* 迁移失败忽略，下次登录再试 */ }
     }
-    const token = signToken({ sub: a.account_id, role: a.role });
-    // P1-03：随登录下发真实 profile（取不到则置 null，前端回退本地兜底）
-    let profile = null;
-    if (a.role === 'student') {
-      profile = await fetchStudentProfile(a.account_id);
-    } else if (a.role === 'admin') {
-      profile = await fetchAdminProfile(a.account_id);
+    // 2FA：账号开启邮箱双因素时，密码通过后不直接发 token，改为下发邮箱验证码，
+    // 由 /api/auth/login/verify-2fa 二次校验后再发 token。
+    if (a.two_factor_enabled === true) {
+      const email = await fetchAccountEmail(a.account_id, a.role);
+      // 无绑定邮箱无法走 2FA——为避免把账号锁死在登录半途，降级为普通登录直接发 token。
+      if (email && EMAIL_RE.test(email)) {
+        const gate = codeStore.canIssue(email);
+        if (!gate.ok) {
+          const wait = Math.ceil(gate.waitMs / 1000);
+          return res.status(429).json(fail(`验证码请求过于频繁，请 ${wait} 秒后再试`));
+        }
+        const code = codeStore.issue(email);
+        try {
+          await sendVerificationCode(email, code);
+        } catch (e) {
+          if (e && (e.responseCode === 550 || String(e.message || '').indexOf('550') >= 0)) {
+            return res.status(400).json(fail('账号绑定邮箱无法接收邮件，请联系管理员更新邮箱'));
+          }
+          return serverError(res, '验证码邮件发送失败', e);
+        }
+        setPending2fa(a.account_id, email);
+        return res.json(ok({ twoFactorRequired: true, account: a.account_id, email: maskEmail(email) }));
+      }
     }
-    res.json(ok({ token, accountId: a.account_id, role: a.role, profile }));
+    // P1-03：随登录下发真实 profile（取不到则置 null，前端回退本地兜底）
+    const payload = await buildLoginPayload(a);
+    res.json(ok(payload));
   } catch (e) {
     serverError(res, '登录失败', e);
+  }
+});
+
+// ---- 2FA 二次校验：凭 step-1 下发的邮箱验证码换 token ----
+// 必须先命中 pending2fa（即密码已通过且账号开启 2FA 才有记录），再校验验证码，
+// 防止跳过密码步骤直接换 token。验证码校验沿用 codeStore（同样的尝试次数/过期限制）。
+router.post('/api/auth/login/verify-2fa', authLimiter, async (req, res) => {
+  const account = ((req.body && req.body.account) || '').trim();
+  const code = ((req.body && req.body.code) || '').trim();
+  if (!account || !code) {
+    return res.status(400).json(fail('账号或验证码不能为空'));
+  }
+  const pending = takePending2fa(account);
+  if (!pending) {
+    // 未发起过 step-1，或已过期——统一文案，不区分以免泄露账号状态
+    return res.status(401).json(fail('登录会话已失效，请重新登录'));
+  }
+  const v = codeStore.verify(pending.email, code);
+  if (!v.ok) {
+    // 验证码错/过期/尝试超限：保留 pending，让用户在限额内重试；
+    // codeStore 自身在尝试超限/过期时会删码，此时下次 verify 会落到「不存在」。
+    return res.status(400).json(fail(v.reason));
+  }
+  clearPending2fa(account);
+  try {
+    const r = await pool.query(
+      'SELECT account_id, role, status FROM dtest2.accounts WHERE account_id=$1',
+      [account]
+    );
+    if (r.rowCount === 0) {
+      return res.status(401).json(fail('账号或密码错误'));
+    }
+    const a = r.rows[0];
+    if (a.status !== 'active') {
+      return res.status(403).json(fail('账号已被禁用或暂停使用，请联系管理员'));
+    }
+    const payload = await buildLoginPayload(a);
+    res.json(ok(payload));
+  } catch (e) {
+    serverError(res, '登录失败', e);
+  }
+});
+
+// ---- 2FA 开关查询（需登录）：返回当前账号的 2FA 开启状态 ----
+router.get('/api/auth/2fa', authRequired, async (req, res) => {
+  const accountId = (req.auth && req.auth.sub) ? String(req.auth.sub) : '';
+  if (!accountId) {
+    return res.status(401).json(fail('未授权', 'unauthorized'));
+  }
+  try {
+    const r = await pool.query('SELECT two_factor_enabled FROM dtest2.accounts WHERE account_id=$1', [accountId]);
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('账号不存在'));
+    }
+    res.json(ok({ enabled: r.rows[0].two_factor_enabled === true }));
+  } catch (e) {
+    serverError(res, '查询双因素状态失败', e);
+  }
+});
+
+// ---- 2FA 开关设置（需登录）：身份取自 JWT，不信任 body ----
+// 注意：开启 2FA 不强制额外邮箱验证码（设计取舍——用户已持有有效登录态即视为已认证身份；
+// 真正的二次校验发生在「下次登录」时）。
+router.post('/api/auth/2fa', authRequired, async (req, res) => {
+  const accountId = (req.auth && req.auth.sub) ? String(req.auth.sub) : '';
+  if (!accountId) {
+    return res.status(401).json(fail('未授权', 'unauthorized'));
+  }
+  const enabled = !!(req.body && req.body.enabled);
+  try {
+    const r = await pool.query(
+      'UPDATE dtest2.accounts SET two_factor_enabled=$2, updated_at=now() WHERE account_id=$1 RETURNING two_factor_enabled',
+      [accountId, enabled]
+    );
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('账号不存在'));
+    }
+    res.json(ok({ enabled: r.rows[0].two_factor_enabled === true }));
+  } catch (e) {
+    pgClientError(res, '更新双因素状态失败', e);
   }
 });
 
