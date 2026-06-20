@@ -120,12 +120,13 @@ describe('GET /api/profile/record', () => {
 
 describe('GET /api/profile/login-history', () => {
   test('200：返回最近登录事件（camelCase 映射）', async () => {
+    // 查询现取 login+logout 两类（升序），端点内部配对后返回近 10 条 login 倒序。
     __mock.setRoutes([
       {
         match: /FROM dtest2\.audit_logs/,
         result: [
-          { log_id: 'log-2', action: '登录', result: 'success', ip: '1.2.3.4', created_at: '2026-06-19T10:00:00Z' },
-          { log_id: 'log-1', action: '登录', result: 'failed', ip: '5.6.7.8', created_at: '2026-06-18T09:00:00Z' }
+          { log_id: 'log-1', action: '登录', action_type: 'login', result: 'failed', ip: '5.6.7.8', geo: '', created_at: '2026-06-18T09:00:00Z' },
+          { log_id: 'log-2', action: '登录', action_type: 'login', result: 'success', ip: '1.2.3.4', geo: '江西省·景德镇市', created_at: '2026-06-19T10:00:00Z' }
         ]
       }
     ]);
@@ -138,15 +139,18 @@ describe('GET /api/profile/login-history', () => {
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data).toHaveLength(2);
+    // 时间倒序：最近一条在前
     expect(res.body.data[0]).toEqual({
       id: 'log-2',
       action: '登录',
       result: 'success',
       ip: '1.2.3.4',
+      location: '江西省·景德镇市',
+      durationMinutes: null,
       time: '2026-06-19T10:00:00Z'
     });
-    // 断言只取本账号的 login 类事件
-    expect(__mock.executed("action_type = 'login'")).toBe(true);
+    // 断言取本账号的 login/logout 类事件
+    expect(__mock.executed("action_type IN ('login', 'logout')")).toBe(true);
     const logEntry = __mock.getLog().find((e) => /FROM dtest2\.audit_logs/.test(e.sql));
     expect(logEntry.params[0]).toBe(STU);
   });

@@ -153,6 +153,14 @@ router.post('/api/auth/login', authLimiter, async (req, res) => {
   }
 });
 
+// ---- 退出登录（需登录）：打一条 logout 审计点，供登录历史计算「在线时长」 ----
+// 身份取自 JWT（不信任 body）。审计写入复用与登录同一条链路：auditTrail 中间件在响应
+// finish 后按 RULES 命中 'POST /api/auth/logout' 落 action_type='logout' 行（含地点解析），
+// 故此处只需鉴权 + 返回 ok 信封，不重复手写 INSERT。
+router.post('/api/auth/logout', authRequired, (req, res) => {
+  res.json(ok({}));
+});
+
 // ---- 2FA 二次校验：凭 step-1 下发的邮箱验证码换 token ----
 // 必须先命中 pending2fa（即密码已通过且账号开启 2FA 才有记录），再校验验证码，
 // 防止跳过密码步骤直接换 token。验证码校验沿用 codeStore（同样的尝试次数/过期限制）。

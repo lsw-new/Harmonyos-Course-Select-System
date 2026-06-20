@@ -3,10 +3,12 @@
 // 不记录请求体中的敏感字段（密码 / 验证码一律不落库），detail_json 仅存方法/路径/状态码。
 const crypto = require('crypto');
 const { pool } = require('../db');
+const { resolveGeo } = require('../geo');
 
 // 路由 → 可读操作名映射（按序匹配 `${METHOD} ${path}`；未命中走兜底「METHOD path」）
 const RULES = [
   { re: /^POST \/api\/auth\/login$/, label: '登录', type: 'login', target: '认证' },
+  { re: /^POST \/api\/auth\/logout$/, label: '退出登录', type: 'logout', target: '认证' },
   { re: /^POST \/api\/auth\/register$/, label: '注册账号', type: 'auth', target: '认证' },
   { re: /^POST \/api\/auth\/reset-password$/, label: '找回密码', type: 'auth', target: '认证' },
   { re: /^POST \/api\/auth\/email-code$/, label: '请求邮箱验证码', type: 'auth', target: '认证' },
@@ -92,13 +94,22 @@ async function writeAudit(entry) {
       name = (r.rows[0] && r.rows[0].name) || '';
     } catch (e) { /* 姓名解析失败不阻断审计写入 */ }
   }
+  // 地点解析：仅对登录/退出事件由离线 ip2region 解析「省·市」（成功才落 geo 列）；
+  // 其余审计写入不附 geo，行为不变。解析失败/私网/非法 IP 返回 ''，统一存 NULL。
+  let geo = null;
+  if (entry.actionType === 'login' || entry.actionType === 'logout') {
+    try {
+      const g = await resolveGeo(entry.ip);
+      geo = g || null;
+    } catch (e) { /* 地点解析失败不阻断审计写入 */ }
+  }
   const logId = `log-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
   await pool.query(
     `INSERT INTO dtest2.audit_logs
-       (log_id, operator_id, operator_name, action, action_type, target, result, ip, detail_json)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)`,
+       (log_id, operator_id, operator_name, action, action_type, target, result, ip, geo, detail_json)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)`,
     [logId, entry.operatorId, name, entry.action, entry.actionType, entry.target,
-      entry.result, entry.ip, JSON.stringify(entry.detail)]
+      entry.result, entry.ip, geo, JSON.stringify(entry.detail)]
   );
 }
 
