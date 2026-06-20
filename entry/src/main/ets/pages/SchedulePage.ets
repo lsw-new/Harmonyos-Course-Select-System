@@ -13,6 +13,8 @@ import { ScheduleImportService, DEFAULT_TERM } from '../common/services/Schedule
 import { Toast } from '../common/widgets/Feedback';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { TermUtils } from '../common/utils/TermUtils';
+import { FileService } from '../common/services/FileService';
+import { AppConfig } from '../app/AppConfig';
 import common from '@ohos.app.ability.common';
 
 function generateWeekNumbers(): number[] {
@@ -32,6 +34,7 @@ struct SchedulePage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State importing: boolean = false;
+  @State exporting: boolean = false;
   @State showImportSheet: boolean = false;
   @StorageProp('breakpoint') bp: string = 'sm';
 
@@ -100,6 +103,31 @@ struct SchedulePage {
       .catch((e: object) => {
         this.importing = false;
         Toast.show(this.getUIContext(), e instanceof Error ? e.message : '导入失败');
+      });
+  }
+
+  // 导出课表（ICS）：联机鉴权下载，由系统保存器落到用户可见位置。
+  private exportSchedule(): void {
+    if (this.exporting) {
+      return;
+    }
+    if (!AppConfig.useRemote) {
+      Toast.show(this.getUIContext(), '导出课表需联网');
+      return;
+    }
+    this.exporting = true;
+    FileService.exportAuthedFile('/api/schedule/ical', 'schedule.ics')
+      .then((saved: string) => {
+        this.exporting = false;
+        if (saved.length === 0) {
+          Toast.show(this.getUIContext(), '已取消');
+        } else {
+          Toast.show(this.getUIContext(), '课表已导出');
+        }
+      })
+      .catch((e: object) => {
+        this.exporting = false;
+        Toast.show(this.getUIContext(), e instanceof Error ? e.message : '导出失败');
       });
   }
 
@@ -201,6 +229,15 @@ struct SchedulePage {
               .enabled(!this.importing)
               .accessibilityText($r('app.string.schedule_import_title'))
               .onClick(() => { this.showImportSheet = true; })
+
+            Button({ type: ButtonType.Circle }) { AppIcon({ name: 'calendar', iconSize: 16 }) }
+              .width(34).height(34)
+              .backgroundColor(ElysiaTheme.glassSoft())
+              .border({ width: 1, color: ElysiaTheme.hairline() })
+              .margin({ right: 6 })
+              .enabled(!this.exporting)
+              .accessibilityText('导出课表')
+              .onClick(() => { this.exportSchedule(); })
 
             Button({ type: ButtonType.Circle }) { AppIcon({ name: 'back', iconSize: 16 }) }
               .width(34).height(34)

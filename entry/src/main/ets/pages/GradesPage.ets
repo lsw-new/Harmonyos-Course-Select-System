@@ -9,6 +9,11 @@ import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { StudentTabBar } from '../common/widgets/TabBars';
 import { AcademicRepository } from '../repositories/AcademicRepository';
 import { GradeRecord, GradeSummary } from '../models/Academic';
+import { AppIcon } from '../common/widgets/AppIcon';
+import { FileService } from '../common/services/FileService';
+import { Toast } from '../common/widgets/Feedback';
+import { AppConfig } from '../app/AppConfig';
+import { SessionStorage } from '../common/storage/SessionStorage';
 
 @Component
 struct GradesPage {
@@ -17,6 +22,7 @@ struct GradesPage {
   @State summary?: GradeSummary = undefined;
   @State loading: boolean = true;
   @State errorMsg: string = '';
+  @State exporting: boolean = false;
   @StorageProp('breakpoint') bp: string = 'sm';
 
   // '全部' must come first; remaining terms are the EXACT strings in mockGrades
@@ -47,6 +53,37 @@ struct GradesPage {
       });
   }
 
+  // 导出成绩单（PDF）：联机鉴权下载，由系统保存器落到用户可见位置。
+  private exportTranscript(): void {
+    if (this.exporting) {
+      return;
+    }
+    if (!AppConfig.useRemote) {
+      Toast.show(this.getUIContext(), '导出成绩单需联网');
+      return;
+    }
+    const student = SessionStorage.get().getStudent();
+    if (student === undefined || student.studentId.length === 0) {
+      Toast.show(this.getUIContext(), '未登录，无法导出');
+      return;
+    }
+    this.exporting = true;
+    const fileName: string = `transcript-${student.studentId}.pdf`;
+    FileService.exportAuthedFile('/api/grades/transcript', fileName)
+      .then((saved: string) => {
+        this.exporting = false;
+        if (saved.length === 0) {
+          Toast.show(this.getUIContext(), '已取消');
+        } else {
+          Toast.show(this.getUIContext(), '成绩单已导出');
+        }
+      })
+      .catch((e: object) => {
+        this.exporting = false;
+        Toast.show(this.getUIContext(), e instanceof Error ? e.message : '导出失败');
+      });
+  }
+
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -60,32 +97,45 @@ struct GradesPage {
         SafeTop()
         TopBar({ title: $r('app.string.grades_title'), subtitle: $r('app.string.grades_subtitle'), showBack: false })
 
-        // 学期切换 tabs
-        Scroll() {
-          Row({ space: 6 }) {
-            ForEach(this.terms, (t: string, i?: number) => {
-              Button(t)
-                .height(28)
-                .padding({ left: 14, right: 14 })
-                .fontSize(11)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(i === this.activeTerm ? Color.White : ElysiaTheme.ROSE_700)
-                .backgroundColor(i === this.activeTerm ? '' : ElysiaTheme.glass())
-                .linearGradient(i === this.activeTerm ? {
-                  angle: 135,
-                  colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]]
-                } : { angle: 0, colors: [['#00FFFFFF', 0]] })
-                .borderRadius(999)
-                .border({ width: i === this.activeTerm ? 0 : 1, color: ElysiaTheme.hairline() })
-                .onClick(() => {
-                  this.activeTerm = i ?? 0;
-                  this.loadData();
-                })
-            }, (t: string) => t)
+        // 学期切换 tabs + 导出成绩单
+        Row() {
+          Scroll() {
+            Row({ space: 6 }) {
+              ForEach(this.terms, (t: string, i?: number) => {
+                Button(t)
+                  .height(28)
+                  .padding({ left: 14, right: 14 })
+                  .fontSize(11)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(i === this.activeTerm ? Color.White : ElysiaTheme.ROSE_700)
+                  .backgroundColor(i === this.activeTerm ? '' : ElysiaTheme.glass())
+                  .linearGradient(i === this.activeTerm ? {
+                    angle: 135,
+                    colors: [[ElysiaTheme.ROSE_500, 0], ['#E08AB8', 1]]
+                  } : { angle: 0, colors: [['#00FFFFFF', 0]] })
+                  .borderRadius(999)
+                  .border({ width: i === this.activeTerm ? 0 : 1, color: ElysiaTheme.hairline() })
+                  .onClick(() => {
+                    this.activeTerm = i ?? 0;
+                    this.loadData();
+                  })
+              }, (t: string) => t)
+            }
           }
+          .scrollable(ScrollDirection.Horizontal)
+          .scrollBar(BarState.Off)
+          .layoutWeight(1)
+
+          Button({ type: ButtonType.Circle }) { AppIcon({ name: 'download', iconSize: 16 }) }
+            .width(34).height(34)
+            .margin({ left: 8 })
+            .backgroundColor(ElysiaTheme.glassSoft())
+            .border({ width: 1, color: ElysiaTheme.hairline() })
+            .enabled(!this.exporting)
+            .accessibilityText('导出成绩单')
+            .onClick(() => { this.exportTranscript(); })
         }
-        .scrollable(ScrollDirection.Horizontal)
-        .scrollBar(BarState.Off)
+        .width('100%')
         .padding({ left: 16, right: 16, bottom: 12 })
 
         if (this.loading) {

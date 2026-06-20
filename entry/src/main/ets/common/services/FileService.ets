@@ -4,10 +4,12 @@ import common from '@ohos.app.ability.common';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { rcp } from '@kit.RemoteCommunicationKit';
 import fs from '@ohos.file.fs';
+import picker from '@ohos.file.picker';
 import image from '@ohos.multimedia.image';
 import util from '@ohos.util';
 import { LocalDataStore } from '../storage/LocalDataStore';
 import { SessionStorage } from '../storage/SessionStorage';
+import { AppConfig } from '../../app/AppConfig';
 
 const KEY_DOWNLOAD_HISTORY = 'local.downloadHistory.v1';
 const MOCK_FILE_PREFIX = 'mock://files/';
@@ -183,5 +185,111 @@ export class FileService {
       throw new Error('下载未返回保存路径');
     }
     return downloadedPath;
+  }
+
+  // 鉴权导出到用户可见文件：
+  // 1) 以 Bearer token 向后端发起 GET，下载到应用 cache；
+  // 2) 用系统文件保存器（DocumentViewPicker.save）让用户选择目标位置，把 cache 字节复制过去；
+  // 3) 用户取消保存器时静默返回空串（调用方据此不弹错或提示「已取消」）。
+  // 返回最终用户保存路径；若系统保存器不可用，回退返回 cache 路径（调用方据此提示落点）。
+  static async exportAuthedFile(path: string, suggestedName: string): Promise<string> {
+    const safePath = (path ?? '').trim();
+    if (safePath.length === 0) {
+      throw new Error('导出地址不能为空');
+    }
+    if (FileService.hasControlCharacter(safePath)) {
+      throw new Error('导出地址包含非法字符');
+    }
+    const safeName = FileService.validateFileName(suggestedName);
+
+    const token = SessionStorage.get().getToken();
+    if (token === undefined || token.length === 0) {
+      throw new Error('未登录，无法导出');
+    }
+
+    const fullUrl = `${AppConfig.baseUrl}${safePath}`;
+    const cachePath = await FileService.downloadAuthedToCache(fullUrl, safeName, token);
+    return await FileService.saveCacheToUserFile(cachePath, safeName);
+  }
+
+  // 带 Authorization 头的下载到 cache：复用现有 downloadToFile 写法，仅在会话配置里追加请求头。
+  private static async downloadAuthedToCache(url: string, fileName: string, token: string): Promise<string> {
+    const context = FileService.appContext;
+    if (context === undefined) {
+      throw new Error('文件服务未初始化');
+    }
+    const targetFolder = context.cacheDir.length > 0 ? context.cacheDir : context.filesDir;
+    const headers: Record<string, string> = { 'Authorization': `Bearer ${token}` };
+    const sessionConfig: rcp.SessionConfiguration = { headers: headers };
+    const session = rcp.createSession(sessionConfig);
+    try {
+      const response = await session.downloadToFile(url, { kind: 'folder', path: targetFolder });
+      const statusCode = response.statusCode;
+      if (statusCode < 200 || statusCode >= 300) {
+        throw new Error(`下载失败（状态码 ${statusCode}）`);
+      }
+      const downloadedPath = response.downloadedTo?.path;
+      if (downloadedPath === undefined || downloadedPath.length === 0) {
+        throw new Error('下载未返回保存路径');
+      }
+      return downloadedPath;
+    } finally {
+      session.close();
+    }
+  }
+
+  // 把 cache 中的下载文件复制到用户通过系统保存器选择的目标 URI。
+  // 用户取消 → 返回空串；保存器不可用 → 回退返回原 cache 路径。
+  private static async saveCacheToUserFile(cachePath: string, fileName: string): Promise<string> {
+    const context = FileService.appContext;
+    if (context === undefined) {
+      throw new Error('文件服务未初始化');
+    }
+    const destUri = await FileService.pickSaveDestination(context, fileName);
+    if (destUri === undefined) {
+      // 保存器不可用：保留 cache 路径供调用方提示
+      return cachePath;
+    }
+    if (destUri.length === 0) {
+      // 用户取消
+      return '';
+    }
+    FileService.copyFile(cachePath, destUri);
+    return destUri;
+  }
+
+  // 打开系统文件保存器选择目标位置。返回所选 URI；用户取消返回空串；
+  // 当前 SDK 不支持 save 时返回 undefined（调用方据此回退到 cache 路径）。
+  private static async pickSaveDestination(context: common.Context, fileName: string): Promise<string | undefined> {
+    const documentPicker: picker.DocumentViewPicker = new picker.DocumentViewPicker(context);
+    const options: picker.DocumentSaveOptions = new picker.DocumentSaveOptions();
+    options.newFileNames = [fileName];
+    const uris: string[] = await documentPicker.save(options);
+    if (uris.length === 0) {
+      return '';
+    }
+    return uris[0];
+  }
+
+  // 同步复制：读取源文件全部字节，写入目标 URI（先 truncate 再写，避免残留旧内容）。
+  private static copyFile(srcPath: string, destUri: string): void {
+    const srcFile = fs.openSync(srcPath, fs.OpenMode.READ_ONLY);
+    let destFile: fs.File | undefined = undefined;
+    try {
+      const stat = fs.statSync(srcFile.fd);
+      const size = stat.size;
+      destFile = fs.openSync(destUri, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+      if (size <= 0) {
+        return;
+      }
+      const buffer = new ArrayBuffer(size);
+      const read = fs.readSync(srcFile.fd, buffer);
+      fs.writeSync(destFile.fd, buffer, { length: read });
+    } finally {
+      if (destFile !== undefined) {
+        fs.closeSync(destFile);
+      }
+      fs.closeSync(srcFile);
+    }
   }
 }
