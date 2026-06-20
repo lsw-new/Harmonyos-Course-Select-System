@@ -11,6 +11,8 @@ import { FileService } from '../common/services/FileService';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { Toast } from '../common/widgets/Feedback';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
+import { AppConfig } from '../app/AppConfig';
+import { AuthRepository } from '../repositories/AuthRepository';
 
 @Component
 struct SettingsPage {
@@ -20,6 +22,9 @@ struct SettingsPage {
   @State dndMode: boolean = false;
   @State homeworkReminder: boolean = true;
   @State biometric: boolean = false;
+  // #12 登录二次验证开关（仅联机，服务器为唯一事实来源）
+  @State twoFactorEnabled: boolean = false;
+  @State twoFactorBusy: boolean = false;
   @State showLogoutConfirm: boolean = false;
   @State cacheText: string = '点击清除';
   @State clearing: boolean = false;
@@ -33,7 +38,38 @@ struct SettingsPage {
     PreferenceStorage.get().getBoolean('dndMode', false).then((v: boolean) => { this.dndMode = v; });
     PreferenceStorage.get().getBoolean('homeworkReminder', true).then((v: boolean) => { this.homeworkReminder = v; });
     PreferenceStorage.get().getBoolean('biometric', false).then((v: boolean) => { this.biometric = v; });
+    // #12 登录二次验证开关：仅联机时读后端真实状态（mock 模式保持关闭且不可操作）
+    if (AppConfig.useRemote) {
+      AuthRepository.get().getTwoFactor()
+        .then((on: boolean) => { this.twoFactorEnabled = on; })
+        .catch(() => { /* 读取失败保持默认关闭，不打断设置页 */ });
+    }
     this.refreshCacheSize();
+  }
+
+  // #12 翻转登录二次验证开关：联机调后端，失败回滚并提示
+  private toggleTwoFactor(next: boolean): void {
+    if (this.twoFactorBusy) {
+      return;
+    }
+    if (!AppConfig.useRemote) {
+      // mock 模式离线，无法配置；回滚 UI 并提示需联网
+      this.twoFactorEnabled = false;
+      Toast.show(this.getUIContext(), '需联网');
+      return;
+    }
+    this.twoFactorBusy = true;
+    this.twoFactorEnabled = next;
+    AuthRepository.get().setTwoFactor(next)
+      .then((confirmed: boolean) => {
+        this.twoFactorBusy = false;
+        this.twoFactorEnabled = confirmed;
+      })
+      .catch(() => {
+        this.twoFactorBusy = false;
+        this.twoFactorEnabled = !next;
+        Toast.show(this.getUIContext(), '设置失败，请稍后重试');
+      });
   }
 
   private togglePref(key: string, value: boolean): void {
@@ -92,6 +128,23 @@ struct SettingsPage {
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
   }
 
+  // #12 登录二次验证行：联机可切换；mock 模式置灰并显示「需联网」
+  @Builder TwoFactorRow() {
+    Row() {
+      Column() {
+        Text('登录二次验证').fontSize(14).fontColor(ElysiaTheme.INK)
+        Text(AppConfig.useRemote ? '登录时邮箱验证码校验' : '需联网')
+          .fontSize(11).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 2 })
+      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+      Toggle({ type: ToggleType.Switch, isOn: this.twoFactorEnabled })
+        .selectedColor(ElysiaTheme.ROSE_500)
+        .enabled(AppConfig.useRemote && !this.twoFactorBusy)
+        .opacity(AppConfig.useRemote ? 1 : 0.4)
+        .onChange((on: boolean) => { this.toggleTwoFactor(on); })
+    }.width('100%').padding({ top: 12, bottom: 12 })
+    .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
+  }
+
   @Builder LinkRow(label: string, hint: string, onTap?: () => void) {
     Row() {
       Text(label).fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
@@ -136,6 +189,7 @@ struct SettingsPage {
                 this.biometric = v;
                 this.togglePref('biometric', v);
               })
+              this.TwoFactorRow()
               this.LinkRow('清除缓存', this.cacheText, () => { this.clearCache(); })
               this.LinkRow('检查更新', 'V1.0.0', () => {
                 Toast.show(this.getUIContext(), '已是最新版本');

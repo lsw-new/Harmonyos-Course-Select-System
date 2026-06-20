@@ -3,7 +3,7 @@
 import { BaseRepository } from './BaseRepository';
 import {
   LoginRequest, RegisterRequest, ResetPasswordRequest, ChangePasswordRequest,
-  LoginResult, AccountInfo, LoginHistoryItem, UserProfile
+  LoginResult, LoginOutcome, AccountInfo, LoginHistoryItem, UserProfile
 } from '../models/User';
 import { AdminLoginRequest, AdminProfile, AdminLoginResult, AdminPermission, AdminPermissionAction } from '../models/Admin';
 import { mockStudentProfile, mockAccountInfo, mockLoginHistory, TEST_STUDENT_ID, TEST_STUDENT_PASSWORD } from '../mock/mockUser';
@@ -12,7 +12,10 @@ import { AccountStore } from '../common/storage/AccountStore';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { AssetTokenStore } from '../common/security/AssetTokenStore';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, RemoteProfile, RemoteAdminPermission, RemoteLoginHistory } from '../common/remote/RemoteApi';
+import {
+  RemoteApi, RemoteProfile, RemoteAdminPermission, RemoteLoginHistory,
+  RemoteLoginResult, RemoteLoginResponse
+} from '../common/remote/RemoteApi';
 import { HttpError } from '../common/http/HttpError';
 
 // P1-03：把后端动作字符串窄化为 AdminPermissionAction（ArkTS 安全，非法值兜底 view）
@@ -77,7 +80,21 @@ export class AuthRepository extends BaseRepository {
     };
   }
 
-  async login(req: LoginRequest): Promise<LoginResult> {
+  // #12 学生会话落地的唯一路径：映射真实 profile + 安全存储 token + 写 SessionStorage。
+  // 正常登录（2FA 关闭）与二次验证通过后均复用此方法，保证两条路径会话建立行为完全一致。
+  private async completeStudentSession(remote: RemoteLoginResult): Promise<LoginResult> {
+    // 必须拿到后端下发的真实 profile；缺失即视为登录异常，绝不用 mock 李仕炜兜底（防张冠李戴）
+    if (!remote.profile) {
+      throw new Error('NO_PROFILE');
+    }
+    const user: UserProfile = this.mapStudentProfile(remote.profile);
+    const result: LoginResult = { token: remote.token, user: user };
+    await AssetTokenStore.setStudentToken(remote.token);
+    await SessionStorage.get().setStudentSession(remote.token, user);
+    return result;
+  }
+
+  async login(req: LoginRequest): Promise<LoginOutcome> {
     if (req.studentId.trim().length === 0 || req.password.length === 0) {
       return this.reject('学号或密码不能为空');
     }
@@ -85,16 +102,29 @@ export class AuthRepository extends BaseRepository {
     // Track B：开启远程时优先走后端登录，失败回退本地校验
     if (AppConfig.useRemote) {
       try {
-        const remote = await RemoteApi.login(req.studentId.trim(), req.password);
-        // 必须拿到后端下发的真实 profile；缺失即视为登录异常，绝不用 mock 李仕炜兜底（防张冠李戴）
-        if (!remote.profile) {
-          throw new Error('NO_PROFILE');
+        const remote: RemoteLoginResponse = await RemoteApi.login(req.studentId.trim(), req.password);
+        // #12 后端要求二次验证：不建立会话，交回登录页进入验证码步骤
+        if (remote.twoFactorRequired === true) {
+          const pending: LoginOutcome = {
+            kind: 'twoFactor',
+            account: remote.account ?? req.studentId.trim(),
+            email: remote.email ?? ''
+          };
+          return this.delay<LoginOutcome>(pending);
         }
-        const user: UserProfile = this.mapStudentProfile(remote.profile);
-        const remoteResult: LoginResult = { token: remote.token, user: user };
-        await AssetTokenStore.setStudentToken(remote.token);
-        await SessionStorage.get().setStudentSession(remote.token, user);
-        return this.delay<LoginResult>(remoteResult);
+        // 正常登录（2FA 关闭）：缺 token 视为异常
+        if (remote.token === undefined) {
+          throw new Error('NO_TOKEN');
+        }
+        const normal: RemoteLoginResult = {
+          token: remote.token,
+          accountId: remote.accountId ?? '',
+          role: remote.role ?? 'student',
+          profile: remote.profile
+        };
+        const result: LoginResult = await this.completeStudentSession(normal);
+        const ok: LoginOutcome = { kind: 'ok', result: result };
+        return this.delay<LoginOutcome>(ok);
       } catch (e) {
         // 远程登录失败：生产模式（禁止回退）下直接报错，不静默用本地/mock 账号建立会话
         if (!AppConfig.allowMockFallbackInRemote) {
@@ -131,7 +161,38 @@ export class AuthRepository extends BaseRepository {
     // 同时写入 SessionStorage（兼容现有读取逻辑）
     await SessionStorage.get().setStudentSession(token, mockStudentProfile);
 
-    return this.delay<LoginResult>(result);
+    const ok: LoginOutcome = { kind: 'ok', result: await this.delay<LoginResult>(result) };
+    return ok;
+  }
+
+  // #12 提交登录二次验证码：成功后经与正常登录同一路径建立会话
+  async verifyLoginCode(account: string, code: string): Promise<LoginResult> {
+    if (account.trim().length === 0) {
+      return this.reject('账号缺失，请返回重新登录');
+    }
+    if (code.trim().length === 0) {
+      return this.reject('请输入验证码');
+    }
+    try {
+      const remote: RemoteLoginResult = await RemoteApi.verifyLoginTwoFactor(account.trim(), code.trim());
+      const result: LoginResult = await this.completeStudentSession(remote);
+      return this.delay<LoginResult>(result);
+    } catch (e) {
+      const msg = (e instanceof HttpError) ? (e as HttpError).message : '验证码校验失败，请重试';
+      return this.reject(msg);
+    }
+  }
+
+  // #12 读取当前账号登录二次验证开关（仅联机）
+  async getTwoFactor(): Promise<boolean> {
+    const remote = await RemoteApi.getTwoFactorEnabled();
+    return remote.enabled;
+  }
+
+  // #12 设置当前账号登录二次验证开关（仅联机），返回后端确认后的状态
+  async setTwoFactor(enabled: boolean): Promise<boolean> {
+    const remote = await RemoteApi.setTwoFactorEnabled(enabled);
+    return remote.enabled;
   }
 
   async register(req: RegisterRequest): Promise<boolean> {
@@ -314,17 +375,18 @@ export class AuthRepository extends BaseRepository {
     // Track B：开启远程时优先走后端登录（要求 role=admin），失败回退本地
     if (AppConfig.useRemote) {
       try {
-        const remote = await RemoteApi.login(req.adminId.trim(), req.password);
+        const remote: RemoteLoginResponse = await RemoteApi.login(req.adminId.trim(), req.password);
         if (remote.role === 'admin') {
           // 必须拿到后端真实管理员 profile（含真实权限矩阵）；缺失即视为登录异常，
           // 绝不用 mockAdminProfile（全权演示号）兜底，否则任意账号会获得全部管理权限
-          if (!remote.profile) {
+          if (!remote.profile || remote.token === undefined) {
             throw new Error('NO_PROFILE');
           }
+          const adminToken: string = remote.token;
           const profile: AdminProfile = this.mapAdminProfile(remote.profile);
-          const remoteResult: AdminLoginResult = { token: remote.token, profile: profile };
-          await AssetTokenStore.setAdminToken(remote.token);
-          await SessionStorage.get().setAdminSession(remote.token, profile);
+          const remoteResult: AdminLoginResult = { token: adminToken, profile: profile };
+          await AssetTokenStore.setAdminToken(adminToken);
+          await SessionStorage.get().setAdminSession(adminToken, profile);
           return this.delay<AdminLoginResult>(remoteResult);
         }
         // 远程登录成功但该账号不是管理员：生产模式直接拒绝，不静默落到本地 mock 管理员

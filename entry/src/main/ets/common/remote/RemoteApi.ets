@@ -69,15 +69,44 @@ export interface ProfileUpdateBody {
 }
 
 export interface RemoteLoginResult {
+  // 正常登录（2FA 关闭）下发的字段
   token: string;
   accountId: string;
   role: string;
   profile?: RemoteProfile;
 }
 
+// #12 登录响应可能是两种形态之一：
+//   1) 正常登录（2FA 关闭）：token/accountId/role/profile（与 RemoteLoginResult 同构）
+//   2) 需二次验证（2FA 开启）：twoFactorRequired=true + account + 脱敏 email，无 token
+// 全部字段可选，调用方按 twoFactorRequired 判别，避免对联合形态使用索引访问类型。
+export interface RemoteLoginResponse {
+  twoFactorRequired?: boolean;
+  account?: string;
+  email?: string;
+  token?: string;
+  accountId?: string;
+  role?: string;
+  profile?: RemoteProfile;
+}
+
+// 二次验证开关读写回显
+export interface RemoteTwoFactor {
+  enabled: boolean;
+}
+
 interface LoginBody {
   account: string;
   password: string;
+}
+
+interface VerifyLoginTwoFactorBody {
+  account: string;
+  code: string;
+}
+
+interface SetTwoFactorBody {
+  enabled: boolean;
 }
 
 interface EmailCodeBody {
@@ -595,9 +624,26 @@ export interface AdminExamBody {
 }
 
 export class RemoteApi {
-  static async login(account: string, password: string): Promise<RemoteLoginResult> {
+  static async login(account: string, password: string): Promise<RemoteLoginResponse> {
     const body: LoginBody = { account: account, password: password };
-    return apiClient.post<RemoteLoginResult>('/auth/login', body);
+    return apiClient.post<RemoteLoginResponse>('/auth/login', body);
+  }
+
+  // #12 登录二次验证：提交账号 + 验证码，成功返回与正常登录同构的 token/profile 载荷
+  static async verifyLoginTwoFactor(account: string, code: string): Promise<RemoteLoginResult> {
+    const body: VerifyLoginTwoFactorBody = { account: account, code: code };
+    return apiClient.post<RemoteLoginResult>('/auth/login/verify-2fa', body);
+  }
+
+  // #12 读取当前账号二次验证开关（需登录态）
+  static async getTwoFactorEnabled(): Promise<RemoteTwoFactor> {
+    return apiClient.get<RemoteTwoFactor>('/auth/2fa');
+  }
+
+  // #12 设置当前账号二次验证开关（需登录态），返回后端确认后的状态
+  static async setTwoFactorEnabled(enabled: boolean): Promise<RemoteTwoFactor> {
+    const body: SetTwoFactorBody = { enabled: enabled };
+    return apiClient.post<RemoteTwoFactor>('/auth/2fa', body);
   }
 
   // 发送邮箱验证码（公开端点，无需登录态）。

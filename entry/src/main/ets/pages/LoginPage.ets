@@ -11,7 +11,7 @@ import { ValidatorUtils } from '../common/utils/ValidatorUtils';
 import { AuthRepository } from '../repositories/AuthRepository';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { HttpError } from '../common/http/HttpError';
-import { LoginResult } from '../models/User';
+import { LoginOutcome, LoginResult } from '../models/User';
 import { SafeTop } from '../common/widgets/SafeArea';
 
 @Component
@@ -22,12 +22,31 @@ struct LoginPage {
   @State remember: boolean = true;
   @State errorMsg: string = '';
   @State submitting: boolean = false;
+  // #12 登录二次验证步骤状态
+  @State twoFactorStep: boolean = false;
+  @State twoFactorAccount: string = '';
+  @State twoFactorEmail: string = '';
+  @State twoFactorCode: string = '';
 
   aboutToAppear(): void {
     SessionStorage.get().getRememberId().then((id: string) => {
       if (id.length > 0) {
         this.studentId = id;
       }
+    });
+  }
+
+  // 记住我：登录/验证成功后统一保存或清除已记住的学号，再进入首页
+  private finishLogin(): void {
+    const s = SessionStorage.get();
+    const rememberOp = this.remember
+      ? s.saveRememberId(this.studentId)
+      : s.clearRememberId();
+    rememberOp.then(() => {
+      AppRoute.clearTo(Routes.Home);
+    }).catch(() => {
+      // 记住我写入失败不阻断登录主流程
+      AppRoute.clearTo(Routes.Home);
     });
   }
 
@@ -51,18 +70,52 @@ struct LoginPage {
       studentId: this.studentId,
       password: this.password,
       remember: this.remember
-    }).then((res: LoginResult) => {
-      const s = SessionStorage.get();
-      const rememberOp = this.remember
-        ? s.saveRememberId(this.studentId)
-        : s.clearRememberId();
-      return rememberOp.then(() => s.setStudentSession(res.token, res.user));
-    }).then(() => {
-      AppRoute.clearTo(Routes.Home);
+    }).then((outcome: LoginOutcome) => {
+      this.submitting = false;
+      if (outcome.kind === 'twoFactor') {
+        // 需邮箱二次验证：会话尚未建立，切到验证码步骤
+        this.twoFactorAccount = outcome.account ?? this.studentId;
+        this.twoFactorEmail = outcome.email ?? '';
+        this.twoFactorCode = '';
+        this.twoFactorStep = true;
+        return;
+      }
+      // 2FA 关闭：会话已在仓储建立，直接进入首页
+      this.finishLogin();
     }).catch((e: object) => {
       this.submitting = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '登录失败';
     });
+  }
+
+  // #12 提交登录二次验证码
+  private doVerify(): void {
+    if (this.submitting) {
+      return;
+    }
+    const r = ValidatorUtils.required(this.twoFactorCode, '验证码');
+    if (!r.ok) {
+      this.errorMsg = r.message ?? '';
+      return;
+    }
+    this.errorMsg = '';
+    this.submitting = true;
+    AuthRepository.get().verifyLoginCode(this.twoFactorAccount, this.twoFactorCode)
+      .then((_res: LoginResult) => {
+        this.submitting = false;
+        this.finishLogin();
+      }).catch((e: object) => {
+        this.submitting = false;
+        this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '验证码校验失败';
+      });
+  }
+
+  // 返回重新输入账号密码
+  private backToCredentials(): void {
+    this.twoFactorStep = false;
+    this.twoFactorCode = '';
+    this.errorMsg = '';
+    this.submitting = false;
   }
 
   build() {
@@ -109,78 +162,122 @@ struct LoginPage {
           // 分隔
           RoseDivider({ label: $r('app.string.login_divider') })
 
-          // 表单
-          Column({ space: 12 }) {
-            ElysiaInput({
-              placeholder: $r('app.string.common_student_id'),
-              value: $studentId,
-              leadingIcon: 'mine'
-            })
-            ElysiaInput({
-              placeholder: $r('app.string.common_password'),
-              value: $password,
-              secure: true,
-              leadingIcon: 'lock'
-            })
+          if (!this.twoFactorStep) {
+            // 表单
+            Column({ space: 12 }) {
+              ElysiaInput({
+                placeholder: $r('app.string.common_student_id'),
+                value: $studentId,
+                leadingIcon: 'mine'
+              })
+              ElysiaInput({
+                placeholder: $r('app.string.common_password'),
+                value: $password,
+                secure: true,
+                leadingIcon: 'lock'
+              })
 
-            // 记住我 / 忘记密码
-            Row() {
+              // 记住我 / 忘记密码
               Row() {
-                Toggle({ type: ToggleType.Checkbox, isOn: this.remember })
-                  .width(14).height(14)
-                  .selectedColor(ElysiaTheme.ROSE_500)
-                  .onChange((v: boolean) => { this.remember = v; })
-                Text($r('app.string.login_remember'))
+                Row() {
+                  Toggle({ type: ToggleType.Checkbox, isOn: this.remember })
+                    .width(14).height(14)
+                    .selectedColor(ElysiaTheme.ROSE_500)
+                    .onChange((v: boolean) => { this.remember = v; })
+                  Text($r('app.string.login_remember'))
+                    .fontSize(11)
+                    .fontColor(ElysiaTheme.INK_SOFT)
+                    .margin({ left: 4 })
+                }
+
+                Blank().layoutWeight(1)
+
+                Text($r('app.string.login_forgot'))
                   .fontSize(11)
-                  .fontColor(ElysiaTheme.INK_SOFT)
-                  .margin({ left: 4 })
+                  .fontStyle(FontStyle.Italic)
+                  .fontColor(ElysiaTheme.ROSE_700)
+                  .fontFamily(ElysiaTheme.FONT_DISPLAY)
+                  .onClick(() => {
+                    AppRoute.go(Routes.Forgot);
+                  })
               }
+              .width('100%')
+              .padding({ left: 4, right: 4, top: 2 })
 
-              Blank().layoutWeight(1)
-
-              Text($r('app.string.login_forgot'))
-                .fontSize(11)
-                .fontStyle(FontStyle.Italic)
-                .fontColor(ElysiaTheme.ROSE_700)
-                .fontFamily(ElysiaTheme.FONT_DISPLAY)
-                .onClick(() => {
-                  AppRoute.go(Routes.Forgot);
-                })
+              if (this.errorMsg.length > 0) {
+                Text(this.errorMsg)
+                  .fontSize(12)
+                  .fontColor(ElysiaTheme.ROSE_ACCENT)
+                  .width('100%')
+                  .padding({ left: 4 })
+              }
             }
             .width('100%')
-            .padding({ left: 4, right: 4, top: 2 })
 
-            if (this.errorMsg.length > 0) {
-              Text(this.errorMsg)
-                .fontSize(12)
-                .fontColor(ElysiaTheme.ROSE_ACCENT)
-                .width('100%')
-                .padding({ left: 4 })
+            // 登录按钮
+            Column({ space: 10 }) {
+              PrimaryButton({
+                text: this.submitting ? $r('app.string.login_submitting') : $r('app.string.login_submit'),
+                onTap: () => { this.doLogin(); }
+              })
+              GhostButton({
+                text: $r('app.string.login_register'),
+                onTap: () => {
+                  AppRoute.go(Routes.Register);
+                }
+              })
+              GhostButton({
+                text: $r('app.string.login_admin'),
+                onTap: () => {
+                  AppRoute.go(Routes.AdminLogin);
+                }
+              })
             }
-          }
-          .width('100%')
+            .width('100%')
+            .margin({ top: 22 })
+          } else {
+            // #12 登录二次验证步骤：脱敏邮箱 + 验证码输入
+            Column({ space: 12 }) {
+              Text('登录二次验证')
+                .fontSize(15)
+                .fontColor(ElysiaTheme.ROSE_700)
+                .fontWeight(FontWeight.Medium)
+                .width('100%')
+              Text(`验证码已发送至 ${this.twoFactorEmail}，请输入邮箱收到的验证码`)
+                .fontSize(12)
+                .fontColor(ElysiaTheme.INK_SOFT)
+                .width('100%')
+                .margin({ bottom: 2 })
 
-          // 登录按钮
-          Column({ space: 10 }) {
-            PrimaryButton({
-              text: this.submitting ? $r('app.string.login_submitting') : $r('app.string.login_submit'),
-              onTap: () => { this.doLogin(); }
-            })
-            GhostButton({
-              text: $r('app.string.login_register'),
-              onTap: () => {
-                AppRoute.go(Routes.Register);
+              ElysiaInput({
+                placeholder: $r('app.string.common_code6'),
+                value: $twoFactorCode,
+                leadingIcon: 'lock'
+              })
+
+              if (this.errorMsg.length > 0) {
+                Text(this.errorMsg)
+                  .fontSize(12)
+                  .fontColor(ElysiaTheme.ROSE_ACCENT)
+                  .width('100%')
+                  .padding({ left: 4 })
               }
-            })
-            GhostButton({
-              text: $r('app.string.login_admin'),
-              onTap: () => {
-                AppRoute.go(Routes.AdminLogin);
-              }
-            })
+            }
+            .width('100%')
+
+            Column({ space: 10 }) {
+              PrimaryButton({
+                text: this.submitting ? $r('app.string.login_submitting') : '验证并登录',
+                onTap: () => { this.doVerify(); }
+              })
+              GhostButton({
+                text: '返回重新登录',
+                onTap: () => { this.backToCredentials(); }
+              })
+            }
+            .width('100%')
+            .margin({ top: 22 })
           }
-          .width('100%')
-          .margin({ top: 22 })
 
           // 底部 slogan
           Text($r('app.string.login_slogan'))

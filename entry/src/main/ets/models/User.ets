@@ -53,6 +53,18 @@ export interface LoginResult {
   user: UserProfile;
 }
 
+// #12 登录可能直接成功，或需要邮箱二次验证。
+// kind='ok'       —— 2FA 关闭，会话已建立，result 即正常登录结果。
+// kind='twoFactor'—— 2FA 开启，尚未建立会话，需用 account + 脱敏 email 进入验证码步骤。
+export type LoginOutcomeKind = 'ok' | 'twoFactor';
+
+export interface LoginOutcome {
+  kind: LoginOutcomeKind;
+  result?: LoginResult;
+  account?: string;
+  email?: string;
+}
+
 export interface AccountInfo {
   studentId: string;
   name: string;
