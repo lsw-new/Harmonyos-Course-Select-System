@@ -754,6 +754,8 @@ export class AdminRepository extends BaseRepository {
     fallback.status = head.status;
     fallback.isUrgent = head.isUrgent;
     fallback.submittedAt = head.submittedAt;
+    // #7 多级审批进度：远程审批携带 steps 时透传到详情（旧记录无 steps→[]，回退单状态展示）
+    fallback.steps = head.steps ?? [];
     return this.delay<ApprovalDetail>(fallback);
   }
 

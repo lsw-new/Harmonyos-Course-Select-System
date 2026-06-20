@@ -190,6 +190,8 @@ export interface ApprovalItem {
   status: ApprovalStatus;
   isUrgent: boolean;
   submittedAt: string;
+  // #7 多级审批进度（有序）；列表项可携带，详情据此渲染进度条。legacy 记录缺失时为 undefined
+  steps?: ApprovalStepVm[];
 }
 
 // 管理端·成绩申诉受理
@@ -272,7 +274,23 @@ export interface ApprovalFlowNode {
   comment?: string;
 }
 
+// #7 多级审批流单步（后端 steps[] 的前端视图模型）。
+// status：waiting=尚未轮到，pending=当前处理中，approved=已通过，rejected=已驳回。
+export type ApprovalStepStatus = 'waiting' | 'pending' | 'approved' | 'rejected';
+
+export interface ApprovalStepVm {
+  order: number;
+  title: string;
+  approverRole: string;
+  status: ApprovalStepStatus;
+  handler: string;
+  handledAt: string;
+  comment: string;
+}
+
 export interface ApprovalDetail extends ApprovalItem {
   flow: ApprovalFlowNode[];
   attachments: string[];
+  // #7 多级审批进度（按 order 有序）；旧记录或后端未下发时为 []
+  steps: ApprovalStepVm[];
 }

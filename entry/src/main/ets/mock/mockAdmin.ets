@@ -135,7 +135,8 @@ export const mockApprovalDetail: ApprovalDetail = {
     { id: 'fl-2', nodeName: '教务处审核', status: 'pending' },
     { id: 'fl-3', nodeName: '存档', status: 'waiting' }
   ],
-  attachments: ['mock://files/event-notice.pdf']
+  attachments: ['mock://files/event-notice.pdf'],
+  steps: []
 };
 
 // 测试登录凭据（管理端）· 与 mockAdminProfile 对应

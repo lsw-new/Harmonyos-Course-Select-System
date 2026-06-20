@@ -81,6 +81,8 @@ export interface LoginHistoryItem {
   id: string;
   loginTime: string;
   ipAddress: string;
+  // 地点：后端无法定位时为空串，前端据此隐藏「地点」展示
   location: string;
-  durationMinutes: number;
+  // 时长（分钟）：会话尚未结束 / 无登出记录时为 null，前端据此隐藏「时长」展示
+  durationMinutes: number | null;
 }

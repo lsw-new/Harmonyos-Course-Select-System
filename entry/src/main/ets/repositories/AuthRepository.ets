@@ -322,6 +322,18 @@ export class AuthRepository extends BaseRepository {
   }
 
   async logout(): Promise<boolean> {
+    // 登出打点（best-effort）：联机且持有 token 时，先写一条登出审计事件供后端计算会话时长。
+    // 任何失败都被吞掉——登出必须照常清会话，绝不因打点失败而阻断。
+    if (AppConfig.useRemote) {
+      try {
+        const token: string | undefined = await AssetTokenStore.getStudentToken();
+        if (token !== undefined && token.length > 0) {
+          await RemoteApi.logout();
+        }
+      } catch (e) {
+        // 忽略打点失败，继续清会话
+      }
+    }
     // 清除安全存储的 token
     await AssetTokenStore.clear();
     return this.delay<boolean>(true);
@@ -349,8 +361,8 @@ export class AuthRepository extends BaseRepository {
             id: h.id,
             loginTime: h.time,
             ipAddress: h.ip,
-            location: '',
-            durationMinutes: 0
+            location: h.location ?? '',
+            durationMinutes: h.durationMinutes
           };
           return item;
         }));

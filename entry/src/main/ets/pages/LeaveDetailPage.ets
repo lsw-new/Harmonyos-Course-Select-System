@@ -3,6 +3,7 @@ import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, PrimaryButton, GhostButton } from '../common/Components';
 import { ProfileRepository } from '../repositories/ProfileRepository';
 import { LeaveRequest } from '../models/Misc';
+import { ApprovalStepVm } from '../models/Admin';
 import { HttpError } from '../common/http/HttpError';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
@@ -108,6 +109,58 @@ struct LeaveDetailPage {
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
   }
 
+  // #7 多级审批步骤是否存在（后端 steps[] 非空才走进度条，否则回退两段式 StepItem）
+  private hasSteps(): boolean {
+    return this.leave !== null && this.leave.steps !== undefined && this.leave.steps.length > 0;
+  }
+
+  // #7 单步状态色：等待=灰、处理中=琥珀、通过=绿、驳回=玫红
+  private stepColor(s: string): string {
+    if (s === 'pending') return '#D9B675';
+    if (s === 'approved') return ElysiaTheme.SUCCESS;
+    if (s === 'rejected') return ElysiaTheme.ROSE_ACCENT;
+    return ElysiaTheme.INK_MUTE;
+  }
+
+  private stepLabel(s: string): string {
+    if (s === 'pending') return '处理中';
+    if (s === 'approved') return '已通过';
+    if (s === 'rejected') return '已驳回';
+    return '等待';
+  }
+
+  private stepHandlerLine(step: ApprovalStepVm): string {
+    if (step.handler.length > 0 && step.handledAt.length > 0) {
+      return `${step.handler} · ${step.handledAt}`;
+    }
+    return step.handler.length > 0 ? step.handler : step.handledAt;
+  }
+
+  // #7 多级审批进度单步行：状态色条 + 标题/状态 Pill + 角色/处理人/意见（按需显示）
+  @Builder MultiStepRow(step: ApprovalStepVm) {
+    Row({ space: 10 }) {
+      Column().width(10).height(38).borderRadius(6).backgroundColor(this.stepColor(step.status))
+      Column({ space: 4 }) {
+        Row({ space: 6 }) {
+          Text(step.title).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+          Pill({ text: this.stepLabel(step.status) })
+        }
+        if (step.approverRole.length > 0) {
+          Text(step.approverRole).fontSize(12).fontColor(ElysiaTheme.INK_SOFT).lineHeight(18)
+        }
+        if (this.stepHandlerLine(step).length > 0) {
+          Text(this.stepHandlerLine(step)).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+        }
+        if (step.comment.length > 0) {
+          Text(step.comment).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).lineHeight(16)
+        }
+      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+    }
+    .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18)
+    .shadow({ radius: 12, color: '#18D85487', offsetX: 0, offsetY: 4 })
+  }
+
   @Builder StepItem(stepTitle: string, stepDesc: string, tag: string, active: boolean) {
     Row({ space: 10 }) {
       Column()
@@ -199,18 +252,24 @@ struct LeaveDetailPage {
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-              // 审批进度时间线
+              // 审批进度时间线：多级审批流 steps 非空走逐级进度，否则回退两段式
               Column({ space: 10 }) {
                 Text($r('app.string.leavedetail_section_progress')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 4 })
-                this.StepItem('申请提交', `${this.leave!.submittedAt} · 已提交`, '完成', true)
-                this.StepItem(
-                  '审批处理',
-                  this.leave!.state === 'pending' ? '等待审批中' :
-                    (this.leave!.state === 'approved' ? '已通过' :
-                      (this.leave!.state === 'rejected' ? '已驳回' : '已撤回')),
-                  this.stateLabel(this.leave!.state),
-                  this.leave!.state !== 'pending'
-                )
+                if (this.hasSteps()) {
+                  ForEach(this.leave!.steps ?? [], (step: ApprovalStepVm) => {
+                    this.MultiStepRow(step)
+                  }, (step: ApprovalStepVm) => `lst-${step.order}`)
+                } else {
+                  this.StepItem('申请提交', `${this.leave!.submittedAt} · 已提交`, '完成', true)
+                  this.StepItem(
+                    '审批处理',
+                    this.leave!.state === 'pending' ? '等待审批中' :
+                      (this.leave!.state === 'approved' ? '已通过' :
+                        (this.leave!.state === 'rejected' ? '已驳回' : '已撤回')),
+                    this.stateLabel(this.leave!.state),
+                    this.leave!.state !== 'pending'
+                  )
+                }
               }.width('100%')
 
               // 审批反馈（若有）

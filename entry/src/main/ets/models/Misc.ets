@@ -1,5 +1,7 @@
 // 请假、反馈、实践 等扩展模型
 
+import { ApprovalStepVm } from './Admin';
+
 export type LeaveType = 'sick' | 'personal' | 'public' | 'other';
 export type ApprovalState = 'pending' | 'approved' | 'rejected' | 'withdrawn';
 
@@ -13,6 +15,8 @@ export interface LeaveRequest {
   state: ApprovalState;
   submittedAt: string;
   feedback?: string;
+  // #7 多级审批进度（按 order 有序）；旧记录或后端未下发时为 []
+  steps?: ApprovalStepVm[];
 }
 
 export type FeedbackCategory = 'bug' | 'suggestion' | 'service' | 'other';

@@ -3,6 +3,7 @@
 import { BaseRepository } from './BaseRepository';
 import { UserProfile } from '../models/User';
 import { ApprovalItem } from '../models/Admin';
+import { AdminLogic } from './AdminLogic';
 import { HomeSummary } from '../models/Home';
 import { LeaveRequest, FeedbackItem, PracticeEntry, LeaveType, FeedbackCategory, FeedbackState, ApprovalState } from '../models/Misc';
 import { mockStudentProfile } from '../mock/mockUser';
@@ -362,6 +363,8 @@ export class ProfileRepository extends BaseRepository {
     if (l.feedback.length > 0) {
       item.feedback = l.feedback;
     }
+    // #7 多级审批进度：后端 steps[] → ApprovalStepVm[]（缺失→[]，详情页回退单状态展示）
+    item.steps = AdminLogic.remoteToApprovalSteps(l.steps);
     return item;
   }
 

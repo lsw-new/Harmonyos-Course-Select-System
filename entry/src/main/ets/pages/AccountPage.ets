@@ -72,6 +72,16 @@ struct AccountPage {
     });
   }
 
+  // 地点行：地点非空时「地点 · IP」，否则仅 IP（不展示占位垃圾）
+  private locationLine(item: LoginHistoryItem): string {
+    return item.location.length > 0 ? `${item.location} · ${item.ipAddress}` : item.ipAddress;
+  }
+
+  // 时长文案：仅当 durationMinutes 非 null 时返回「在线 n 分钟」，否则空串（由 @Builder 隐藏整列）
+  private durationText(item: LoginHistoryItem): string {
+    return item.durationMinutes !== null ? `在线 ${item.durationMinutes} 分钟` : '';
+  }
+
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -196,10 +206,12 @@ struct AccountPage {
         Text(item.loginTime)
           .fontSize(12).fontStyle(FontStyle.Italic).fontColor(ElysiaTheme.INK)
           .fontFamily(ElysiaTheme.FONT_DISPLAY).fontWeight(FontWeight.Medium)
-        Text(`${item.location} · ${item.ipAddress}`)
+        Text(this.locationLine(item))
           .fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
       }.alignItems(HorizontalAlign.Start).margin({ left: 10 }).layoutWeight(1)
-      Text(`在线 ${item.durationMinutes} 分钟`).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
+      if (item.durationMinutes !== null) {
+        Text(this.durationText(item)).fontSize(10).fontColor(ElysiaTheme.INK_MUTE)
+      }
     }.width('100%').padding({ top: 10, bottom: 10 })
     if (!isLast) { Divider().strokeWidth(1).color(ElysiaTheme.hairline()) }
   }

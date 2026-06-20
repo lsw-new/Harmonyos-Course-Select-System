@@ -4,9 +4,10 @@
 
 import {
   AdminCourseItem, AdminCourseWritePayload, GradeAuditItem, GradeAuditStatus,
-  ApprovalItem, ApprovalStatus, StudentAdminItem, StudentAdminStatus, StudentEducationLevel
+  ApprovalItem, ApprovalStatus, StudentAdminItem, StudentAdminStatus, StudentEducationLevel,
+  ApprovalStepVm, ApprovalStepStatus
 } from '../models/Admin';
-import { RemoteStudent, RemoteGradeTask, RemoteApproval } from '../common/remote/RemoteApi';
+import { RemoteStudent, RemoteGradeTask, RemoteApproval, RemoteApprovalStep } from '../common/remote/RemoteApi';
 
 const COURSE_CATEGORIES: string[] = ['required', 'elective', 'public', 'practice'];
 const COURSE_STATUSES: string[] = ['draft', 'open', 'closed', 'archived'];
@@ -295,8 +296,40 @@ export class AdminLogic {
       reason: a.reason,
       status: a.status as ApprovalStatus,
       isUrgent: a.isUrgent,
-      submittedAt: a.submittedAt
+      submittedAt: a.submittedAt,
+      steps: AdminLogic.remoteToApprovalSteps(a.steps)
     };
     return item;
+  }
+
+  // #7 后端审批动作字符串窄化为 ApprovalStepStatus（非法值兜底 waiting）
+  static toApprovalStepStatus(s: string): ApprovalStepStatus {
+    switch (s) {
+      case 'pending': return 'pending';
+      case 'approved': return 'approved';
+      case 'rejected': return 'rejected';
+      default: return 'waiting';
+    }
+  }
+
+  // #7 远程 steps[] → ApprovalStepVm[]（按 order 升序）；缺失/空时返回 []（legacy 兼容）
+  static remoteToApprovalSteps(steps?: RemoteApprovalStep[]): ApprovalStepVm[] {
+    if (steps === undefined || steps.length === 0) {
+      return [];
+    }
+    const mapped: ApprovalStepVm[] = steps.map((s: RemoteApprovalStep): ApprovalStepVm => {
+      const vm: ApprovalStepVm = {
+        order: s.order,
+        title: s.title,
+        approverRole: s.approverRole,
+        status: AdminLogic.toApprovalStepStatus(s.status),
+        handler: s.handler ?? '',
+        handledAt: s.handledAt ?? '',
+        comment: s.comment ?? ''
+      };
+      return vm;
+    });
+    mapped.sort((a: ApprovalStepVm, b: ApprovalStepVm): number => a.order - b.order);
+    return mapped;
   }
 }

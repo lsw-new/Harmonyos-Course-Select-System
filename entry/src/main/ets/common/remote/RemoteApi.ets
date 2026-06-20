@@ -199,6 +199,8 @@ export interface RemoteLeave {
   state: string;
   submittedAt: string;
   feedback: string;
+  // #7 多级审批进度（有序）；legacy 记录可能缺失
+  steps?: RemoteApprovalStep[];
 }
 
 interface LeaveCreateBody {
@@ -232,6 +234,10 @@ export interface RemoteLoginHistory {
   action: string;
   result: string;
   ip: string;
+  // 地点：后端无法定位时返回空串
+  location: string;
+  // 时长（分钟）：无登出记录 / 会话未结束时为 null
+  durationMinutes: number | null;
   time: string;
 }
 
@@ -483,6 +489,17 @@ interface GradeScoresBody {
   scores: GradeScoreEntry[];
 }
 
+// #7 多级审批流单步（后端 steps[]）。legacy 记录无此字段。
+export interface RemoteApprovalStep {
+  order: number;
+  title: string;
+  approverRole: string;
+  status: string;
+  handler: string;
+  handledAt: string;
+  comment: string;
+}
+
 export interface RemoteApproval {
   id: string;
   type: string;
@@ -493,6 +510,8 @@ export interface RemoteApproval {
   status: string;
   isUrgent: boolean;
   submittedAt: string;
+  // #7 多级审批进度（有序）；legacy 记录可能缺失
+  steps?: RemoteApprovalStep[];
 }
 
 interface InputProgressBody {
@@ -818,6 +837,11 @@ export class RemoteApi {
 
   static async loginHistory(): Promise<RemoteLoginHistory[]> {
     return apiClient.get<RemoteLoginHistory[]>('/profile/login-history');
+  }
+
+  // 登出打点：写一条登出审计事件，供后端计算会话时长。无请求体；调用方best-effort，失败忽略。
+  static async logout(): Promise<void> {
+    await apiClient.post<Object>('/auth/logout');
   }
 
   static async studentRecord(): Promise<RemoteStudentRecord> {

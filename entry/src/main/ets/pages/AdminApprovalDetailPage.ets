@@ -2,7 +2,7 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, PrimaryButton, GhostButton } from '../common/Components';
 import { AdminRepository } from '../repositories/AdminRepository';
-import { ApprovalDetail, ApprovalFlowNode } from '../models/Admin';
+import { ApprovalDetail, ApprovalFlowNode, ApprovalStepVm } from '../models/Admin';
 import { LoadingState, ErrorState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
@@ -99,6 +99,54 @@ struct AdminApprovalDetailPage {
     return s;
   }
 
+  // #7 单步状态色：等待=灰、处理中=琥珀、通过=绿、驳回=玫红
+  private stepColor(s: string): string {
+    if (s === 'pending') return '#D9B675';
+    if (s === 'approved') return ElysiaTheme.SUCCESS;
+    if (s === 'rejected') return ElysiaTheme.ROSE_ACCENT;
+    return ElysiaTheme.INK_MUTE;
+  }
+
+  private stepLabel(s: string): string {
+    if (s === 'pending') return '处理中';
+    if (s === 'approved') return '已通过';
+    if (s === 'rejected') return '已驳回';
+    return '等待';
+  }
+
+  // 处理人 + 时间合并行（两者都缺时返回空串，由 @Builder 隐藏）
+  private stepHandlerLine(step: ApprovalStepVm): string {
+    if (step.handler.length > 0 && step.handledAt.length > 0) {
+      return `${step.handler} · ${step.handledAt}`;
+    }
+    return step.handler.length > 0 ? step.handler : step.handledAt;
+  }
+
+  // #7 多级审批进度单步行：彩色状态点 + 标题/角色 Pill + 处理人/时间/意见（按需显示）
+  @Builder StepRow(step: ApprovalStepVm, isLast: boolean) {
+    Row({ space: 10 }) {
+      Column().width(10).height(10).borderRadius(5).backgroundColor(this.stepColor(step.status))
+      Column({ space: 2 }) {
+        Row({ space: 6 }) {
+          Text(step.title).fontSize(13).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK)
+          Pill({ text: this.stepLabel(step.status), color: this.stepColor(step.status), bg: ElysiaTheme.SURFACE_GLOW })
+        }
+        if (step.approverRole.length > 0) {
+          Text(step.approverRole).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+        }
+        if (this.stepHandlerLine(step).length > 0) {
+          Text(this.stepHandlerLine(step)).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+        }
+        if (step.comment.length > 0) {
+          Text(step.comment).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+        }
+      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+    }.width('100%').padding({ top: 8, bottom: 8 })
+    if (!isLast) {
+      Divider().strokeWidth(1).color('#15FFB3CE')
+    }
+  }
+
   @Builder InfoRow(label: string, value: string) {
     Row() {
       Text(label).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).width(72)
@@ -157,7 +205,17 @@ struct AdminApprovalDetailPage {
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-              // 审批流程时间线
+              // 审批进度（多级审批流）：steps 非空走有序进度条，否则回退旧版 flow 时间线
+              if (this.detail!.steps.length > 0) {
+                Column() {
+                  Text('审批进度').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
+                  ForEach(this.detail!.steps, (step: ApprovalStepVm, idx?: number) => {
+                    this.StepRow(step, idx !== undefined && idx >= this.detail!.steps.length - 1)
+                  }, (step: ApprovalStepVm) => `st-${step.order}`)
+                }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
+                .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+              } else {
+              // 审批流程时间线（legacy fallback）
               Column() {
                 Text('审批流程').fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 8 })
                 ForEach(this.detail!.flow, (node: ApprovalFlowNode) => {
@@ -178,6 +236,7 @@ struct AdminApprovalDetailPage {
                 }, (node: ApprovalFlowNode) => node.id)
               }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+              }
 
               // 处理意见 + 操作按钮（仅待审状态显示）
               if (this.detail!.status === 'pending') {
