@@ -7,7 +7,7 @@ const { pool } = require('../db');
 const { ok, fail } = require('../envelope');
 const { serverError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
-const { mapStudent, mapGradeTask, mapApproval, mapAuditLog, mapTemplate, mapFeedback } = require('../mappers');
+const { mapStudent, mapGradeTask, mapApproval, mapAuditLog, mapTemplate, mapFeedback, mapApprovalStep } = require('../mappers');
 const { genId } = require('../ids');
 
 const router = express.Router();
@@ -308,17 +308,43 @@ router.get('/api/admin/approvals', permissionRequired('approvals.handle:view'), 
        FROM dtest2.approval_instances WHERE ($1::text IS NULL OR status = $1) ORDER BY submitted_at DESC`,
       [status]
     );
-    res.json(ok(r.rows.map(mapApproval)));
+    // 多级审批进度：按 approval_id 批量拉取有序步骤，挂到每条审批的 steps 上（前端进度条）。
+    const ids = r.rows.map((row) => row.approval_id);
+    const stepsByApproval = {};
+    if (ids.length > 0) {
+      const sr = await pool.query(
+        `SELECT approval_id, step_order, node_name, approver_role, operator_id, status, handled_at, comment
+         FROM dtest2.approval_steps WHERE approval_id = ANY($1::text[]) ORDER BY approval_id, step_order`,
+        [ids]
+      );
+      for (const srow of sr.rows) {
+        (stepsByApproval[srow.approval_id] = stepsByApproval[srow.approval_id] || []).push(mapApprovalStep(srow));
+      }
+    }
+    res.json(ok(r.rows.map((row) => {
+      const ap = mapApproval(row);
+      ap.steps = stepsByApproval[row.approval_id] || [];
+      return ap;
+    })));
   } catch (e) {
     serverError(res, '查询审批失败', e);
   }
 });
 
+// 多级审批推进：审批人对“当前激活步骤”操作。
+//  - approve 非末步 → 该步 approved，激活下一步（waiting→pending），实例/请假仍 pending；
+//  - approve 末步 → 该步 approved，实例/请假置 approved；
+//  - reject 任意激活步 → 该步 rejected，剩余未完结步骤一并 rejected（终止），实例/请假置 rejected。
+// 事务内对实例与步骤加 FOR UPDATE 行锁，避免并发双处理。
 async function handleApproval(req, res, newStatus, comment) {
+  const operatorId = req.auth && req.auth.sub ? req.auth.sub : null;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const cur = await client.query(`SELECT status, biz_type, biz_id FROM dtest2.approval_instances WHERE approval_id=$1`, [req.params.id]);
+    const cur = await client.query(
+      `SELECT status, biz_type, biz_id FROM dtest2.approval_instances WHERE approval_id=$1 FOR UPDATE`,
+      [req.params.id]
+    );
     if (cur.rowCount === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json(fail('审批记录不存在'));
@@ -327,19 +353,71 @@ async function handleApproval(req, res, newStatus, comment) {
       await client.query('ROLLBACK');
       return res.status(409).json(fail('当前状态不可操作'));
     }
-    await client.query(`UPDATE dtest2.approval_instances SET status=$2, updated_at=now() WHERE approval_id=$1`, [req.params.id, newStatus]);
-    await client.query(
-      `UPDATE dtest2.approval_steps SET status=$2, comment=$3, handled_at=now() WHERE approval_id=$1 AND step_order=1`,
-      [req.params.id, newStatus, comment]
+    // 当前激活步骤 = 最小 step_order 的 pending 步；加锁后再读 steps 总数判断是否末步。
+    const active = await client.query(
+      `SELECT step_order FROM dtest2.approval_steps
+       WHERE approval_id=$1 AND status='pending' ORDER BY step_order ASC LIMIT 1 FOR UPDATE`,
+      [req.params.id]
     );
-    if (cur.rows[0].biz_type === 'leave') {
+    // 无激活步骤时回退兼容旧单步数据（按 step_order=1 处理）。
+    const activeOrder = active.rowCount > 0 ? active.rows[0].step_order : 1;
+    const totalRow = await client.query(
+      `SELECT COALESCE(MAX(step_order), 1) AS max_order FROM dtest2.approval_steps WHERE approval_id=$1`,
+      [req.params.id]
+    );
+    const maxOrder = totalRow.rowCount > 0 ? totalRow.rows[0].max_order : activeOrder;
+    const isLastStep = activeOrder >= maxOrder;
+
+    if (newStatus === 'rejected') {
+      // 当前激活步 rejected + 其余未完结步骤（pending/waiting）一并 rejected（终止流程）。
       await client.query(
-        `UPDATE dtest2.leave_requests SET status=$2, feedback=$3, updated_at=now() WHERE leave_id=$1`,
-        [cur.rows[0].biz_id, newStatus, comment]
+        `UPDATE dtest2.approval_steps SET status='rejected', operator_id=$2, comment=$3, handled_at=now()
+         WHERE approval_id=$1 AND step_order=$4`,
+        [req.params.id, operatorId, comment, activeOrder]
       );
+      await client.query(
+        `UPDATE dtest2.approval_steps SET status='rejected', handled_at=now()
+         WHERE approval_id=$1 AND status IN ('pending', 'waiting')`,
+        [req.params.id]
+      );
+      await client.query(`UPDATE dtest2.approval_instances SET status='rejected', updated_at=now() WHERE approval_id=$1`, [req.params.id]);
+      if (cur.rows[0].biz_type === 'leave') {
+        await client.query(
+          `UPDATE dtest2.leave_requests SET status='rejected', feedback=$2, updated_at=now() WHERE leave_id=$1`,
+          [cur.rows[0].biz_id, comment]
+        );
+      }
+      await client.query('COMMIT');
+      return res.json(ok({ handled: true, status: 'rejected', step: activeOrder, finalized: true }));
     }
+
+    // approve：当前激活步置 approved。
+    await client.query(
+      `UPDATE dtest2.approval_steps SET status='approved', operator_id=$2, comment=$3, handled_at=now()
+       WHERE approval_id=$1 AND step_order=$4`,
+      [req.params.id, operatorId, comment, activeOrder]
+    );
+    if (isLastStep) {
+      // 末步通过 → 实例/请假 approved。
+      await client.query(`UPDATE dtest2.approval_instances SET status='approved', current_step=$2, updated_at=now() WHERE approval_id=$1`, [req.params.id, activeOrder]);
+      if (cur.rows[0].biz_type === 'leave') {
+        await client.query(
+          `UPDATE dtest2.leave_requests SET status='approved', feedback=$2, updated_at=now() WHERE leave_id=$1`,
+          [cur.rows[0].biz_id, comment]
+        );
+      }
+      await client.query('COMMIT');
+      return res.json(ok({ handled: true, status: 'approved', step: activeOrder, finalized: true }));
+    }
+    // 非末步通过 → 激活下一步（waiting→pending），实例 current_step 前移，整体仍 pending。
+    const nextOrder = activeOrder + 1;
+    await client.query(
+      `UPDATE dtest2.approval_steps SET status='pending' WHERE approval_id=$1 AND step_order=$2 AND status='waiting'`,
+      [req.params.id, nextOrder]
+    );
+    await client.query(`UPDATE dtest2.approval_instances SET current_step=$2, updated_at=now() WHERE approval_id=$1`, [req.params.id, nextOrder]);
     await client.query('COMMIT');
-    res.json(ok({ handled: true, status: newStatus }));
+    res.json(ok({ handled: true, status: 'pending', step: activeOrder, nextStep: nextOrder, finalized: false }));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
     serverError(res, '审批处理失败', e);

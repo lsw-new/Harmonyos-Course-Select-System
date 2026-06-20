@@ -238,6 +238,20 @@ function mapApproval(row) {
   };
 }
 
+// 多级审批步骤映射（用于前端 ApprovalFlowNode 进度条）。
+// 字段：order/title/status/handler/handledAt（驼峰）。
+function mapApprovalStep(row) {
+  return {
+    order: row.step_order,
+    title: row.node_name,
+    approverRole: row.approver_role || '',
+    status: row.status,
+    handler: row.operator_id || '',
+    handledAt: row.handled_at || '',
+    comment: row.comment || ''
+  };
+}
+
 function mapAuditLog(row) {
   return {
     id: row.log_id,
@@ -272,6 +286,7 @@ module.exports = {
   SELECTED_COUNT_JOIN,
   mapNotice,
   mapLeave,
+  mapApprovalStep,
   mapFeedback,
   mapEval,
   mapPractice,

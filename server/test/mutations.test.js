@@ -44,18 +44,54 @@ describe('学生写操作', () => {
     expect(res.body.data.read).toBe(true);
   });
 
-  test('POST /api/leave 合法 → 200（事务建审批闭环）', async () => {
+  test('POST /api/leave 合法 → 200（事务建审批闭环 + 多级有序步骤，首步激活）', async () => {
+    const insertedSteps = [];
     __mock.setRoutes([
       { match: /INSERT INTO dtest2\.leave_requests/, result: [{ leave_id: 'lv1', type: 'personal', start_date: '2026-06-01', end_date: '2026-06-02', reason: 'r', status: 'pending', feedback: '', submitted_at: 't' }] },
       { match: /SELECT name FROM dtest2\.student_profiles/, result: [{ name: '张三' }] },
       { match: /INSERT INTO dtest2\.approval_instances/, result: [] },
-      { match: /INSERT INTO dtest2\.approval_steps/, result: [] }
+      { match: /FROM dtest2\.approval_flow_nodes/, result: [
+        { name: '辅导员审批', approver_role: '教务管理员', node_order: 1 },
+        { name: '教务审批', approver_role: '教务管理员', node_order: 2 },
+        { name: '院领导审批', approver_role: '教务管理员', node_order: 3 }
+      ] },
+      { match: /INSERT INTO dtest2\.approval_steps/, result: (params) => { insertedSteps.push({ order: params[2], status: params[5] }); return []; } },
+      { match: /SELECT step_order, node_name.*FROM dtest2\.approval_steps WHERE approval_id/s, result: [
+        { step_order: 1, node_name: '辅导员审批', approver_role: '教务管理员', operator_id: null, status: 'pending', handled_at: null, comment: null },
+        { step_order: 2, node_name: '教务审批', approver_role: '教务管理员', operator_id: null, status: 'waiting', handled_at: null, comment: null },
+        { step_order: 3, node_name: '院领导审批', approver_role: '教务管理员', operator_id: null, status: 'waiting', handled_at: null, comment: null }
+      ] }
     ]);
     const res = await request(app).post('/api/leave').set('Authorization', stu)
       .send({ type: 'personal', startDate: '2026-06-01', endDate: '2026-06-02', reason: '回家' });
     expect(res.status).toBe(200);
     expect(__mock.executed('INSERT INTO dtest2.approval_instances')).toBe(true);
     expect(__mock.executed('COMMIT')).toBe(true);
+    // 建了 3 个有序步骤，首步 pending（激活），其余 waiting
+    expect(insertedSteps.length).toBe(3);
+    expect(insertedSteps[0]).toEqual({ order: 1, status: 'pending' });
+    expect(insertedSteps[1].status).toBe('waiting');
+    expect(insertedSteps[2].status).toBe('waiting');
+    // 响应带回 steps 进度
+    expect(res.body.data.steps.length).toBe(3);
+    expect(res.body.data.steps[0].order).toBe(1);
+    expect(res.body.data.steps[0].title).toBe('辅导员审批');
+    expect(res.body.data.steps[0].status).toBe('pending');
+  });
+
+  test('POST /api/leave/:id/withdraw → 关闭未完结步骤并置请假 withdrawn', async () => {
+    __mock.setRoutes([
+      { match: /SELECT status FROM dtest2\.leave_requests WHERE leave_id/, result: [{ status: 'pending' }] },
+      { match: /UPDATE dtest2\.leave_requests SET status = 'withdrawn'/, result: [{ leave_id: 'lv1', type: 'personal', start_date: '2026-06-01', end_date: '2026-06-02', reason: 'r', status: 'withdrawn', feedback: '', submitted_at: 't' }] },
+      { match: /UPDATE dtest2\.approval_steps SET status = 'rejected'/, result: [] },
+      { match: /UPDATE dtest2\.approval_instances SET status = 'withdrawn'/, result: [] }
+    ]);
+    const res = await request(app).post('/api/leave/lv1/withdraw').set('Authorization', stu);
+    expect(res.status).toBe(200);
+    expect(res.body.data.state).toBe('withdrawn');
+    // 撤回时关闭 pending/waiting 步骤
+    expect(__mock.executed("UPDATE dtest2.approval_steps SET status = 'rejected'")).toBe(true);
+    expect(__mock.executed("UPDATE dtest2.approval_instances SET status = 'withdrawn'")).toBe(true);
   });
 
   test('POST /api/leave 类型非法 → 400', async () => {
@@ -147,16 +183,55 @@ describe('管理端写操作（具备权限）', () => {
     expect(res.status).toBe(200);
   });
 
-  test('POST /api/admin/approvals/:id/approve → 200（联动请假状态）', async () => {
+  test('POST /api/admin/approvals/:id/approve → 200（单步=末步，联动请假 approved）', async () => {
     __mock.setRoutes([
       PERM,
       { match: /SELECT status, biz_type, biz_id FROM dtest2\.approval_instances/, result: [{ status: 'pending', biz_type: 'leave', biz_id: 'lv1' }] },
+      { match: /status='pending' ORDER BY step_order ASC LIMIT 1/, result: [{ step_order: 1 }] },
+      { match: /MAX\(step_order\)/, result: [{ max_order: 1 }] },
       { match: /UPDATE dtest2\.approval_instances/, result: [] },
       { match: /UPDATE dtest2\.approval_steps/, result: [] },
       { match: /UPDATE dtest2\.leave_requests/, result: [] }
     ]);
     const res = await request(app).post('/api/admin/approvals/ap1/approve').set('Authorization', adm).send({ comment: '准假' });
     expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('approved');
+    expect(res.body.data.finalized).toBe(true);
+    expect(__mock.executed('UPDATE dtest2.leave_requests')).toBe(true);
+  });
+
+  test('POST /api/admin/approvals/:id/approve 非末步 → 仍 pending 并激活下一步', async () => {
+    __mock.setRoutes([
+      PERM,
+      { match: /SELECT status, biz_type, biz_id FROM dtest2\.approval_instances/, result: [{ status: 'pending', biz_type: 'leave', biz_id: 'lv1' }] },
+      { match: /status='pending' ORDER BY step_order ASC LIMIT 1/, result: [{ step_order: 1 }] },
+      { match: /MAX\(step_order\)/, result: [{ max_order: 3 }] },
+      { match: /UPDATE dtest2\.approval_steps/, result: [] },
+      { match: /UPDATE dtest2\.approval_instances/, result: [] }
+    ]);
+    const res = await request(app).post('/api/admin/approvals/ap1/approve').set('Authorization', adm).send({ comment: '同意' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('pending');
+    expect(res.body.data.finalized).toBe(false);
+    expect(res.body.data.nextStep).toBe(2);
+    // 非末步不应联动请假最终状态
+    expect(__mock.executed('UPDATE dtest2.leave_requests')).toBe(false);
+  });
+
+  test('POST /api/admin/approvals/:id/reject 激活步 → 终止流程并置请假 rejected', async () => {
+    __mock.setRoutes([
+      PERM,
+      { match: /SELECT status, biz_type, biz_id FROM dtest2\.approval_instances/, result: [{ status: 'pending', biz_type: 'leave', biz_id: 'lv1' }] },
+      { match: /status='pending' ORDER BY step_order ASC LIMIT 1/, result: [{ step_order: 2 }] },
+      { match: /MAX\(step_order\)/, result: [{ max_order: 3 }] },
+      { match: /UPDATE dtest2\.approval_steps/, result: [] },
+      { match: /UPDATE dtest2\.approval_instances/, result: [] },
+      { match: /UPDATE dtest2\.leave_requests/, result: [] }
+    ]);
+    const res = await request(app).post('/api/admin/approvals/ap1/reject').set('Authorization', adm).send({ comment: '不予批准' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('rejected');
+    expect(res.body.data.finalized).toBe(true);
     expect(__mock.executed('UPDATE dtest2.leave_requests')).toBe(true);
   });
 

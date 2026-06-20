@@ -6,7 +6,7 @@ const { ok, fail } = require('../envelope');
 const { authRequired } = require('../auth');
 const { serverError } = require('../middleware/errorHandler');
 const { currentStudentId } = require('../identity');
-const { mapLeave, leaveTypeLabel } = require('../mappers');
+const { mapLeave, leaveTypeLabel, mapApprovalStep } = require('../mappers');
 const { genId } = require('../ids');
 
 const router = express.Router();
@@ -24,7 +24,24 @@ router.get('/api/leave', authRequired, async (req, res) => {
        FROM dtest2.leave_requests WHERE student_id = $1 ORDER BY submitted_at DESC`,
       [studentId]
     );
-    res.json(ok(r.rows.map(mapLeave)));
+    // 多级审批进度：一次性按 'ap-<leaveId>' 拉取本人所有请假的有序步骤，按 approval_id 分组挂到各请假上。
+    const ids = r.rows.map((row) => 'ap-' + row.leave_id);
+    const stepsByApproval = {};
+    if (ids.length > 0) {
+      const sr = await pool.query(
+        `SELECT approval_id, step_order, node_name, approver_role, operator_id, status, handled_at, comment
+         FROM dtest2.approval_steps WHERE approval_id = ANY($1::text[]) ORDER BY approval_id, step_order`,
+        [ids]
+      );
+      for (const srow of sr.rows) {
+        (stepsByApproval[srow.approval_id] = stepsByApproval[srow.approval_id] || []).push(mapApprovalStep(srow));
+      }
+    }
+    res.json(ok(r.rows.map((row) => {
+      const leave = mapLeave(row);
+      leave.steps = stepsByApproval['ap-' + row.leave_id] || [];
+      return leave;
+    })));
   } catch (e) {
     serverError(res, '查询请假失败', e);
   }
@@ -69,14 +86,35 @@ router.post('/api/leave', authRequired, async (req, res) => {
        ON CONFLICT (biz_type, biz_id) DO NOTHING`,
       [approvalId, leaveId, studentId, applicantName, leaveTypeLabel(type) + '请假申请', reason]
     );
-    await client.query(
-      `INSERT INTO dtest2.approval_steps (step_id, approval_id, step_order, node_name, approver_role, status)
-       VALUES ($1, $2, 1, '教务审批', '教务管理员', 'pending')
-       ON CONFLICT (approval_id, step_order) DO NOTHING`,
-      [`step-${approvalId}-1`, approvalId]
+    // 多级审批：按配置流（approval_flow_nodes，启用，按 node_order 升序）逐节点建步骤。
+    // 第一步置 pending（当前激活待办），其余置 waiting（等待，未激活）；leave/approval 整体仍为 pending。
+    // 无配置时回退为单节点教务审批，保持旧行为不破。
+    const flow = await client.query(
+      `SELECT name, approver_role, node_order FROM dtest2.approval_flow_nodes
+       WHERE enabled = true ORDER BY node_order ASC`
+    );
+    const nodes = flow.rowCount > 0
+      ? flow.rows
+      : [{ name: '教务审批', approver_role: '教务管理员', node_order: 1 }];
+    for (let i = 0; i < nodes.length; i++) {
+      const order = i + 1;
+      const stepStatus = i === 0 ? 'pending' : 'waiting';
+      await client.query(
+        `INSERT INTO dtest2.approval_steps (step_id, approval_id, step_order, node_name, approver_role, status)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (approval_id, step_order) DO NOTHING`,
+        [`step-${approvalId}-${order}`, approvalId, order, nodes[i].name, nodes[i].approver_role, stepStatus]
+      );
+    }
+    const stepsRows = await client.query(
+      `SELECT step_order, node_name, approver_role, operator_id, status, handled_at, comment
+       FROM dtest2.approval_steps WHERE approval_id = $1 ORDER BY step_order`,
+      [approvalId]
     );
     await client.query('COMMIT');
-    res.json(ok(mapLeave(r.rows[0])));
+    const leave = mapLeave(r.rows[0]);
+    leave.steps = stepsRows.rows.map(mapApprovalStep);
+    res.json(ok(leave));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
     serverError(res, '提交请假失败', e);
@@ -117,7 +155,14 @@ router.post('/api/leave/:id/withdraw', authRequired, async (req, res) => {
                  reason, status, COALESCE(feedback, '') AS feedback, submitted_at`,
       [leaveId, studentId]
     );
-    // leave -> approval 闭环：审批实例同步置 withdrawn；approval_steps 的 CHECK 不含 withdrawn 故不动
+    // leave -> approval 闭环：审批实例同步置 withdrawn；
+    // 多级审批：撤回时关闭所有未完结（pending/waiting）步骤。approval_steps 的 CHECK 不含 withdrawn/cancelled，
+    // 故用允许值 'rejected' 终止剩余步骤（代表流程被撤回而提前结束）；已 approved 的历史步骤保留不动。
+    await client.query(
+      `UPDATE dtest2.approval_steps SET status = 'rejected', handled_at = now()
+       WHERE approval_id = ('ap-' || $1) AND status IN ('pending', 'waiting')`,
+      [leaveId]
+    );
     await client.query(
       `UPDATE dtest2.approval_instances SET status = 'withdrawn', updated_at = now()
        WHERE biz_type = 'leave' AND biz_id = $1`,
