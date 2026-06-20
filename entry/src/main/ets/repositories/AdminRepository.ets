@@ -5,7 +5,7 @@ import {
   AdminDashboardSummary, DashboardStatCard, TrendPoint, DistributionItem,
   StudentAdminItem, AdminCourseItem, AdminCourseWritePayload, SelectionRound, SelectionRoundStatus,
   GradeAuditItem, GradeInputPayload, GradeRejectPayload, GradeScoreRow, NoticeDraft, EvaluationStats, ApprovalItem, ApprovalDetail, ApprovalStatus,
-  AdminPermissionAction
+  AdminPermissionAction, GradeAppealItem, GradeAppealStatus, AdminExamItem, AdminExamWritePayload
 } from '../models/Admin';
 import { LeaveRequest, ApprovalState, FeedbackItem, FeedbackCategory, FeedbackState } from '../models/Misc';
 import {
@@ -17,7 +17,7 @@ import { LocalDataStore } from '../common/storage/LocalDataStore';
 import { AuthorizationService } from '../common/security/AuthorizationService';
 import { NoticeStore } from '../common/services/NoticeStore';
 import { AppConfig } from '../app/AppConfig';
-import { RemoteApi, GradeScoreEntry, AdminCourseBody, RemoteAdminRound, RemoteFeedback } from '../common/remote/RemoteApi';
+import { RemoteApi, GradeScoreEntry, AdminCourseBody, RemoteAdminRound, RemoteFeedback, RemoteAdminGradeAppeal, AdminExamBody, RemoteExam } from '../common/remote/RemoteApi';
 import { CourseLogic } from './CourseLogic';
 import { AdminLogic } from './AdminLogic';
 import { AdminRdbStore } from './AdminRdbStore';
@@ -902,5 +902,142 @@ export class AdminRepository extends BaseRepository {
     }
     const remote = await RemoteApi.adminHandleFeedback(id, trimmedReply, trimmedState);
     return this.delay<FeedbackItem>(this.remoteToFeedback(remote));
+  }
+
+  // ====== 成绩申诉受理（管理端） ======
+  // 学生端提交申诉→后端落库→管理端在此读取并受理/驳回→回写处理结果
+
+  private remoteToGradeAppeal(a: RemoteAdminGradeAppeal): GradeAppealItem {
+    const item: GradeAppealItem = {
+      appealId: a.appealId,
+      studentId: a.studentId,
+      studentName: a.studentName,
+      taskId: a.taskId,
+      courseId: a.courseId,
+      term: a.term,
+      reason: a.reason,
+      status: a.status as GradeAppealStatus,
+      reply: a.reply,
+      handledBy: a.handledBy,
+      handledAt: a.handledAt,
+      submittedAt: a.submittedAt,
+      updatedAt: a.updatedAt
+    };
+    return item;
+  }
+
+  async getGradeAppeals(status?: string): Promise<GradeAppealItem[]> {
+    if (!this.hasGradePermission('view')) {
+      return this.rejectUnauthorized();
+    }
+    if (AppConfig.useRemote) {
+      const remote = await RemoteApi.adminListGradeAppeals(status);
+      return this.delayCopy<GradeAppealItem[]>(remote.map((a) => this.remoteToGradeAppeal(a)));
+    }
+    return this.delay<GradeAppealItem[]>([]);
+  }
+
+  async handleGradeAppeal(id: string, decision: string, reply: string): Promise<GradeAppealItem> {
+    if (!this.hasGradePermission('approve')) {
+      return this.rejectUnauthorized();
+    }
+    if (decision !== 'accepted' && decision !== 'rejected') {
+      return this.reject('请选择受理或驳回');
+    }
+    if (!AppConfig.useRemote) {
+      return this.reject('该操作需要联网');
+    }
+    const remote = await RemoteApi.adminHandleGradeAppeal(id, decision, reply.trim());
+    return this.delay<GradeAppealItem>(this.remoteToGradeAppeal(remote));
+  }
+
+  // ====== 考试管理（管理端 CRUD） ======
+  // 联机能力：后端为考试安排单一事实来源；本地演示模式返回空列表
+
+  private remoteToExam(e: RemoteExam): AdminExamItem {
+    const item: AdminExamItem = {
+      examId: e.examId,
+      courseId: e.courseId,
+      courseName: e.courseName,
+      courseCode: e.courseCode,
+      term: e.term,
+      examDate: e.examDate,
+      startTime: e.startTime,
+      endTime: e.endTime,
+      location: e.location,
+      seatNo: e.seatNo,
+      examType: e.examType
+    };
+    return item;
+  }
+
+  private toExamBody(payload: AdminExamWritePayload): AdminExamBody {
+    const body: AdminExamBody = {
+      courseId: payload.courseId,
+      term: payload.term,
+      examDate: payload.examDate,
+      startTime: payload.startTime,
+      endTime: payload.endTime,
+      location: payload.location,
+      seatNo: payload.seatNo,
+      examType: payload.examType
+    };
+    return body;
+  }
+
+  async getExams(): Promise<AdminExamItem[]> {
+    if (!this.hasCourseWritePermission('view')) {
+      return this.rejectUnauthorized();
+    }
+    if (AppConfig.useRemote) {
+      const remote = await RemoteApi.adminListExams();
+      return this.delayCopy<AdminExamItem[]>(remote.map((e) => this.remoteToExam(e)));
+    }
+    return this.delay<AdminExamItem[]>([]);
+  }
+
+  async createExam(payload: AdminExamWritePayload): Promise<AdminExamItem> {
+    if (!this.hasCourseWritePermission('create')) {
+      return this.rejectUnauthorized();
+    }
+    if (!AppConfig.useRemote) {
+      return this.reject('该操作需要联网');
+    }
+    try {
+      const remote = await RemoteApi.adminCreateExam(this.toExamBody(payload));
+      return this.delayCopy<AdminExamItem>(this.remoteToExam(remote));
+    } catch (e) {
+      return this.reject((e instanceof Error) ? e.message : String(e));
+    }
+  }
+
+  async updateExam(id: string, payload: AdminExamWritePayload): Promise<AdminExamItem> {
+    if (!this.hasCourseWritePermission('update')) {
+      return this.rejectUnauthorized();
+    }
+    if (!AppConfig.useRemote) {
+      return this.reject('该操作需要联网');
+    }
+    try {
+      const remote = await RemoteApi.adminUpdateExam(id, this.toExamBody(payload));
+      return this.delayCopy<AdminExamItem>(this.remoteToExam(remote));
+    } catch (e) {
+      return this.reject((e instanceof Error) ? e.message : String(e));
+    }
+  }
+
+  async deleteExam(id: string): Promise<boolean> {
+    if (!this.hasCourseWritePermission('delete')) {
+      return this.rejectUnauthorized();
+    }
+    if (!AppConfig.useRemote) {
+      return this.reject('该操作需要联网');
+    }
+    try {
+      await RemoteApi.adminDeleteExam(id);
+      return this.delay<boolean>(true);
+    } catch (e) {
+      return this.reject((e instanceof Error) ? e.message : String(e));
+    }
   }
 }

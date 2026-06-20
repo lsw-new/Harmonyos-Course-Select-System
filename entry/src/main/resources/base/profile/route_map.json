@@ -51,6 +51,16 @@
                           "buildFunction":  "AdminGradesPageBuilder"
                       },
                       {
+                          "name":  "pages/AdminGradeAppealsPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminGradeAppealsPage.ets",
+                          "buildFunction":  "AdminGradeAppealsPageBuilder"
+                      },
+                      {
+                          "name":  "pages/AdminExamsPage",
+                          "pageSourceFile":  "src/main/ets/pages/AdminExamsPage.ets",
+                          "buildFunction":  "AdminExamsPageBuilder"
+                      },
+                      {
                           "name":  "pages/AdminLoginPage",
                           "pageSourceFile":  "src/main/ets/pages/AdminLoginPage.ets",
                           "buildFunction":  "AdminLoginPageBuilder"

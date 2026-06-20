@@ -192,6 +192,51 @@ export interface ApprovalItem {
   submittedAt: string;
 }
 
+// 管理端·成绩申诉受理
+export type GradeAppealStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface GradeAppealItem {
+  appealId: string;
+  studentId: string;
+  studentName: string;
+  taskId: string;
+  courseId: string;
+  term: string;
+  reason: string;
+  status: GradeAppealStatus;
+  reply: string;
+  handledBy: string;
+  handledAt: string;
+  submittedAt: string;
+  updatedAt: string;
+}
+
+// 管理端·考试 CRUD
+export interface AdminExamItem {
+  examId: string;
+  courseId: string;
+  courseName: string;
+  courseCode: string;
+  term: string;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  seatNo: string;
+  examType: string;
+}
+
+export interface AdminExamWritePayload {
+  courseId: string;
+  term: string;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  seatNo: string;
+  examType: string;
+}
+
 export interface ApprovalFlowNode {
   id: string;
   nodeName: string;

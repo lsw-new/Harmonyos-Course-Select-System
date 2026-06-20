@@ -530,6 +530,40 @@ interface NoticeBody {
   receiverScope: string[];
 }
 
+// 管理端·成绩申诉（含学生姓名 + 处理人/时间）
+export interface RemoteAdminGradeAppeal {
+  appealId: string;
+  studentId: string;
+  studentName: string;
+  taskId: string;
+  courseId: string;
+  term: string;
+  reason: string;
+  status: string;
+  reply: string;
+  handledBy: string;
+  handledAt: string;
+  submittedAt: string;
+  updatedAt: string;
+}
+
+interface AdminAppealHandleBody {
+  decision: string;
+  reply: string;
+}
+
+// 管理端·考试写入体（courseId/term 必填；时间可空但给定须 HH:MM；examType 默认 final）
+export interface AdminExamBody {
+  courseId: string;
+  term: string;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  seatNo: string;
+  examType: string;
+}
+
 export class RemoteApi {
   static async login(account: string, password: string): Promise<RemoteLoginResult> {
     const body: LoginBody = { account: account, password: password };
@@ -899,5 +933,36 @@ export class RemoteApi {
       receiverScope: receiverScope
     };
     await apiClient.post<Object>('/admin/notices', body);
+  }
+
+  // ===== 管理端·成绩申诉受理 =====
+  static async adminListGradeAppeals(status?: string): Promise<RemoteAdminGradeAppeal[]> {
+    let path = '/admin/grade-appeals';
+    if (status && status.length > 0) {
+      path += '?status=' + encodeURIComponent(status);
+    }
+    return apiClient.get<RemoteAdminGradeAppeal[]>(path);
+  }
+
+  static async adminHandleGradeAppeal(id: string, decision: string, reply: string): Promise<RemoteAdminGradeAppeal> {
+    const body: AdminAppealHandleBody = { decision: decision, reply: reply };
+    return apiClient.post<RemoteAdminGradeAppeal>('/admin/grade-appeals/' + encodeURIComponent(id) + '/handle', body);
+  }
+
+  // ===== 管理端·考试 CRUD =====
+  static async adminListExams(): Promise<RemoteExam[]> {
+    return apiClient.get<RemoteExam[]>('/admin/exams');
+  }
+
+  static async adminCreateExam(body: AdminExamBody): Promise<RemoteExam> {
+    return apiClient.post<RemoteExam>('/admin/exams', body);
+  }
+
+  static async adminUpdateExam(id: string, body: AdminExamBody): Promise<RemoteExam> {
+    return apiClient.put<RemoteExam>('/admin/exams/' + encodeURIComponent(id), body);
+  }
+
+  static async adminDeleteExam(id: string): Promise<void> {
+    await apiClient.delete<Object>('/admin/exams/' + encodeURIComponent(id), undefined);
   }
 }
