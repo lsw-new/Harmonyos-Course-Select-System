@@ -12,6 +12,10 @@ import { HttpError } from '../common/http/HttpError';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
+import { AppIcon } from '../common/widgets/AppIcon';
+import { FileService } from '../common/services/FileService';
+import { AppConfig } from '../app/AppConfig';
+import { AuthorizationService } from '../common/security/AuthorizationService';
 
 const BAR_LABELS: string[] = ['5 星', '4 星', '3 星', '2 星', '1 星'];
 
@@ -23,6 +27,7 @@ struct AdminEvalPage {
   @State periodSubmitting: boolean = false;
   @State errorMsg: string = '';
   @State formError: string = '';
+  @State exporting: boolean = false;
   @State stats: EvalAdminStats | null = null;
   @State templates: QuestionnaireTemplate[] = [];
   @State isEditing: boolean = false;
@@ -245,6 +250,46 @@ struct AdminEvalPage {
     return `${star} 星`;
   }
 
+  // 是否展示导出按钮：复用细粒度权限（与仪表盘/路由守卫一致，统一用 view 动作）
+  private canExport(): boolean {
+    return AuthorizationService.hasAdminPermission('evaluation.manage', 'view');
+  }
+
+  // 导出评教报表（Excel）：联机鉴权下载，由系统保存器落到用户可见位置。
+  private exportReport(): void {
+    if (this.exporting) {
+      return;
+    }
+    if (!AppConfig.useRemote) {
+      Toast.show(this.getUIContext(), '导出需联网');
+      return;
+    }
+    this.exporting = true;
+    FileService.exportAuthedFile('/api/admin/reports/evaluation/export', 'report-evaluation.xlsx')
+      .then((saved: string) => {
+        this.exporting = false;
+        if (saved.length === 0) {
+          Toast.show(this.getUIContext(), '已取消');
+        } else {
+          Toast.show(this.getUIContext(), '报表已导出');
+        }
+      })
+      .catch((e: object) => {
+        this.exporting = false;
+        Toast.show(this.getUIContext(), e instanceof Error ? e.message : '导出失败');
+      });
+  }
+
+  @Builder ExportButton() {
+    Button({ type: ButtonType.Circle }) { AppIcon({ name: 'download', iconSize: 16 }) }
+      .width(34).height(34)
+      .backgroundColor(ElysiaTheme.glassSoft())
+      .border({ width: 1, color: ElysiaTheme.hairline() })
+      .enabled(!this.exporting)
+      .accessibilityText('导出评教报表')
+      .onClick(() => { this.exportReport(); })
+  }
+
   build() {
     Stack() {
       RouteLoadingOverlay()
@@ -254,6 +299,13 @@ struct AdminEvalPage {
       Column() {
         SafeTop()
         TopBar({ title: $r('app.string.admineval_title'), subtitle: $r('app.string.admineval_subtitle'), onBack: () => AppRoute.back() })
+
+        if (this.canExport()) {
+          Row() {
+            Blank().layoutWeight(1)
+            this.ExportButton()
+          }.width('100%').padding({ left: 16, right: 16, bottom: 4 })
+        }
 
         if (this.loading) {
           Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
