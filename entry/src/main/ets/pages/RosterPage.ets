@@ -96,8 +96,11 @@ struct RosterPage {
                     ['英文名', this.record!.englishName ?? '—'],
                     ['性别', this.record!.gender],
                     ['年级', this.record!.grade],
-                    ['学制', this.record!.schoolingLength],
-                    ['学历', this.record!.educationLevel],
+                    ['政治面貌', this.record!.politicalStatus ?? '—'],
+                    ['民族', this.record!.ethnicity ?? '—'],
+                    ['籍贯', this.record!.nativePlace ?? '—'],
+                    ['学制', this.record!.programLength ?? this.record!.schoolingLength],
+                    ['培养层次', this.record!.educationLevel],
                     ['学生类别', this.record!.studentCategory],
                     ['专业', this.record!.major],
                     ['方向', this.record!.direction ?? '—'],
@@ -106,13 +109,13 @@ struct RosterPage {
                     ['平均绩点(GPA)', this.record!.gpaText ?? '—'],
                     ['已修学分', this.record!.earnedCredits !== undefined ? `${this.record!.earnedCredits}` : '—'],
                     ['已修门数', this.record!.passedCount !== undefined ? `${this.record!.passedCount}` : '—'],
-                    ['入校日期', this.record!.entranceDate],
+                    ['入学日期', this.record!.enrollmentDate ?? this.record!.entranceDate],
                     ['毕业日期', this.record!.graduationDate ?? '—'],
                     ['学习方式', this.record!.studyMode],
                     ['注册状态', this.record!.isRegistered ? '在籍' : '非在籍'],
                     ['在校状态', this.record!.isAtSchool ? '在校' : '离校'],
                     ['所属校区', this.record!.campus],
-                    ['学籍状态', this.record!.recordStatus],
+                    ['学籍状态', this.record!.enrollmentStatus ?? this.record!.recordStatus],
                     ['生效日期', this.record!.effectiveDate],
                     ['备注', this.record!.remark ?? '—']
                   ] as Array<[string, string]>,
@@ -121,7 +124,7 @@ struct RosterPage {
                       Text(kv[0]).fontSize(12).fontColor(ElysiaTheme.INK_SOFT).layoutWeight(1)
                       Text(kv[1]).fontSize(12).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK)
                     }.width('100%').padding({ top: 10, bottom: 10 })
-                    if (i !== undefined && i < 20) {
+                    if (i !== undefined && i < 26) {
                       Divider().strokeWidth(1).color(ElysiaTheme.hairline())
                     }
                   },

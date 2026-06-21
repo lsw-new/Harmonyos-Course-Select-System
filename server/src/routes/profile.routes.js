@@ -94,6 +94,8 @@ router.get('/api/profile/record', authRequired, async (req, res) => {
     const r = await pool.query(
       `SELECT sp.student_id, sp.name, sp.avatar_url, sp.college, sp.major, sp.class_name,
               sp.grade, sp.phone, sp.email, sp.address, sp.emergency_contact, sp.bio,
+              sp.political_status, sp.ethnicity, sp.native_place, sp.enrollment_date,
+              sp.program_length, sp.education_level, sp.enrollment_status,
               agg.gpa, agg.earned_credits, agg.passed_count
        FROM dtest2.student_profiles sp
        LEFT JOIN (
@@ -134,7 +136,15 @@ router.get('/api/profile/record', authRequired, async (req, res) => {
       advisor: null,
       dormitory: null,
       eduSystem: null,
-      trainingType: null
+      trainingType: null,
+      // 学籍注册字段（roadmap #3）：null-safe，未填时返回 null
+      politicalStatus: p.political_status || null,
+      ethnicity: p.ethnicity || null,
+      nativePlace: p.native_place || null,
+      enrollmentDate: p.enrollment_date ? String(p.enrollment_date).substring(0, 10) : null,
+      programLength: p.program_length || null,
+      educationLevel: p.education_level || null,
+      enrollmentStatus: p.enrollment_status || null
     };
     res.json(ok(record));
   } catch (e) {

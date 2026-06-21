@@ -281,6 +281,17 @@ export class AcademicRepository extends BaseRepository {
         record.gpaText = (remote.gpa !== null) ? remote.gpa.toFixed(2) : '—';
         record.earnedCredits = remote.earnedCredits;
         record.passedCount = remote.passedCount;
+        // 学籍注册字段（roadmap #3）
+        record.politicalStatus = remote.politicalStatus;
+        record.ethnicity = remote.ethnicity;
+        record.nativePlace = remote.nativePlace;
+        record.enrollmentDate = remote.enrollmentDate;
+        record.programLength = remote.programLength;
+        // educationLevel 是 StudentRecord 中已有的 string 字段，null-safe 覆盖
+        if (remote.educationLevel !== null) {
+          record.educationLevel = remote.educationLevel;
+        }
+        record.enrollmentStatus = remote.enrollmentStatus;
       } catch (e) {
         // 远程失败：保留兜底，学籍页仍可展示身份字段
       }

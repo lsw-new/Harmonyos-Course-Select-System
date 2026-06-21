@@ -270,6 +270,14 @@ export interface RemoteStudentRecord {
   gpa: number | null;
   earnedCredits: number;
   passedCount: number;
+  // 学籍注册字段（roadmap #3）：DB 未填时后端返回 null
+  politicalStatus: string | null;
+  ethnicity: string | null;
+  nativePlace: string | null;
+  enrollmentDate: string | null;
+  programLength: string | null;
+  educationLevel: string | null;
+  enrollmentStatus: string | null;
 }
 
 export interface RemoteFeedback {

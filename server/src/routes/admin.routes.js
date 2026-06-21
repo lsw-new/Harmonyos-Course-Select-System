@@ -804,4 +804,61 @@ router.patch('/api/admin/feedback/:id', permissionRequired('feedback.handle:upda
   }
 });
 
+// ---- 学籍注册字段更新（roadmap #3）：管理端按学号写学籍档案字段 ----
+// 可更新字段：political_status/ethnicity/native_place/enrollment_date/program_length/education_level/enrollment_status。
+// 学生身份从 URL param 取（管理端操作指定学生，与 /api/profile/record 的 JWT 自取分离）。
+// 所有字段 nullable text（enrollment_date 接受 ISO 日期串或空串清空），参数化查询杜绝注入。
+const STUDENT_RECORD_FIELDS = [
+  ['political_status', 'politicalStatus'],
+  ['ethnicity', 'ethnicity'],
+  ['native_place', 'nativePlace'],
+  ['enrollment_date', 'enrollmentDate'],
+  ['program_length', 'programLength'],
+  ['education_level', 'educationLevel'],
+  ['enrollment_status', 'enrollmentStatus']
+];
+
+router.put('/api/admin/students/:id/record', permissionRequired('students.manage:update'), async (req, res) => {
+  const studentId = String(req.params.id || '').trim();
+  if (!studentId) {
+    return res.status(400).json(fail('缺少学号'));
+  }
+  const b = req.body || {};
+  const sets = [];
+  const params = [];
+  for (const [col, key] of STUDENT_RECORD_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(b, key)) {
+      continue;
+    }
+    const raw = b[key];
+    // 接受 null（清空）或非空字符串；其他类型拒绝
+    if (raw !== null && typeof raw !== 'string') {
+      return res.status(400).json(fail(`${key} 必须为字符串或 null`));
+    }
+    const value = raw === null ? null : raw.trim() === '' ? null : raw.trim();
+    // enrollment_date 简单格式校验（YYYY-MM-DD 或空/null）
+    if (col === 'enrollment_date' && value !== null && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return res.status(400).json(fail('enrollment_date 格式须为 YYYY-MM-DD'));
+    }
+    params.push(value);
+    sets.push(`${col} = $${params.length}`);
+  }
+  if (sets.length === 0) {
+    return res.status(400).json(fail('没有可更新的学籍字段'));
+  }
+  try {
+    params.push(studentId);
+    const r = await pool.query(
+      `UPDATE dtest2.student_profiles SET ${sets.join(', ')}, updated_at = now() WHERE student_id = $${params.length}`,
+      params
+    );
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('学生不存在'));
+    }
+    res.json(ok({ updated: true, studentId }));
+  } catch (e) {
+    serverError(res, '更新学籍字段失败', e);
+  }
+});
+
 module.exports = router;

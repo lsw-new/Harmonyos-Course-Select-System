@@ -72,4 +72,13 @@ export interface StudentRecord {
   gpaText?: string;
   earnedCredits?: number;
   passedCount?: number;
+  // 学籍注册字段（roadmap #3）：来自后端 DB，null 表示未填
+  // 注：educationLevel 已在上方定义（原 mock 字段），此处不重复。
+  // programLength 对应学制（补充 schoolingLength mock 字段），enrollmentStatus 对应学籍状态。
+  politicalStatus?: string | null;
+  ethnicity?: string | null;
+  nativePlace?: string | null;
+  enrollmentDate?: string | null;
+  programLength?: string | null;
+  enrollmentStatus?: string | null;
 }
