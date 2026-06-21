@@ -61,6 +61,24 @@ router.get('/api/messages/unread-count', authRequired, async (req, res) => {
   }
 });
 
+// ---- 全部标记已读：仅影响当前学生的未读行，返回本次更新条数（幂等：再次调用更新 0 条）----
+router.post('/api/messages/read-all', authRequired, async (req, res) => {
+  const studentId = currentStudentId(req);
+  if (!studentId) {
+    return res.status(400).json(fail('缺少 studentId'));
+  }
+  try {
+    const r = await pool.query(
+      `UPDATE dtest2.messages SET read_at = now()
+       WHERE student_id = $1 AND read_at IS NULL`,
+      [studentId]
+    );
+    res.json(ok({ updated: r.rowCount }));
+  } catch (e) {
+    serverError(res, '标记全部已读失败', e);
+  }
+});
+
 // ---- 标记单条已读：按 (message_id, student_id) 收口，非本人/不存在 → 404 ----
 router.post('/api/messages/:id/read', authRequired, async (req, res) => {
   const studentId = currentStudentId(req);

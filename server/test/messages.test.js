@@ -65,6 +65,20 @@ describe('POST /api/messages/:id/read', () => {
   });
 });
 
+describe('POST /api/messages/read-all', () => {
+  test('全部标记已读 → 200 返回更新条数，且按当前学号收口', async () => {
+    __mock.setRoutes([
+      { match: /UPDATE dtest2\.messages SET read_at = now\(\)\s+WHERE student_id = \$1 AND read_at IS NULL/, result: [{}, {}, {}] }
+    ]);
+    const res = await request(app).post('/api/messages/read-all').set('Authorization', stu);
+    expect(res.status).toBe(200);
+    expect(res.body.data.updated).toBe(3);
+    // 防 IDOR：UPDATE 仅按当前 JWT 学号过滤，不接受 body/query
+    const upd = __mock.getLog().find((e) => e.sql.indexOf('read_at IS NULL') >= 0);
+    expect(upd.params).toEqual(['2023307020941']);
+  });
+});
+
 describe('GET /api/messages/unread-count', () => {
   test('返回未读条数', async () => {
     __mock.setRoutes([
