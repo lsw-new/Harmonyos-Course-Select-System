@@ -45,3 +45,5 @@
 # 放行整个 server/src 与 server/test 源码树；真正的密钥/凭据在 server/.env（不在源码树），另行处置。
 !server/src/**
 !server/test/**
+# 数据库迁移亦须始终入库（如 020_teacher_profiles.sql 含 "profile" 会被上面规则误伤）。
+!server/migrations/**

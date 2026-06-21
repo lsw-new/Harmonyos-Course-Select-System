@@ -10,7 +10,7 @@ const { sendVerificationCode } = require('../email');
 const codeStore = require('../codeStore');
 const { authLimiter } = require('../middleware/rateLimit');
 const { serverError, pgClientError } = require('../middleware/errorHandler');
-const { fetchStudentProfile, fetchAdminProfile } = require('../repositories/profile.repo');
+const { fetchStudentProfile, fetchAdminProfile, fetchTeacherProfile } = require('../repositories/profile.repo');
 const { insertMessage } = require('../messages');
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -87,6 +87,8 @@ async function buildLoginPayload(account) {
     profile = await fetchStudentProfile(account.account_id);
   } else if (account.role === 'admin') {
     profile = await fetchAdminProfile(account.account_id);
+  } else if (account.role === 'teacher') {
+    profile = await fetchTeacherProfile(account.account_id);
   }
   return { token, accountId: account.account_id, role: account.role, profile };
 }

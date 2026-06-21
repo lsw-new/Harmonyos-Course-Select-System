@@ -52,4 +52,21 @@ async function fetchAdminProfile(adminId) {
   };
 }
 
-module.exports = { fetchStudentProfile, fetchAdminProfile, normalizePermCode };
+async function fetchTeacherProfile(teacherId) {
+  const r = await pool.query(
+    `SELECT teacher_id, name, college, title, email FROM dtest2.teacher_profiles WHERE teacher_id=$1`,
+    [teacherId]
+  );
+  if (r.rowCount === 0) return null;
+  const t = r.rows[0];
+  return {
+    teacherId: t.teacher_id,
+    name: t.name,
+    college: t.college || '',
+    title: t.title || '',
+    email: t.email || '',
+    role: 'teacher'
+  };
+}
+
+module.exports = { fetchStudentProfile, fetchAdminProfile, normalizePermCode, fetchTeacherProfile };

@@ -118,6 +118,9 @@ app.use(require('./routes/uploads.routes'));
 // ---- 推送通知域（设备 token 注册/注销，roadmap #8）----
 app.use(require('./routes/push.routes'));
 
+// ---- 教师端域（教师工作台/我的课程/录入成绩/评教结果，roadmap #6）----
+app.use(require('./routes/teacher.routes'));
+
 // ---- 数据库管理域（Web 控制台表级 CRUD，仅 system.config 权限）----
 app.use(require('./routes/db.routes'));
 
