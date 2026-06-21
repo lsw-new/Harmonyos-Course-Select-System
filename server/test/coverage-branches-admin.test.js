@@ -66,18 +66,18 @@ describe('成绩录入/打分 状态机与异常', () => {
 
 describe('成绩审核 状态机与异常', () => {
   test('审核通过：404 / 状态不可审核 409 / 进度未满 409 / 抛错 500', async () => {
-    __mock.setRoutes([PERM, { match: /SELECT status, input_progress FROM dtest2\.grade_tasks/, result: [] }]);
+    __mock.setRoutes([PERM, { match: /gt\.status, gt\.input_progress/, result: [] }]);
     expect((await request(app).post('/api/admin/grades/g1/approve').set('Authorization', adm)).status).toBe(404);
 
-    __mock.setRoutes([PERM, { match: /SELECT status, input_progress FROM dtest2\.grade_tasks/, result: [{ status: 'inputting', input_progress: 50 }] }]);
+    __mock.setRoutes([PERM, { match: /gt\.status, gt\.input_progress/, result: [{ status: 'inputting', input_progress: 50 }] }]);
     expect((await request(app).post('/api/admin/grades/g1/approve').set('Authorization', adm)).status).toBe(409);
 
-    __mock.setRoutes([PERM, { match: /SELECT status, input_progress FROM dtest2\.grade_tasks/, result: [{ status: 'pendingAudit', input_progress: 90 }] }]);
+    __mock.setRoutes([PERM, { match: /gt\.status, gt\.input_progress/, result: [{ status: 'pendingAudit', input_progress: 90 }] }]);
     const rProg = await request(app).post('/api/admin/grades/g1/approve').set('Authorization', adm);
     expect(rProg.status).toBe(409);
     expect(rProg.body.error).toContain('100%');
 
-    __mock.setRoutes([PERM, { match: /SELECT status, input_progress FROM dtest2\.grade_tasks/, result: boom() }]);
+    __mock.setRoutes([PERM, { match: /gt\.status, gt\.input_progress/, result: boom() }]);
     expect((await request(app).post('/api/admin/grades/g1/approve').set('Authorization', adm)).status).toBe(500);
   });
 

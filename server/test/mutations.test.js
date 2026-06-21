@@ -159,7 +159,7 @@ describe('管理端写操作（具备权限）', () => {
   test('POST /api/admin/grades/:id/approve → 200', async () => {
     __mock.setRoutes([
       PERM,
-      { match: /SELECT status, input_progress FROM dtest2\.grade_tasks/, result: [{ status: 'pendingAudit', input_progress: 100 }] },
+      { match: /gt\.status, gt\.input_progress/, result: [{ status: 'pendingAudit', input_progress: 100 }] },
       { match: /UPDATE dtest2\.grade_tasks SET status='published'/, result: [] }
     ]);
     const res = await request(app).post('/api/admin/grades/gt1/approve').set('Authorization', adm);
@@ -186,7 +186,7 @@ describe('管理端写操作（具备权限）', () => {
   test('POST /api/admin/approvals/:id/approve → 200（单步=末步，联动请假 approved）', async () => {
     __mock.setRoutes([
       PERM,
-      { match: /SELECT status, biz_type, biz_id FROM dtest2\.approval_instances/, result: [{ status: 'pending', biz_type: 'leave', biz_id: 'lv1' }] },
+      { match: /FROM dtest2\.approval_instances WHERE approval_id/, result: [{ status: 'pending', biz_type: 'leave', biz_id: 'lv1', applicant_id: '2023307020941', title: '请假申请' }] },
       { match: /status='pending' ORDER BY step_order ASC LIMIT 1/, result: [{ step_order: 1 }] },
       { match: /MAX\(step_order\)/, result: [{ max_order: 1 }] },
       { match: /UPDATE dtest2\.approval_instances/, result: [] },
@@ -203,7 +203,7 @@ describe('管理端写操作（具备权限）', () => {
   test('POST /api/admin/approvals/:id/approve 非末步 → 仍 pending 并激活下一步', async () => {
     __mock.setRoutes([
       PERM,
-      { match: /SELECT status, biz_type, biz_id FROM dtest2\.approval_instances/, result: [{ status: 'pending', biz_type: 'leave', biz_id: 'lv1' }] },
+      { match: /FROM dtest2\.approval_instances WHERE approval_id/, result: [{ status: 'pending', biz_type: 'leave', biz_id: 'lv1', applicant_id: '2023307020941', title: '请假申请' }] },
       { match: /status='pending' ORDER BY step_order ASC LIMIT 1/, result: [{ step_order: 1 }] },
       { match: /MAX\(step_order\)/, result: [{ max_order: 3 }] },
       { match: /UPDATE dtest2\.approval_steps/, result: [] },
@@ -221,7 +221,7 @@ describe('管理端写操作（具备权限）', () => {
   test('POST /api/admin/approvals/:id/reject 激活步 → 终止流程并置请假 rejected', async () => {
     __mock.setRoutes([
       PERM,
-      { match: /SELECT status, biz_type, biz_id FROM dtest2\.approval_instances/, result: [{ status: 'pending', biz_type: 'leave', biz_id: 'lv1' }] },
+      { match: /FROM dtest2\.approval_instances WHERE approval_id/, result: [{ status: 'pending', biz_type: 'leave', biz_id: 'lv1', applicant_id: '2023307020941', title: '请假申请' }] },
       { match: /status='pending' ORDER BY step_order ASC LIMIT 1/, result: [{ step_order: 2 }] },
       { match: /MAX\(step_order\)/, result: [{ max_order: 3 }] },
       { match: /UPDATE dtest2\.approval_steps/, result: [] },

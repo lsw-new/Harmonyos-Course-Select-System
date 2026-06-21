@@ -9,6 +9,7 @@ const { serverError } = require('../middleware/errorHandler');
 const { permissionRequired } = require('../middleware/permission');
 const { mapStudent, mapGradeTask, mapApproval, mapAuditLog, mapTemplate, mapFeedback, mapApprovalStep } = require('../mappers');
 const { genId } = require('../ids');
+const { insertMessage } = require('../messages');
 
 const router = express.Router();
 
@@ -253,7 +254,14 @@ router.post('/api/admin/grades/:id/approve', permissionRequired('grades.approve:
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const cur = await client.query(`SELECT status, input_progress FROM dtest2.grade_tasks WHERE task_id=$1 FOR UPDATE`, [req.params.id]);
+    const cur = await client.query(
+      `SELECT gt.status, gt.input_progress, gt.term, gt.teaching_class_name,
+              COALESCE(c.name, '') AS course_name
+       FROM dtest2.grade_tasks gt
+       LEFT JOIN dtest2.courses c ON c.course_id = gt.course_id
+       WHERE gt.task_id=$1 FOR UPDATE OF gt`,
+      [req.params.id]
+    );
     if (cur.rowCount === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json(fail('成绩任务不存在'));
@@ -268,6 +276,23 @@ router.post('/api/admin/grades/:id/approve', permissionRequired('grades.approve:
     }
     await client.query(`UPDATE dtest2.grade_tasks SET status='published', updated_at=now() WHERE task_id=$1`, [req.params.id]);
     await client.query(`UPDATE dtest2.grades SET published_at=now() WHERE task_id=$1 AND published_at IS NULL`, [req.params.id]);
+    // 消息中心（roadmap #4）：成绩发布后，给该任务下每名有成绩行的学生各发一条 kind:'grade' 消息。
+    // 复用同一事务，消息与发布同生共死；插入失败走外层 catch 的 ROLLBACK。
+    const task = cur.rows[0];
+    const courseLabel = task.course_name || task.teaching_class_name || '课程';
+    const affected = await client.query(
+      `SELECT DISTINCT student_id FROM dtest2.grades WHERE task_id=$1`,
+      [req.params.id]
+    );
+    for (const row of affected.rows) {
+      await insertMessage(client, {
+        studentId: row.student_id,
+        kind: 'grade',
+        title: `《${courseLabel}》成绩已发布`,
+        body: `${courseLabel} · ${task.term || ''} 成绩已发布，点击查看`,
+        route: 'pages/GradesPage',
+      });
+    }
     await client.query('COMMIT');
     res.json(ok({ approved: true }));
   } catch (e) {
@@ -331,6 +356,30 @@ router.get('/api/admin/approvals', permissionRequired('approvals.handle:view'), 
   }
 });
 
+// 审批终态 → 申请人消息（roadmap #4）。inst 为 approval_instances 行（含 applicant_id/biz_type/biz_id/title）。
+// 请假类深链到请假详情（param=leave_id）；其余审批不带路由参数。同事务调用，插入失败由外层 catch 回滚。
+async function insertApprovalMessage(client, inst, result, comment) {
+  if (!inst || !inst.applicant_id) {
+    return;
+  }
+  const subject = inst.title || '申请';
+  const approved = result === 'approved';
+  const title = approved ? `${subject}已通过` : `${subject}被驳回`;
+  let body = approved ? '审批已通过' : '审批被驳回';
+  if (comment) {
+    body = `${body} · ${comment}`;
+  }
+  const isLeave = inst.biz_type === 'leave';
+  await insertMessage(client, {
+    studentId: inst.applicant_id,
+    kind: 'approval',
+    title,
+    body,
+    route: isLeave ? 'pages/LeaveDetailPage' : undefined,
+    param: isLeave ? inst.biz_id : undefined,
+  });
+}
+
 // 多级审批推进：审批人对“当前激活步骤”操作。
 //  - approve 非末步 → 该步 approved，激活下一步（waiting→pending），实例/请假仍 pending；
 //  - approve 末步 → 该步 approved，实例/请假置 approved；
@@ -342,7 +391,7 @@ async function handleApproval(req, res, newStatus, comment) {
   try {
     await client.query('BEGIN');
     const cur = await client.query(
-      `SELECT status, biz_type, biz_id FROM dtest2.approval_instances WHERE approval_id=$1 FOR UPDATE`,
+      `SELECT status, biz_type, biz_id, applicant_id, COALESCE(title, '') AS title FROM dtest2.approval_instances WHERE approval_id=$1 FOR UPDATE`,
       [req.params.id]
     );
     if (cur.rowCount === 0) {
@@ -387,6 +436,8 @@ async function handleApproval(req, res, newStatus, comment) {
           [cur.rows[0].biz_id, comment]
         );
       }
+      // 消息中心（roadmap #4）：审批驳回（终态）→ 给申请人发 kind:'approval' 消息。同事务。
+      await insertApprovalMessage(client, cur.rows[0], 'rejected', comment);
       await client.query('COMMIT');
       return res.json(ok({ handled: true, status: 'rejected', step: activeOrder, finalized: true }));
     }
@@ -406,6 +457,8 @@ async function handleApproval(req, res, newStatus, comment) {
           [cur.rows[0].biz_id, comment]
         );
       }
+      // 消息中心（roadmap #4）：末步通过（终态）→ 给申请人发 kind:'approval' 消息。同事务。
+      await insertApprovalMessage(client, cur.rows[0], 'approved', comment);
       await client.query('COMMIT');
       return res.json(ok({ handled: true, status: 'approved', step: activeOrder, finalized: true }));
     }

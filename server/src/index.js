@@ -77,6 +77,9 @@ app.use(require('./routes/schedule.routes'));
 // ---- 通知域（列表 / 详情 / 标记已读）已抽到 ./routes/notices.routes ----
 app.use(require('./routes/notices.routes'));
 
+// ---- 消息中心域（个人消息流 / 标记已读 / 未读数，已读状态服务端落库跨设备同步）----
+app.use(require('./routes/messages.routes'));
+
 // ---- 请假域（我的请假 / 提交请假含 approval 闭环）已抽到 ./routes/leave.routes ----
 app.use(require('./routes/leave.routes'));
 

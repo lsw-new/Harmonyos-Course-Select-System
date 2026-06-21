@@ -11,6 +11,7 @@ const codeStore = require('../codeStore');
 const { authLimiter } = require('../middleware/rateLimit');
 const { serverError, pgClientError } = require('../middleware/errorHandler');
 const { fetchStudentProfile, fetchAdminProfile } = require('../repositories/profile.repo');
+const { insertMessage } = require('../messages');
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
@@ -348,7 +349,7 @@ router.post('/api/auth/register', authLimiter, async (req, res) => {
     );
     // 按班级生成本班课程的评教任务（教师绑定来自班级课表）；
     // JOIN courses 与 EXISTS 模板守住外键——课表/模板未导入时静默跳过，不阻断注册
-    await client.query(
+    const evalGen = await client.query(
       `INSERT INTO dtest2.evaluation_tasks
          (task_id, template_id, student_id, course_id, term, teacher_name, status, open_time, close_time)
        SELECT DISTINCT 'eval-' || csi.course_id || '-' || $1,
@@ -358,9 +359,21 @@ router.post('/api/auth/register', authLimiter, async (req, res) => {
        JOIN dtest2.courses c ON c.course_id = csi.course_id
        WHERE csi.class_name = $2
          AND EXISTS (SELECT 1 FROM dtest2.evaluation_templates WHERE template_id = 'qt-default')
-       ON CONFLICT (task_id) DO NOTHING`,
+       ON CONFLICT (task_id) DO NOTHING
+       RETURNING task_id`,
       [studentId, rosterRow.class_name]
     );
+    // 消息中心（roadmap #4）：当本次注册「新生成」了评教任务（非重复注册全冲突），
+    // 给该生发一条 kind:'eval' 汇总消息。同一注册事务，插入失败由外层 catch 回滚。
+    if (evalGen.rowCount > 0) {
+      await insertMessage(client, {
+        studentId,
+        kind: 'eval',
+        title: '待完成评教任务',
+        body: `本学期 ${evalGen.rowCount} 门课程待评教`,
+        route: 'pages/EvalPage',
+      });
+    }
     await client.query('COMMIT');
     res.json(ok({ registered: true, accountId: studentId }));
   } catch (e) {

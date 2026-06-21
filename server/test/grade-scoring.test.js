@@ -110,16 +110,25 @@ describe('POST /api/admin/grades/:id/scores', () => {
 });
 
 describe('POST /api/admin/grades/:id/approve（发布联动）', () => {
-  test('审核通过 → 任务置 published 且成绩行 published_at 落值', async () => {
+  test('审核通过 → 任务置 published 且成绩行 published_at 落值，并给每名学生发消息', async () => {
     __mock.setRoutes([
       PERM_GRANT,
-      { match: /FOR UPDATE/, result: [{ status: 'pendingAudit', input_progress: 100 }] },
+      { match: /FOR UPDATE OF gt/, result: [{ status: 'pendingAudit', input_progress: 100, term: '2025-2026-2', teaching_class_name: '23计算机科学与技术U9', course_name: '鸿蒙应用开发初级认证' }] },
       { match: /UPDATE dtest2\.grade_tasks SET status='published'/, result: [] },
-      { match: /UPDATE dtest2\.grades SET published_at/, result: [] }
+      { match: /UPDATE dtest2\.grades SET published_at/, result: [] },
+      // 受影响学生（消息中心 roadmap #4）
+      { match: /SELECT DISTINCT student_id FROM dtest2\.grades WHERE task_id/, result: [
+        { student_id: '2023307020941' }, { student_id: '2023307020901' }
+      ] },
+      { match: /INSERT INTO dtest2\.messages/, result: [] }
     ]);
     const res = await request(app).post('/api/admin/grades/gt-VDZ02119204/approve').set('Authorization', adm);
     expect(res.status).toBe(200);
     expect(__mock.executed("UPDATE dtest2.grades SET published_at")).toBe(true);
     expect(__mock.executed('COMMIT')).toBe(true);
+    // 每名学生各一条 grade 消息
+    const msgInserts = __mock.getLog().filter((e) => e.sql.indexOf('INSERT INTO dtest2.messages') >= 0);
+    expect(msgInserts).toHaveLength(2);
+    expect(msgInserts[0].params).toContain('grade');
   });
 });
