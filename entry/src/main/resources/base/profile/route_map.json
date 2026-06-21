@@ -6,6 +6,21 @@
                           "buildFunction":  "AboutPageBuilder"
                       },
                       {
+                          "name":  "pages/TeacherHomePage",
+                          "pageSourceFile":  "src/main/ets/pages/TeacherHomePage.ets",
+                          "buildFunction":  "TeacherHomePageBuilder"
+                      },
+                      {
+                          "name":  "pages/TeacherCourseDetailPage",
+                          "pageSourceFile":  "src/main/ets/pages/TeacherCourseDetailPage.ets",
+                          "buildFunction":  "TeacherCourseDetailPageBuilder"
+                      },
+                      {
+                          "name":  "pages/TeacherEvalPage",
+                          "pageSourceFile":  "src/main/ets/pages/TeacherEvalPage.ets",
+                          "buildFunction":  "TeacherEvalPageBuilder"
+                      },
+                      {
                           "name":  "pages/AccountPage",
                           "pageSourceFile":  "src/main/ets/pages/AccountPage.ets",
                           "buildFunction":  "AccountPageBuilder"

@@ -47,3 +47,7 @@
 !server/test/**
 # 数据库迁移亦须始终入库（如 020_teacher_profiles.sql 含 "profile" 会被上面规则误伤）。
 !server/migrations/**
+# 鸿蒙资源 profile 目录是应用配置（route_map/main_pages），非签名材料，须入库。
+# 须先放行目录本身再放行其内容（父目录被排除时无法单独 re-include 子文件）。
+!entry/src/main/resources/base/profile
+!entry/src/main/resources/base/profile/**

@@ -39,14 +39,16 @@ struct LoginPage {
   // 记住我：登录/验证成功后统一保存或清除已记住的学号，再进入首页
   private finishLogin(): void {
     const s = SessionStorage.get();
+    // roadmap #6：教师会话跳教师端首页，其余（学生）进学生首页
+    const target: string = s.getRole() === 'teacher' ? Routes.TeacherHome : Routes.Home;
     const rememberOp = this.remember
       ? s.saveRememberId(this.studentId)
       : s.clearRememberId();
     rememberOp.then(() => {
-      AppRoute.clearTo(Routes.Home);
+      AppRoute.clearTo(target);
     }).catch(() => {
       // 记住我写入失败不阻断登录主流程
-      AppRoute.clearTo(Routes.Home);
+      AppRoute.clearTo(target);
     });
   }
 

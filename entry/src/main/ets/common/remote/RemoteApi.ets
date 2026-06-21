@@ -57,6 +57,72 @@ export interface RemoteProfile {
   roleName?: string;
   onlineStatus?: string;
   permissions?: RemoteAdminPermission[];
+  // 教师（roadmap #6）
+  teacherId?: string;
+  title?: string;
+}
+
+// 教师端（roadmap #6）远程数据形态
+export interface RemoteTeacherDashboard {
+  courseCount: number;
+  studentCount: number;
+  pendingGradeCount: number;
+  evalAvg: number | null;
+  evalSubmitted: number;
+}
+
+export interface RemoteTeacherCourse {
+  courseId: string;
+  taskId: string;
+  code: string;
+  name: string;
+  category: string;
+  credit: number;
+  teachingClassName: string;
+  term: string;
+  studentCount: number;
+  gradeStatus: string;
+  inputProgress: number;
+}
+
+export interface RemoteTeacherStudent {
+  studentId: string;
+  name: string;
+  className: string;
+  score: number | null;
+  gradePoint: number | null;
+  status: string;
+}
+
+export interface RemoteTeacherCourseStudents {
+  courseId: string;
+  term: string;
+  teachingClassName: string;
+  students: RemoteTeacherStudent[];
+}
+
+export interface RemoteTeacherEval {
+  courseId: string;
+  courseName: string;
+  term: string;
+  taskCount: number;
+  submittedCount: number;
+  avgScore: number | null;
+}
+
+interface TeacherScoreItem {
+  studentId: string;
+  score: number;
+}
+
+interface TeacherGradesBody {
+  scores: TeacherScoreItem[];
+}
+
+export interface RemoteTeacherGradeResult {
+  updated: number;
+  inputProgress: number;
+  status: string;
 }
 
 export interface ProfileUpdateBody {
@@ -856,6 +922,28 @@ export class RemoteApi {
 
   static async markAllMessagesRead(): Promise<void> {
     await apiClient.post<Object>('/messages/read-all');
+  }
+
+  // 教师端（roadmap #6）：身份与归属由后端从 JWT 解析，前端不传 teacherId。
+  static async teacherDashboard(): Promise<RemoteTeacherDashboard> {
+    return apiClient.get<RemoteTeacherDashboard>('/teacher/dashboard');
+  }
+
+  static async teacherCourses(): Promise<RemoteTeacherCourse[]> {
+    return apiClient.get<RemoteTeacherCourse[]>('/teacher/courses');
+  }
+
+  static async teacherCourseStudents(courseId: string): Promise<RemoteTeacherCourseStudents> {
+    return apiClient.get<RemoteTeacherCourseStudents>('/teacher/courses/' + encodeURIComponent(courseId) + '/students');
+  }
+
+  static async teacherSubmitGrades(courseId: string, scores: TeacherScoreItem[]): Promise<RemoteTeacherGradeResult> {
+    const body: TeacherGradesBody = { scores: scores };
+    return apiClient.post<RemoteTeacherGradeResult>('/teacher/courses/' + encodeURIComponent(courseId) + '/grades', body);
+  }
+
+  static async teacherEvaluations(): Promise<RemoteTeacherEval[]> {
+    return apiClient.get<RemoteTeacherEval[]>('/teacher/evaluations');
   }
 
   static async listPractice(studentId: string, category?: string): Promise<RemotePractice[]> {

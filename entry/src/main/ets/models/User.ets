@@ -1,6 +1,6 @@
 // 学生用户与账号模型
 
-export type UserRole = 'student' | 'admin';
+export type UserRole = 'student' | 'admin' | 'teacher';
 
 export interface UserProfile {
   studentId: string;

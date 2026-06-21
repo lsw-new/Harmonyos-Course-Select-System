@@ -14,7 +14,15 @@ struct Index {
     const session = SessionStorage.get();
     let start: string = Routes.Login;
     if (session.isAuthenticated()) {
-      start = session.getRole() === 'admin' ? Routes.AdminDashboard : Routes.Home;
+      const role = session.getRole();
+      // roadmap #6：冷启动按角色定首页（管理员/教师/学生）
+      if (role === 'admin') {
+        start = Routes.AdminDashboard;
+      } else if (role === 'teacher') {
+        start = Routes.TeacherHome;
+      } else {
+        start = Routes.Home;
+      }
     }
     AppRoute.go(start);
     NoticeAlertCenter.start(() => CourseRepository.get().getNotices());

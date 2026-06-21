@@ -2,6 +2,7 @@
 
 import { UserProfile, UserRole } from '../../models/User';
 import { AdminProfile } from '../../models/Admin';
+import { TeacherProfile } from '../../models/Teacher';
 import { PreferenceStorage } from './PreferenceStorage';
 import { AssetTokenStore } from '../security/AssetTokenStore';
 
@@ -9,6 +10,7 @@ const KEY_TOKEN = 'session.token';
 const KEY_ROLE = 'session.role';
 const KEY_STUDENT_PROFILE = 'session.studentProfile';
 const KEY_ADMIN_PROFILE = 'session.adminProfile';
+const KEY_TEACHER_PROFILE = 'session.teacherProfile';
 const KEY_REMEMBER_ID = 'session.rememberId';
 
 interface StoredStudentProfile {
@@ -30,6 +32,14 @@ interface StoredAdminProfile {
   permissions?: Object[];
 }
 
+interface StoredTeacherProfile {
+  teacherId?: string;
+  name?: string;
+  college?: string;
+  title?: string;
+  email?: string;
+}
+
 export class SessionStorage {
   private static _instance?: SessionStorage;
 
@@ -37,6 +47,7 @@ export class SessionStorage {
   private role?: UserRole;
   private studentProfile?: UserProfile;
   private adminProfile?: AdminProfile;
+  private teacherProfile?: TeacherProfile;
 
   static get(): SessionStorage {
     if (!SessionStorage._instance) {
@@ -52,9 +63,10 @@ export class SessionStorage {
     const t = await prefs.getString(KEY_TOKEN);
     const r = await prefs.getString(KEY_ROLE);
     this.token = t || undefined;
-    this.role = (r === 'student' || r === 'admin') ? r : undefined;
+    this.role = (r === 'student' || r === 'admin' || r === 'teacher') ? r : undefined;
     this.studentProfile = undefined;
     this.adminProfile = undefined;
+    this.teacherProfile = undefined;
 
     if (this.role === 'student') {
       const raw = await prefs.getString(KEY_STUDENT_PROFILE);
@@ -62,6 +74,9 @@ export class SessionStorage {
     } else if (this.role === 'admin') {
       const raw = await prefs.getString(KEY_ADMIN_PROFILE);
       this.adminProfile = this.parseAdminProfile(raw);
+    } else if (this.role === 'teacher') {
+      const raw = await prefs.getString(KEY_TEACHER_PROFILE);
+      this.teacherProfile = this.parseTeacherProfile(raw);
     }
   }
 
@@ -75,6 +90,8 @@ export class SessionStorage {
     let secure: string | undefined = undefined;
     if (this.role === 'admin') {
       secure = await AssetTokenStore.getAdminToken();
+    } else if (this.role === 'teacher') {
+      secure = await AssetTokenStore.getTeacherToken();
     } else {
       secure = await AssetTokenStore.getStudentToken();
     }
@@ -88,6 +105,8 @@ export class SessionStorage {
       // 旧版本明文 token 一次性迁移到安全存储，迁移后删除 Preferences 明文，杜绝长期落盘
       if (this.role === 'admin') {
         await AssetTokenStore.setAdminToken(this.token);
+      } else if (this.role === 'teacher') {
+        await AssetTokenStore.setTeacherToken(this.token);
       } else {
         await AssetTokenStore.setStudentToken(this.token);
       }
@@ -150,6 +169,27 @@ export class SessionStorage {
     return value as AdminProfile;
   }
 
+  private parseTeacherProfile(raw: string): TeacherProfile | undefined {
+    const value = this.parseObject(raw) as StoredTeacherProfile | undefined;
+    if (!value) {
+      return undefined;
+    }
+    if (!this.hasRequiredString(value.teacherId)) {
+      return undefined;
+    }
+    if (!this.hasRequiredString(value.name)) {
+      return undefined;
+    }
+    // college/title/email 可为空串（后端未填），仅 teacherId+name 为必需
+    return {
+      teacherId: value.teacherId as string,
+      name: value.name as string,
+      college: value.college ?? '',
+      title: value.title ?? '',
+      email: value.email ?? ''
+    };
+  }
+
   private hasRequiredString(value?: string): boolean {
     return typeof value === 'string' && value.length > 0;
   }
@@ -196,12 +236,19 @@ export class SessionStorage {
     return this.adminProfile;
   }
 
+  getTeacher(): TeacherProfile | undefined {
+    return this.teacherProfile;
+  }
+
   isAuthenticated(): boolean {
     if (!this.token || !this.role) {
       return false;
     }
     if (this.role === 'student') {
       return this.getStudent() !== undefined;
+    }
+    if (this.role === 'teacher') {
+      return this.getTeacher() !== undefined;
     }
     return this.getAdmin() !== undefined;
   }
@@ -211,6 +258,7 @@ export class SessionStorage {
     this.role = 'student';
     this.studentProfile = profile;
     this.adminProfile = undefined;
+    this.teacherProfile = undefined;
     const prefs = PreferenceStorage.get();
     // 安全加固：token 仅由 AssetTokenStore（安全存储）持久化，不再明文写入 Preferences；
     // 主动清除旧版本可能残留的明文 token。会话内 token 由内存字段 this.token 提供。
@@ -218,6 +266,7 @@ export class SessionStorage {
     await prefs.putString(KEY_ROLE, 'student');
     await prefs.putString(KEY_STUDENT_PROFILE, JSON.stringify(profile));
     await prefs.remove(KEY_ADMIN_PROFILE);
+    await prefs.remove(KEY_TEACHER_PROFILE);
   }
 
   async updateStudentProfile(profile: UserProfile): Promise<void> {
@@ -233,6 +282,7 @@ export class SessionStorage {
     this.role = 'admin';
     this.adminProfile = profile;
     this.studentProfile = undefined;
+    this.teacherProfile = undefined;
     const prefs = PreferenceStorage.get();
     // 安全加固：token 仅由 AssetTokenStore（安全存储）持久化，不再明文写入 Preferences；
     // 主动清除旧版本可能残留的明文 token。会话内 token 由内存字段 this.token 提供。
@@ -240,6 +290,22 @@ export class SessionStorage {
     await prefs.putString(KEY_ROLE, 'admin');
     await prefs.putString(KEY_ADMIN_PROFILE, JSON.stringify(profile));
     await prefs.remove(KEY_STUDENT_PROFILE);
+    await prefs.remove(KEY_TEACHER_PROFILE);
+  }
+
+  // 教师会话落地（roadmap #6）：与学生/管理员同构，token 入安全存储由调用方负责。
+  async setTeacherSession(token: string, profile: TeacherProfile): Promise<void> {
+    this.token = token;
+    this.role = 'teacher';
+    this.teacherProfile = profile;
+    this.studentProfile = undefined;
+    this.adminProfile = undefined;
+    const prefs = PreferenceStorage.get();
+    await prefs.remove(KEY_TOKEN);
+    await prefs.putString(KEY_ROLE, 'teacher');
+    await prefs.putString(KEY_TEACHER_PROFILE, JSON.stringify(profile));
+    await prefs.remove(KEY_STUDENT_PROFILE);
+    await prefs.remove(KEY_ADMIN_PROFILE);
   }
 
   async clear(): Promise<void> {
@@ -247,11 +313,13 @@ export class SessionStorage {
     this.role = undefined;
     this.studentProfile = undefined;
     this.adminProfile = undefined;
+    this.teacherProfile = undefined;
     const prefs = PreferenceStorage.get();
     await prefs.remove(KEY_TOKEN);
     await prefs.remove(KEY_ROLE);
     await prefs.remove(KEY_STUDENT_PROFILE);
     await prefs.remove(KEY_ADMIN_PROFILE);
+    await prefs.remove(KEY_TEACHER_PROFILE);
     // 一并清除安全存储中的 token，避免清空会话后残留
     await AssetTokenStore.clear();
   }

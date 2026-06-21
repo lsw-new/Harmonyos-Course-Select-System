@@ -37,6 +37,10 @@ export class Routes {
 
   static readonly AdminLogin = 'pages/AdminLoginPage';
   static readonly AdminDashboard = 'pages/AdminDashboardPage';
+  // 教师端（roadmap #6）
+  static readonly TeacherHome = 'pages/TeacherHomePage';
+  static readonly TeacherCourseDetail = 'pages/TeacherCourseDetailPage';
+  static readonly TeacherEval = 'pages/TeacherEvalPage';
   static readonly AdminStudents = 'pages/AdminStudentsPage';
   static readonly AdminCourses = 'pages/AdminCoursesPage';
   static readonly AdminSelection = 'pages/AdminSelectionPage';
@@ -99,6 +103,10 @@ const ADMIN_ROUTES: string[] = [
   Routes.AdminPracticeSubmissions
 ];
 
+const TEACHER_ROUTES: string[] = [
+  Routes.TeacherHome, Routes.TeacherCourseDetail, Routes.TeacherEval
+];
+
 const PUBLIC_ROUTES: string[] = [
   Routes.Login, Routes.Register, Routes.Forgot, Routes.AdminLogin,
   Routes.About, Routes.Doc,
@@ -116,6 +124,7 @@ export interface NavigateOptions {
 function expectedRoleFor(url: string): UserRole | undefined {
   if (STUDENT_ROUTES.indexOf(url) >= 0) return 'student';
   if (ADMIN_ROUTES.indexOf(url) >= 0) return 'admin';
+  if (TEACHER_ROUTES.indexOf(url) >= 0) return 'teacher';
   return undefined;
 }
 

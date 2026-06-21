@@ -15,9 +15,11 @@ import { PreferenceStorage } from '../storage/PreferenceStorage';
 // ---- Alias / Key 常量 --------------------------------------------------------
 const ASSET_ALIAS_STUDENT = 'edu_token_student';
 const ASSET_ALIAS_ADMIN = 'edu_token_admin';
+const ASSET_ALIAS_TEACHER = 'edu_token_teacher';
 // 旧版本可能把 token 明文写过的 Preferences 键；现仅用于 clear() 时清理历史残留，不再写入。
 const PREF_KEY_STUDENT = 'fallback.token.student';
 const PREF_KEY_ADMIN = 'fallback.token.admin';
+const PREF_KEY_TEACHER = 'fallback.token.teacher';
 
 // ---- Asset Kit 能力缓存标志 --------------------------------------------------
 // undefined = 尚未检测；true = 可用；false = 不可用
@@ -166,9 +168,20 @@ export class AssetTokenStore {
     return secureGet(ASSET_ALIAS_ADMIN, PREF_KEY_ADMIN);
   }
 
+  // 保存教师端 token（roadmap #6；与学生/管理员同样的安全存储+内存兜底策略）。
+  static async setTeacherToken(token: string): Promise<void> {
+    await secureSet(ASSET_ALIAS_TEACHER, token, PREF_KEY_TEACHER);
+  }
+
+  // 读取教师端 token。
+  static async getTeacherToken(): Promise<string | undefined> {
+    return secureGet(ASSET_ALIAS_TEACHER, PREF_KEY_TEACHER);
+  }
+
   // 清除所有 token（登出时调用）。
   static async clear(): Promise<void> {
     await secureRemove(ASSET_ALIAS_STUDENT, PREF_KEY_STUDENT);
     await secureRemove(ASSET_ALIAS_ADMIN, PREF_KEY_ADMIN);
+    await secureRemove(ASSET_ALIAS_TEACHER, PREF_KEY_TEACHER);
   }
 }

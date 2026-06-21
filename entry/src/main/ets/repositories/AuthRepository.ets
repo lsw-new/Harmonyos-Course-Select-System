@@ -6,6 +6,7 @@ import {
   LoginResult, LoginOutcome, AccountInfo, LoginHistoryItem, UserProfile
 } from '../models/User';
 import { AdminLoginRequest, AdminProfile, AdminLoginResult, AdminPermission, AdminPermissionAction } from '../models/Admin';
+import { TeacherProfile } from '../models/Teacher';
 import { mockStudentProfile, mockAccountInfo, mockLoginHistory, TEST_STUDENT_ID, TEST_STUDENT_PASSWORD } from '../mock/mockUser';
 import { mockAdminProfile, TEST_ADMIN_ID, TEST_ADMIN_PASSWORD } from '../mock/mockAdmin';
 import { AccountStore } from '../common/storage/AccountStore';
@@ -95,6 +96,27 @@ export class AuthRepository extends BaseRepository {
     return result;
   }
 
+  // roadmap #6：远程 profile -> TeacherProfile（college/title/email 后端可空，置空串）
+  private mapTeacherProfile(p: RemoteProfile): TeacherProfile {
+    return {
+      teacherId: p.teacherId ?? '',
+      name: p.name ?? '',
+      college: p.college ?? '',
+      title: p.title ?? '',
+      email: p.email ?? ''
+    };
+  }
+
+  // roadmap #6：教师会话落地（与学生路径同构）。缺 profile/teacherId 视为登录异常。
+  private async completeTeacherSession(remote: RemoteLoginResult): Promise<void> {
+    if (!remote.profile || (remote.profile.teacherId ?? '').length === 0) {
+      throw new Error('NO_PROFILE');
+    }
+    const profile: TeacherProfile = this.mapTeacherProfile(remote.profile);
+    await AssetTokenStore.setTeacherToken(remote.token);
+    await SessionStorage.get().setTeacherSession(remote.token, profile);
+  }
+
   async login(req: LoginRequest): Promise<LoginOutcome> {
     if (req.studentId.trim().length === 0 || req.password.length === 0) {
       return this.reject('学号或密码不能为空');
@@ -123,6 +145,13 @@ export class AuthRepository extends BaseRepository {
           role: remote.role ?? 'student',
           profile: remote.profile
         };
+        // roadmap #6：教师账号建立教师会话；返回 ok 无 result，登录页据会话角色跳教师端
+        if (normal.role === 'teacher') {
+          await this.completeTeacherSession(normal);
+          PushTokenService.tryRegister().catch(() => {});
+          const okTeacher: LoginOutcome = { kind: 'ok' };
+          return this.delay<LoginOutcome>(okTeacher);
+        }
         const result: LoginResult = await this.completeStudentSession(normal);
         // #8 best-effort 推送 token 注册（失败不阻断登录）
         PushTokenService.tryRegister().catch(() => {});
