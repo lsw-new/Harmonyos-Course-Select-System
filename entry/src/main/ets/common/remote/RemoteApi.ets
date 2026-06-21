@@ -603,6 +603,20 @@ interface NoticeBody {
   receiverScope: string[];
 }
 
+// 对象存储上传响应（roadmap #9）
+export interface RemoteUploadResult {
+  uploadId: string;
+  url: string;
+  size: number;
+}
+
+// 上传请求体（ArkTS 禁 Record 对象字面量，必须用具名接口）
+interface UploadImageBody {
+  filename: string;
+  contentType: string;
+  dataBase64: string;
+}
+
 // 管理端·成绩申诉（含学生姓名 + 处理人/时间）
 export interface RemoteAdminGradeAppeal {
   appealId: string;
@@ -1145,5 +1159,13 @@ export class RemoteApi {
 
   static async adminDeleteExam(id: string): Promise<void> {
     await apiClient.delete<Object>('/admin/exams/' + encodeURIComponent(id), undefined);
+  }
+
+  // 对象存储：上传图片（roadmap #9）。
+  // dataBase64 为纯 base64 字符串（不含 data:…;base64, 前缀）或完整 data URL（后端自动剥离前缀）。
+  // 成功返回 { uploadId, url, size }；url 可直接用作 avatarUrl 存入 profile。
+  static async uploadImage(filename: string, contentType: string, dataBase64: string): Promise<RemoteUploadResult> {
+    const body: UploadImageBody = { filename: filename, contentType: contentType, dataBase64: dataBase64 };
+    return apiClient.post<RemoteUploadResult>('/uploads', body);
   }
 }

@@ -112,6 +112,9 @@ app.use(require('./routes/admin-courses.routes'));
 // ---- 管理端报表导出域（成绩/选课/评教统计 Excel 下载，复用统计聚合 SQL）----
 app.use(require('./routes/admin-reports.routes'));
 
+// ---- 对象存储域（上传/下载图片等二进制对象，roadmap #9）----
+app.use(require('./routes/uploads.routes'));
+
 // ---- 数据库管理域（Web 控制台表级 CRUD，仅 system.config 权限）----
 app.use(require('./routes/db.routes'));
 

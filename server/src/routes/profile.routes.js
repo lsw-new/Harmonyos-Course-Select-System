@@ -12,19 +12,31 @@ const router = express.Router();
 
 const AVATAR_DATA_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 const AVATAR_MAX_LEN = 200000; // base64 头像上限约 150KB 原图
+// roadmap #9：本地对象存储 URL 格式（/api/uploads/<uploadId>）
+const AVATAR_UPLOAD_RE = /^\/api\/uploads\/up-[0-9a-f-]{36}$/;
 
 function validateAvatar(value) {
   if (value === '') {
     return null; // 允许清除头像
   }
-  if (value.length > AVATAR_MAX_LEN) {
-    return '头像图片过大，请重新选择';
-  }
+  // base64 data URL（旧格式，向后兼容）
   if (AVATAR_DATA_RE.test(value)) {
+    if (value.length > AVATAR_MAX_LEN) {
+      return '头像图片过大，请重新选择';
+    }
     return null;
   }
+  // 对象存储 URL（#9 新格式：/api/uploads/<up-uuid>）
+  if (AVATAR_UPLOAD_RE.test(value)) {
+    return null;
+  }
+  // 外部 http(s) URL（如旧版头像迁移兼容）
   if ((value.startsWith('https://') || value.startsWith('http://')) && value.length <= 500) {
     return null;
+  }
+  // 旧格式大 base64：检查长度
+  if (value.length > AVATAR_MAX_LEN) {
+    return '头像图片过大，请重新选择';
   }
   return '头像格式不合法';
 }

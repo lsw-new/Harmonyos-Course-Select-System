@@ -10,6 +10,7 @@ import util from '@ohos.util';
 import { LocalDataStore } from '../storage/LocalDataStore';
 import { SessionStorage } from '../storage/SessionStorage';
 import { AppConfig } from '../../app/AppConfig';
+import { RemoteApi } from '../remote/RemoteApi';
 
 const KEY_DOWNLOAD_HISTORY = 'local.downloadHistory.v1';
 const MOCK_FILE_PREFIX = 'mock://files/';
@@ -98,6 +99,33 @@ export class FileService {
         source.release();
       }
       fs.closeSync(file);
+    }
+  }
+
+  // 选择头像并上传到对象存储（roadmap #9）：
+  //   remote 模式：选图 → 压缩 base64 → POST /api/uploads → 返回 /api/uploads/<id> 服务端 URL。
+  //   上传失败时优雅降级：回退返回本地 base64 data URL（避免因网络问题导致头像无法更新）。
+  //   mock/local 模式：直接返回本地 base64 data URL（原有行为，不访问后端）。
+  static async pickAndUploadAvatarImage(): Promise<string> {
+    const dataUrl = await FileService.pickAvatarImage();
+    if (!AppConfig.useRemote) {
+      // mock / local 模式：直接返回 base64 data URL
+      return dataUrl;
+    }
+    // remote 模式：尝试上传到对象存储
+    try {
+      // 剥离 data URL 前缀，提取 contentType 和纯 base64
+      const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+      const contentType: string = match !== null ? match[1] : 'image/jpeg';
+      const base64: string = match !== null ? match[2] : dataUrl;
+      const result = await RemoteApi.uploadImage('avatar.jpg', contentType, base64);
+      // 服务端返回相对路径（/api/uploads/up-xxxx）；ArkUI Image 控件无法解析相对路径，
+      // 故用 baseUrl 的源（去掉尾部 /api）拼成绝对 https 地址，存库后各处渲染与下发后端均直接可用。
+      const origin: string = AppConfig.baseUrl.replace(/\/api\/?$/, '');
+      return origin + result.url;
+    } catch (_e) {
+      // 上传失败降级：返回本地 base64 data URL（后端 PUT /api/profile 仍可接受）
+      return dataUrl;
     }
   }
 
