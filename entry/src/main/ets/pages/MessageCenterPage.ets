@@ -72,6 +72,12 @@ struct MessageCenterPage {
     if (kind === 'eval') {
       return '评教';
     }
+    if (kind === 'approval') {
+      return '审批';
+    }
+    if (kind === 'system') {
+      return '系统';
+    }
     return '消息';
   }
 
@@ -92,6 +98,10 @@ struct MessageCenterPage {
   private openMessage(item: Message): void {
     MessageRepository.get().markRead(item.id);
     this.setReadFlag(item.id);
+    // 无目标路由（如服务端 system / 非请假 approval 消息）：仅标记已读，不跳转
+    if (item.route.length === 0) {
+      return;
+    }
     if (item.param !== undefined) {
       const opts: NavigateOptions = { params: item.param };
       AppRoute.go(item.route, opts);

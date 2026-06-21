@@ -13,6 +13,8 @@ import { CourseRepository } from './CourseRepository';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { MessageSeenStore } from '../common/services/MessageSeenStore';
 import { Routes } from '../app/AppRoute';
+import { AppConfig } from '../app/AppConfig';
+import { RemoteApi, RemoteMessage } from '../common/remote/RemoteApi';
 
 export class MessageRepository {
   private static _instance?: MessageRepository;
@@ -29,8 +31,24 @@ export class MessageRepository {
     return s ? s.studentId : '';
   }
 
-  // 聚合四个来源 → 应用本地已读 → 时间倒序
+  // 联机优先：服务端消息流（已读跨设备同步）；离线/远程失败按策略回退本地聚合。
   async getMessages(): Promise<Message[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const remote = await RemoteApi.listMessages();
+        return remote.map((r: RemoteMessage): Message => this.remoteToMessage(r));
+      } catch (e) {
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 允许回退：落到下方本地聚合
+      }
+    }
+    return this.getMessagesLocal();
+  }
+
+  // 本地聚合四个来源 → 应用本地已读 → 时间倒序（mock 模式 / 远程回退）
+  private async getMessagesLocal(): Promise<Message[]> {
     const sid = this.currentStudentId();
     // 四个来源并行发起，任一失败回退空，互不阻断
     const leavesP = this.safeLeaves();
@@ -99,7 +117,17 @@ export class MessageRepository {
   }
 
   async getUnreadCount(): Promise<number> {
-    const msgs = await this.getMessages();
+    if (AppConfig.useRemote) {
+      try {
+        return await RemoteApi.messageUnreadCount();
+      } catch (e) {
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
+        // 允许回退：落到下方本地聚合
+      }
+    }
+    const msgs = await this.getMessagesLocal();
     let c = 0;
     msgs.forEach((m: Message) => {
       if (!m.isRead) {
@@ -109,20 +137,74 @@ export class MessageRepository {
     return c;
   }
 
-  // 标记单条已读，并刷新首页未读消息角标
+  // 标记单条已读，并刷新首页未读消息角标。
+  // 页面调用为「即发即忘」且已做乐观更新，故远程同步为尽力而为：失败不抛出，避免未捕获拒绝打断浏览。
   async markRead(id: string): Promise<void> {
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.markMessageRead(id);
+        const c = await RemoteApi.messageUnreadCount();
+        AppStorage.setOrCreate<number>('home.unreadMessage', c);
+      } catch (e) {
+        // 远程失败：保留页面乐观态，本机无对应已读存储可写，静默跳过
+      }
+      return;
+    }
     await MessageSeenStore.markRead(this.currentStudentId(), id);
     const c = await this.getUnreadCount();
     AppStorage.setOrCreate<number>('home.unreadMessage', c);
   }
 
-  // 全部标记已读
+  // 全部标记已读。远程失败时向调用页传播（页面 catch 提示），与单条不同。
   async markAllRead(): Promise<void> {
+    if (AppConfig.useRemote) {
+      await RemoteApi.markAllMessagesRead();
+      AppStorage.setOrCreate<number>('home.unreadMessage', 0);
+      return;
+    }
     const sid = this.currentStudentId();
-    const msgs = await this.getMessages();
+    const msgs = await this.getMessagesLocal();
     const ids: string[] = msgs.map((m: Message): string => m.id);
     await MessageSeenStore.saveRead(sid, ids);
     AppStorage.setOrCreate<number>('home.unreadMessage', 0);
+  }
+
+  // ============ 远程消息映射（RemoteMessage → Message） ============
+
+  private remoteToMessage(r: RemoteMessage): Message {
+    const m: Message = {
+      id: r.messageId,
+      kind: r.kind,
+      title: r.title,
+      body: r.body,
+      timestamp: this.formatTs(r.createdAt),
+      isRead: r.read,
+      route: r.route,
+      param: this.buildParam(r)
+    };
+    return m;
+  }
+
+  // 后端 param 为标量：请假审批存 leave_id，前端请假详情页按 key 'id' 取参；其余消息无参。
+  private buildParam(r: RemoteMessage): Record<string, Object> | undefined {
+    if (r.route === Routes.LeaveDetail && r.param.length > 0) {
+      const p: Record<string, Object> = { 'id': r.param };
+      return p;
+    }
+    return undefined;
+  }
+
+  // ISO 时间串 → '年-月-日 时:分'（按设备本地时区展示）；非法时间回退原串。
+  private formatTs(iso: string): string {
+    if (iso.length === 0) {
+      return '';
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+      return iso;
+    }
+    const pad = (n: number): string => n < 10 ? `0${n}` : `${n}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   // ============ 来源安全包装（任一失败回退空，不阻断其余） ============

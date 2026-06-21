@@ -307,6 +307,23 @@ export interface RemoteEvalTask {
   closeTime: string;
 }
 
+// 消息中心（roadmap #4）：服务端个人消息流。param 为 text 标量（请假审批存 leave_id），
+// read 布尔来自 read_at 是否为空；createdAt 为 ISO 时间串。
+export interface RemoteMessage {
+  messageId: string;
+  kind: string;
+  title: string;
+  body: string;
+  route: string;
+  param: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface RemoteMessageUnread {
+  count: number;
+}
+
 export interface RemotePractice {
   id: string;
   title: string;
@@ -789,6 +806,24 @@ export class RemoteApi {
   static async submitEvaluation(studentId: string, taskId: string, answers: Object): Promise<void> {
     const body: EvalSubmitBody = { studentId: studentId, answers: answers };
     await apiClient.post<Object>('/evaluations/' + encodeURIComponent(taskId) + '/submit', body);
+  }
+
+  // 消息中心（roadmap #4）：以下端点均由后端从 JWT 取学号（不传 studentId），天然防 IDOR。
+  static async listMessages(): Promise<RemoteMessage[]> {
+    return apiClient.get<RemoteMessage[]>('/messages');
+  }
+
+  static async messageUnreadCount(): Promise<number> {
+    const r = await apiClient.get<RemoteMessageUnread>('/messages/unread-count');
+    return r.count;
+  }
+
+  static async markMessageRead(id: string): Promise<void> {
+    await apiClient.post<Object>('/messages/' + encodeURIComponent(id) + '/read');
+  }
+
+  static async markAllMessagesRead(): Promise<void> {
+    await apiClient.post<Object>('/messages/read-all');
   }
 
   static async listPractice(studentId: string, category?: string): Promise<RemotePractice[]> {
