@@ -115,6 +115,9 @@ app.use(require('./routes/admin-reports.routes'));
 // ---- 对象存储域（上传/下载图片等二进制对象，roadmap #9）----
 app.use(require('./routes/uploads.routes'));
 
+// ---- 推送通知域（设备 token 注册/注销，roadmap #8）----
+app.use(require('./routes/push.routes'));
+
 // ---- 数据库管理域（Web 控制台表级 CRUD，仅 system.config 权限）----
 app.use(require('./routes/db.routes'));
 
@@ -123,6 +126,16 @@ const PORT = parseInt(process.env.PORT || '8090', 10);
 // 被测试 require 时不监听，便于 supertest 直接挂载 app。
 if (require.main === module) {
   app.listen(PORT, () => console.log(`[dtest2-api] listening on :${PORT}`));
+}
+
+// 推送出站箱 sweeper（roadmap #8）：每 30 秒轮询 pushed_at IS NULL 消息，尝试推送后标记。
+// 双重保护：
+//   1. NODE_ENV !== 'test'：jest 运行时绝不启动，避免 open handle 导致进程挂起。
+//   2. t.unref()：sweeper timer 不阻止进程正常退出（pm2 graceful stop 可用）。
+if (process.env.NODE_ENV !== 'test') {
+  const { sweepAndPush } = require('./push');
+  const t = setInterval(() => { sweepAndPush(pool).catch(() => {}); }, 30000);
+  t.unref();
 }
 
 // 导出供测试：app 用于 supertest，纯函数用于规则单测。

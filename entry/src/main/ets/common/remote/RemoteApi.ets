@@ -617,6 +617,16 @@ interface UploadImageBody {
   dataBase64: string;
 }
 
+// 推送 token 注册/注销请求体（roadmap #8）
+interface RegisterPushTokenBody {
+  token: string;
+  platform: string;
+}
+
+interface UnregisterPushTokenBody {
+  token: string;
+}
+
 // 管理端·成绩申诉（含学生姓名 + 处理人/时间）
 export interface RemoteAdminGradeAppeal {
   appealId: string;
@@ -1167,5 +1177,17 @@ export class RemoteApi {
   static async uploadImage(filename: string, contentType: string, dataBase64: string): Promise<RemoteUploadResult> {
     const body: UploadImageBody = { filename: filename, contentType: contentType, dataBase64: dataBase64 };
     return apiClient.post<RemoteUploadResult>('/uploads', body);
+  }
+
+  // 推送通知（roadmap #8）：设备 token 注册 / 注销。
+  // 学号由后端从 JWT 取，不需要在 body 传 studentId。
+  static async registerPushToken(token: string, platform: string): Promise<void> {
+    const body: RegisterPushTokenBody = { token: token, platform: platform };
+    await apiClient.post<Object>('/push/tokens', body);
+  }
+
+  static async unregisterPushToken(token: string): Promise<void> {
+    const body: UnregisterPushTokenBody = { token: token };
+    await apiClient.delete<Object>('/push/tokens', body);
   }
 }

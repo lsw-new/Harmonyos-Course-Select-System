@@ -17,6 +17,7 @@ import {
   RemoteLoginResult, RemoteLoginResponse
 } from '../common/remote/RemoteApi';
 import { HttpError } from '../common/http/HttpError';
+import { PushTokenService } from '../common/services/PushTokenService';
 
 // P1-03：把后端动作字符串窄化为 AdminPermissionAction（ArkTS 安全，非法值兜底 view）
 function toAdminAction(a: string): AdminPermissionAction {
@@ -123,6 +124,8 @@ export class AuthRepository extends BaseRepository {
           profile: remote.profile
         };
         const result: LoginResult = await this.completeStudentSession(normal);
+        // #8 best-effort 推送 token 注册（失败不阻断登录）
+        PushTokenService.tryRegister().catch(() => {});
         const ok: LoginOutcome = { kind: 'ok', result: result };
         return this.delay<LoginOutcome>(ok);
       } catch (e) {
@@ -176,6 +179,8 @@ export class AuthRepository extends BaseRepository {
     try {
       const remote: RemoteLoginResult = await RemoteApi.verifyLoginTwoFactor(account.trim(), code.trim());
       const result: LoginResult = await this.completeStudentSession(remote);
+      // #8 best-effort 推送 token 注册（失败不阻断登录）
+      PushTokenService.tryRegister().catch(() => {});
       return this.delay<LoginResult>(result);
     } catch (e) {
       const msg = (e instanceof HttpError) ? (e as HttpError).message : '验证码校验失败，请重试';
