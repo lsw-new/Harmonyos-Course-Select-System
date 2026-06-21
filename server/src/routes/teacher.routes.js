@@ -8,6 +8,8 @@ const { pool } = require('../db');
 const { ok, fail } = require('../envelope');
 const { authRequired } = require('../auth');
 const { serverError } = require('../middleware/errorHandler');
+const { insertMessage } = require('../messages');
+const { genId } = require('../ids');
 
 const router = express.Router();
 
@@ -287,6 +289,188 @@ router.get('/api/teacher/evaluations', authRequired, teacherOnly, async (req, re
     res.json(ok(data));
   } catch (e) {
     serverError(res, '获取评教结果失败', e);
+  }
+});
+
+// ============ 课程通知（三端闭环：教师发 → 学生消息+通知列表 → 管理端可见）============
+
+// 发布课程通知到某课程的教学班。归属校验后写 notices 行（created_by=teacherId 供「我的发布」筛选）
+// 并给本班学生各发一条 system 消息（深链通知详情），同事务保证一致。
+router.post('/api/teacher/notices', authRequired, teacherOnly, async (req, res) => {
+  const b = req.body || {};
+  const courseId = String(b.courseId || '').trim();
+  const title = String(b.title || '').trim();
+  const content = String(b.content || '').trim();
+  const urgency = String(b.urgency || 'normal').trim();
+  if (!title || !content) {
+    return res.status(400).json(fail('标题和正文不能为空'));
+  }
+  if (title.length > 100 || content.length > 2000) {
+    return res.status(400).json(fail('标题或正文过长'));
+  }
+  const name = await resolveTeacherName(req.auth.sub);
+  const task = name ? await ownedTask(courseId, name) : null;
+  if (!task) {
+    return res.status(403).json(fail('无权为该课程发布通知'));
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const cn = await client.query(`SELECT COALESCE(name,'') AS name FROM dtest2.courses WHERE course_id=$1`, [task.course_id]);
+    const courseName = cn.rowCount > 0 ? cn.rows[0].name : '课程';
+    const noticeId = genId('notice');
+    const summary = content.length > 60 ? content.substring(0, 60) + '...' : content;
+    await client.query(
+      // created_by 有外键指向 admin_profiles，教师非管理员故置 NULL；本人通知按 publisher(=教师姓名)+category 识别。
+      `INSERT INTO dtest2.notices
+        (notice_id, title, publisher, category, urgency, summary, content, receiver_type, receiver_scope_json, publish_time, published_at, created_by, created_at)
+       VALUES ($1,$2,$3,'课程通知',$4,$5,$6,'custom',$7::jsonb, now(), now(), NULL, now())`,
+      [noticeId, title, name, urgency, summary, content, JSON.stringify([task.teaching_class_name])]
+    );
+    const studs = await client.query(
+      `SELECT cs.student_id FROM dtest2.class_students cs
+       JOIN dtest2.student_profiles sp ON sp.student_id = cs.student_id
+       WHERE cs.class_name = $1`,
+      [task.teaching_class_name]
+    );
+    for (const row of studs.rows) {
+      await insertMessage(client, {
+        studentId: row.student_id,
+        kind: 'system',
+        title: `课程通知·${courseName}`,
+        body: title,
+        route: 'pages/NoticeDetailPage',
+        param: noticeId
+      });
+    }
+    await client.query('COMMIT');
+    res.json(ok({ noticeId, recipients: studs.rowCount }));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    serverError(res, '发布课程通知失败', e);
+  } finally {
+    client.release();
+  }
+});
+
+// 我发布过的课程通知列表
+router.get('/api/teacher/notices', authRequired, teacherOnly, async (req, res) => {
+  try {
+    const name = await resolveTeacherName(req.auth.sub);
+    if (!name) {
+      return res.json(ok([]));
+    }
+    const r = await pool.query(
+      `SELECT notice_id, title, summary, category, urgency, published_at
+       FROM dtest2.notices WHERE publisher=$1 AND category='课程通知' ORDER BY published_at DESC LIMIT 100`,
+      [name]
+    );
+    res.json(ok(r.rows.map((row) => ({
+      noticeId: row.notice_id,
+      title: row.title,
+      summary: row.summary || '',
+      category: row.category,
+      urgency: row.urgency,
+      publishedAt: row.published_at
+    }))));
+  } catch (e) {
+    serverError(res, '查询我的通知失败', e);
+  }
+});
+
+// ============ 成绩申诉处理（三端闭环：学生申诉 → 教师处理 → 学生消息回执 → 管理端可见）============
+
+// 我所授课程收到的成绩申诉（按 grade_tasks.teacher_name 归属）
+router.get('/api/teacher/grade-appeals', authRequired, teacherOnly, async (req, res) => {
+  try {
+    const name = await resolveTeacherName(req.auth.sub);
+    if (!name) {
+      return res.json(ok([]));
+    }
+    const r = await pool.query(
+      `SELECT ga.appeal_id, ga.student_id, ga.course_id, ga.term, ga.reason, ga.status, ga.reply, ga.submitted_at,
+              COALESCE(sp.name,'') AS student_name, COALESCE(c.name,'') AS course_name
+       FROM dtest2.grade_appeals ga
+       JOIN dtest2.grade_tasks gt ON gt.task_id = ga.task_id AND gt.teacher_name = $1
+       LEFT JOIN dtest2.student_profiles sp ON sp.student_id = ga.student_id
+       LEFT JOIN dtest2.courses c ON c.course_id = ga.course_id
+       ORDER BY ga.submitted_at DESC LIMIT 100`,
+      [name]
+    );
+    res.json(ok(r.rows.map((row) => ({
+      appealId: row.appeal_id,
+      studentId: row.student_id,
+      studentName: row.student_name,
+      courseId: row.course_id || '',
+      courseName: row.course_name,
+      term: row.term || '',
+      reason: row.reason,
+      status: row.status,
+      reply: row.reply || '',
+      submittedAt: row.submitted_at
+    }))));
+  } catch (e) {
+    serverError(res, '查询成绩申诉失败', e);
+  }
+});
+
+// 处理（受理 accepted / 驳回 rejected）。归属校验 + 状态机 + 受理联动任务 appealed + 消息回执给学生。
+const TEACHER_APPEAL_DECISIONS = ['accepted', 'rejected'];
+router.post('/api/teacher/grade-appeals/:id/handle', authRequired, teacherOnly, async (req, res) => {
+  const b = req.body || {};
+  const decision = String(b.decision || '').trim();
+  const reply = typeof b.reply === 'string' ? b.reply.trim() : '';
+  if (TEACHER_APPEAL_DECISIONS.indexOf(decision) < 0) {
+    return res.status(400).json(fail('处理结果不合法'));
+  }
+  const name = await resolveTeacherName(req.auth.sub);
+  if (!name) {
+    return res.status(403).json(fail('无权处理'));
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const cur = await client.query(
+      `SELECT ga.status, ga.task_id, ga.student_id, COALESCE(c.name,'') AS course_name
+       FROM dtest2.grade_appeals ga
+       JOIN dtest2.grade_tasks gt ON gt.task_id = ga.task_id AND gt.teacher_name = $2
+       LEFT JOIN dtest2.courses c ON c.course_id = ga.course_id
+       WHERE ga.appeal_id = $1 FOR UPDATE OF ga`,
+      [req.params.id, name]
+    );
+    if (cur.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(403).json(fail('无权处理该申诉或申诉不存在'));
+    }
+    if (cur.rows[0].status !== 'pending') {
+      await client.query('ROLLBACK');
+      return res.status(409).json(fail('该申诉已处理'));
+    }
+    await client.query(
+      `UPDATE dtest2.grade_appeals SET status=$2, reply=$3, handled_by=$4, handled_at=now(), updated_at=now() WHERE appeal_id=$1`,
+      [req.params.id, decision, reply, req.auth.sub]
+    );
+    if (decision === 'accepted' && cur.rows[0].task_id) {
+      await client.query(
+        `UPDATE dtest2.grade_tasks SET status='appealed', updated_at=now() WHERE task_id=$1 AND status='published'`,
+        [cur.rows[0].task_id]
+      );
+    }
+    const label = decision === 'accepted' ? '已受理' : '已驳回';
+    await insertMessage(client, {
+      studentId: cur.rows[0].student_id,
+      kind: 'grade',
+      title: `成绩复核${label}`,
+      body: `《${cur.rows[0].course_name || '课程'}》成绩复核${label}${reply ? '：' + reply : ''}`,
+      route: 'pages/GradeAppealPage'
+    });
+    await client.query('COMMIT');
+    res.json(ok({ appealId: req.params.id, status: decision }));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    serverError(res, '处理成绩申诉失败', e);
+  } finally {
+    client.release();
   }
 });
 

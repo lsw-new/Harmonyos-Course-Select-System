@@ -140,3 +140,73 @@ describe('GET /api/teacher/evaluations', () => {
     expect(res.body.data[0].avgScore).toBeNull();
   });
 });
+
+describe('POST /api/teacher/notices（课程通知三端闭环）', () => {
+  test('归属课程 → 200，写通知 + 给本班学生发消息', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /FROM dtest2\.grade_tasks\s+WHERE course_id=\$1 AND teacher_name=\$2/, result: [
+        { task_id: 'gt-1', course_id: 'c1', term: '2025-2026-2', teaching_class_name: '23U9', status: 'inputting' }
+      ] },
+      { match: /COALESCE\(name,''\) AS name FROM dtest2\.courses/, result: [{ name: '编译原理' }] },
+      { match: /INSERT INTO dtest2\.notices/, result: [] },
+      { match: /FROM dtest2\.class_students cs\s+JOIN dtest2\.student_profiles/, result: [{ student_id: 'S1' }, { student_id: 'S2' }] },
+      { match: /INSERT INTO dtest2\.messages/, result: [] }
+    ]);
+    const res = await request(app).post('/api/teacher/notices').set('Authorization', teacher).send({ courseId: 'c1', title: '周五停课', content: '本周五补考，正常课程暂停' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.recipients).toBe(2);
+    const msgs = __mock.getLog().filter((e) => e.sql.indexOf('INSERT INTO dtest2.messages') >= 0);
+    expect(msgs).toHaveLength(2); // 本班 2 名学生各一条
+    expect(__mock.executed('COMMIT')).toBe(true);
+  });
+
+  test('非本人课程 → 403', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /FROM dtest2\.grade_tasks\s+WHERE course_id=\$1 AND teacher_name=\$2/, result: [] }
+    ]);
+    const res = await request(app).post('/api/teacher/notices').set('Authorization', teacher).send({ courseId: 'cX', title: 'x', content: 'y' });
+    expect(res.status).toBe(403);
+  });
+
+  test('空标题 → 400', async () => {
+    const res = await request(app).post('/api/teacher/notices').set('Authorization', teacher).send({ courseId: 'c1', title: '', content: 'y' });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/teacher/grade-appeals/:id/handle（成绩申诉三端闭环）', () => {
+  test('归属申诉受理 → 200，写回执消息给学生', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /FROM dtest2\.grade_appeals ga\s+JOIN dtest2\.grade_tasks gt[\s\S]*FOR UPDATE OF ga/, result: [
+        { status: 'pending', task_id: 'gt-1', student_id: 'S9', course_name: '编译原理' }
+      ] },
+      { match: /UPDATE dtest2\.grade_appeals SET status/, result: [] },
+      { match: /UPDATE dtest2\.grade_tasks SET status='appealed'/, result: [] },
+      { match: /INSERT INTO dtest2\.messages/, result: [] }
+    ]);
+    const res = await request(app).post('/api/teacher/grade-appeals/ga1/handle').set('Authorization', teacher).send({ decision: 'accepted', reply: '已复核，调整 2 分' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('accepted');
+    const ins = __mock.getLog().find((e) => e.sql.indexOf('INSERT INTO dtest2.messages') >= 0);
+    expect(ins).toBeDefined();
+    expect(ins.params).toContain('S9');
+    expect(ins.params).toContain('grade');
+  });
+
+  test('非本人课程的申诉 → 403', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /FROM dtest2\.grade_appeals ga\s+JOIN dtest2\.grade_tasks gt[\s\S]*FOR UPDATE OF ga/, result: [] }
+    ]);
+    const res = await request(app).post('/api/teacher/grade-appeals/gaX/handle').set('Authorization', teacher).send({ decision: 'rejected' });
+    expect(res.status).toBe(403);
+  });
+
+  test('非法处理结果 → 400', async () => {
+    const res = await request(app).post('/api/teacher/grade-appeals/ga1/handle').set('Authorization', teacher).send({ decision: 'maybe' });
+    expect(res.status).toBe(400);
+  });
+});
