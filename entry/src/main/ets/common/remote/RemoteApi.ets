@@ -1029,8 +1029,8 @@ export class RemoteApi {
     return apiClient.get<RemoteTeacherEval[]>('/teacher/evaluations');
   }
 
-  static async teacherPublishNotice(courseId: string, title: string, content: string): Promise<RemoteTeacherNoticeResult> {
-    const body: TeacherNoticeBody = { courseId: courseId, title: title, content: content, urgency: 'normal' };
+  static async teacherPublishNotice(courseId: string, title: string, content: string, urgency: string): Promise<RemoteTeacherNoticeResult> {
+    const body: TeacherNoticeBody = { courseId: courseId, title: title, content: content, urgency: urgency };
     return apiClient.post<RemoteTeacherNoticeResult>('/teacher/notices', body);
   }
 

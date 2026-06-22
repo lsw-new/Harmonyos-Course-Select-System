@@ -29,7 +29,24 @@ struct TeacherAppealPage {
   @State submitting: boolean = false;
   @State errorMsg: string = '';
   @State rows: AppealRow[] = [];
+  @State filter: string = 'pending';
   @StorageProp('breakpoint') bp: string = 'sm';
+
+  private pendingCount(): number {
+    return this.rows.filter((r: AppealRow) => r.status === 'pending').length;
+  }
+
+  // 待处理优先：默认仅看待处理，可切换全部；列表内待处理排在前。
+  private visibleRows(): AppealRow[] {
+    const list = this.filter === 'pending'
+      ? this.rows.filter((r: AppealRow) => r.status === 'pending')
+      : this.rows.slice();
+    return list.sort((a: AppealRow, b: AppealRow) => {
+      const pa = a.status === 'pending' ? 0 : 1;
+      const pb = b.status === 'pending' ? 0 : 1;
+      return pa - pb;
+    });
+  }
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.TeacherAppeal)) {
@@ -100,6 +117,16 @@ struct TeacherAppealPage {
     return s;
   }
 
+  @Builder FilterChip(value: string, label: string) {
+    Text(label)
+      .fontSize(13).fontColor(this.filter === value ? Color.White : ElysiaTheme.INK)
+      .layoutWeight(1).textAlign(TextAlign.Center).padding({ top: 8, bottom: 8 })
+      .backgroundColor(this.filter === value ? ElysiaTheme.ROSE_500 : ElysiaTheme.glass())
+      .border({ width: 1, color: this.filter === value ? ElysiaTheme.ROSE_500 : ElysiaTheme.hairline() })
+      .borderRadius(12)
+      .onClick(() => { this.filter = value; })
+  }
+
   @Builder AppealCard(r: AppealRow) {
     Column({ space: 8 }) {
       Row({ space: 6 }) {
@@ -151,10 +178,18 @@ struct TeacherAppealPage {
         } else {
           Scroll() {
             Column({ space: 12 }) {
+              // 筛选切换：待处理（带计数）/ 全部
+              Row({ space: 8 }) {
+                this.FilterChip('pending', `待处理${this.pendingCount() > 0 ? ' ' + this.pendingCount() : ''}`)
+                this.FilterChip('all', '全部')
+              }.width('100%')
+
               if (this.rows.length === 0) {
                 EmptyState({ title: '暂无成绩申诉' })
+              } else if (this.visibleRows().length === 0) {
+                EmptyState({ title: '没有待处理的申诉' })
               } else {
-                ForEach(this.rows, (item: AppealRow) => {
+                ForEach(this.visibleRows(), (item: AppealRow) => {
                   this.AppealCard(item)
                 }, (item: AppealRow) => item.appealId)
               }

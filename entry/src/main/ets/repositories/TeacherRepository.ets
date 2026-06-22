@@ -128,10 +128,10 @@ export class TeacherRepository {
     return this.mockEvals();
   }
 
-  async publishNotice(courseId: string, title: string, content: string): Promise<TeacherNoticeResult> {
+  async publishNotice(courseId: string, title: string, content: string, urgency: string): Promise<TeacherNoticeResult> {
     if (AppConfig.useRemote) {
       try {
-        const r: RemoteTeacherNoticeResult = await RemoteApi.teacherPublishNotice(courseId, title, content);
+        const r: RemoteTeacherNoticeResult = await RemoteApi.teacherPublishNotice(courseId, title, content, urgency);
         return { noticeId: r.noticeId, recipients: r.recipients };
       } catch (e) {
         return this.fail<TeacherNoticeResult>((e instanceof Error) ? e.message : '发布失败');

@@ -22,7 +22,18 @@ struct TeacherNoticePage {
   @State selectedCourseId: string = '';
   @State title: string = '';
   @State content: string = '';
+  @State urgency: string = 'normal';
   @StorageProp('breakpoint') bp: string = 'sm';
+
+  private urgencyLabel(u: string): string {
+    if (u === 'important') {
+      return '重要';
+    }
+    if (u === 'urgent') {
+      return '紧急';
+    }
+    return '普通';
+  }
 
   aboutToAppear(): void {
     if (!AppRoute.guard(Routes.TeacherNotice)) {
@@ -65,11 +76,12 @@ struct TeacherNoticePage {
       return;
     }
     this.submitting = true;
-    TeacherRepository.get().publishNotice(this.selectedCourseId, this.title.trim(), this.content.trim()).then((r: TeacherNoticeResult) => {
+    TeacherRepository.get().publishNotice(this.selectedCourseId, this.title.trim(), this.content.trim(), this.urgency).then((r: TeacherNoticeResult) => {
       this.submitting = false;
       Toast.show(this.getUIContext(), `已发布，送达 ${r.recipients} 名学生`);
       this.title = '';
       this.content = '';
+      this.urgency = 'normal';
       this.reload();
     }).catch((e: object) => {
       this.submitting = false;
@@ -87,11 +99,28 @@ struct TeacherNoticePage {
       .onClick(() => { this.selectedCourseId = c.courseId; })
   }
 
+  @Builder UrgencyChip(value: string) {
+    Text(this.urgencyLabel(value))
+      .fontSize(13).fontColor(this.urgency === value ? Color.White : ElysiaTheme.INK)
+      .layoutWeight(1).textAlign(TextAlign.Center)
+      .padding({ top: 8, bottom: 8 })
+      .backgroundColor(this.urgency === value ? ElysiaTheme.ROSE_500 : ElysiaTheme.glass())
+      .border({ width: 1, color: this.urgency === value ? ElysiaTheme.ROSE_500 : ElysiaTheme.hairline() })
+      .borderRadius(12)
+      .onClick(() => { this.urgency = value; })
+  }
+
   @Builder NoticeRow(n: TeacherNotice) {
     Column({ space: 4 }) {
       Row({ space: 6 }) {
         Text(n.title).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
           .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+        if (n.urgency === 'important' || n.urgency === 'urgent') {
+          Text(this.urgencyLabel(n.urgency))
+            .fontSize(10).fontColor(Color.White).fontWeight(FontWeight.Bold)
+            .padding({ left: 7, right: 7, top: 2, bottom: 2 })
+            .backgroundColor(n.urgency === 'urgent' ? ElysiaTheme.ROSE_500 : '#D9B675').borderRadius(8)
+        }
         Pill({ text: n.category })
       }
       Text(n.summary).fontSize(12).fontColor(ElysiaTheme.INK_SOFT).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -135,6 +164,12 @@ struct TeacherNoticePage {
                   .fontSize(14).height(44).backgroundColor(ElysiaTheme.glass())
                   .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(12)
                   .onChange((v: string) => { this.title = v; })
+                Text('紧急程度').fontSize(13).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK).width('100%')
+                Row({ space: 8 }) {
+                  this.UrgencyChip('normal')
+                  this.UrgencyChip('important')
+                  this.UrgencyChip('urgent')
+                }.width('100%')
                 TextArea({ text: this.content, placeholder: '通知正文…' })
                   .fontSize(14).height(110).backgroundColor(ElysiaTheme.glass())
                   .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(12)

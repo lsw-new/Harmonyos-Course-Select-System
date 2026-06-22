@@ -50,6 +50,57 @@ struct TeacherEvalPage {
     return Math.min(100, Math.round((e.submittedCount / e.taskCount) * 100));
   }
 
+  // 总览：跨课程汇总提交与均分（均分仅对有评分的课程取平均）。
+  private totalTasks(): number {
+    let n = 0;
+    this.items.forEach((e: TeacherEval) => { n += e.taskCount; });
+    return n;
+  }
+
+  private totalSubmitted(): number {
+    let n = 0;
+    this.items.forEach((e: TeacherEval) => { n += e.submittedCount; });
+    return n;
+  }
+
+  private overallRate(): number {
+    const t = this.totalTasks();
+    return t > 0 ? Math.min(100, Math.round((this.totalSubmitted() / t) * 100)) : 0;
+  }
+
+  private overallAvg(): number | null {
+    let sum = 0;
+    let n = 0;
+    this.items.forEach((e: TeacherEval) => {
+      if (e.avgScore !== null) {
+        sum += e.avgScore;
+        n += 1;
+      }
+    });
+    return n > 0 ? Math.round((sum / n) * 10) / 10 : null;
+  }
+
+  @Builder SummaryCard() {
+    Row() {
+      Column({ space: 2 }) {
+        Text(`${this.totalSubmitted()}/${this.totalTasks()}`).fontSize(18).fontWeight(FontWeight.Bold)
+          .fontColor(ElysiaTheme.ROSE_500).fontFamily(ElysiaTheme.FONT_DISPLAY)
+        Text('总提交').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
+      }.layoutWeight(1).alignItems(HorizontalAlign.Center)
+      Column({ space: 2 }) {
+        Text(`${this.overallRate()}%`).fontSize(18).fontWeight(FontWeight.Bold)
+          .fontColor('#5FB7A1').fontFamily(ElysiaTheme.FONT_DISPLAY)
+        Text('总提交率').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
+      }.layoutWeight(1).alignItems(HorizontalAlign.Center)
+      Column({ space: 2 }) {
+        Text(this.overallAvg() !== null ? `${this.overallAvg()}` : '—').fontSize(18).fontWeight(FontWeight.Bold)
+          .fontColor('#B589FF').fontFamily(ElysiaTheme.FONT_DISPLAY)
+        Text('总评分均值').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
+      }.layoutWeight(1).alignItems(HorizontalAlign.Center)
+    }.width('100%').padding(16).backgroundColor(ElysiaTheme.glass())
+    .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
+  }
+
   @Builder EvalRow(e: TeacherEval) {
     Column({ space: 8 }) {
       Row({ space: 6 }) {
@@ -103,6 +154,7 @@ struct TeacherEvalPage {
               if (this.items.length === 0) {
                 EmptyState({ title: '暂无评教数据' })
               } else {
+                this.SummaryCard()
                 ForEach(this.items, (item: TeacherEval) => {
                   this.EvalRow(item)
                 }, (item: TeacherEval) => item.courseId + '-' + item.term)

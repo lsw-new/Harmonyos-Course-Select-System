@@ -41,6 +41,12 @@ struct TeacherSchedulePage {
     return (d >= 1 && d <= 7) ? names[d] : '其他';
   }
 
+  // 今天星期（1=周一…7=周日；JS getDay 0=周日）
+  private todayWeekday(): number {
+    const g = new Date().getDay();
+    return g === 0 ? 7 : g;
+  }
+
   // 当前 weekday 是否需要渲染分组标题（与上一项不同）
   private isNewDay(index: number): boolean {
     if (index === 0) {
@@ -49,7 +55,7 @@ struct TeacherSchedulePage {
     return this.items[index].weekday !== this.items[index - 1].weekday;
   }
 
-  @Builder ItemCard(it: TeacherScheduleItem) {
+  @Builder ItemCard(it: TeacherScheduleItem, isToday: boolean) {
     Row({ space: 10 }) {
       Column()
         .width(10).height(48).borderRadius(6)
@@ -65,8 +71,9 @@ struct TeacherSchedulePage {
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
     }
-    .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
-    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(16)
+    .width('100%').padding(14)
+    .backgroundColor(isToday ? ElysiaTheme.ROSE_50 : ElysiaTheme.SURFACE)
+    .border({ width: isToday ? 1.5 : 1, color: isToday ? ElysiaTheme.ROSE_200 : ElysiaTheme.hairlineSoft() }).borderRadius(16)
   }
 
   build() {
@@ -90,11 +97,18 @@ struct TeacherSchedulePage {
               } else {
                 ForEach(this.items, (item: TeacherScheduleItem, index: number) => {
                   if (this.isNewDay(index)) {
-                    Text(this.weekdayLabel(item.weekday))
-                      .fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_500)
-                      .width('100%').margin({ top: index === 0 ? 4 : 8, bottom: 2 })
+                    Row({ space: 8 }) {
+                      Text(this.weekdayLabel(item.weekday))
+                        .fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_500)
+                      if (item.weekday === this.todayWeekday()) {
+                        Text('今天')
+                          .fontSize(10).fontColor(Color.White).fontWeight(FontWeight.Bold)
+                          .padding({ left: 7, right: 7, top: 2, bottom: 2 })
+                          .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(8)
+                      }
+                    }.width('100%').margin({ top: index === 0 ? 4 : 8, bottom: 2 })
                   }
-                  this.ItemCard(item)
+                  this.ItemCard(item, item.weekday === this.todayWeekday())
                 }, (item: TeacherScheduleItem) => item.itemId)
               }
               SafeBottom()
