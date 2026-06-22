@@ -166,6 +166,7 @@ struct TeacherHomePage {
               this.QuickEntry('课程通知', '给授课班级发通知', Routes.TeacherNotice)
               this.QuickEntry('成绩申诉', '受理学生成绩复核', Routes.TeacherAppeal)
               this.QuickEntry('评教反馈', '查看课程评教情况', Routes.TeacherEval)
+              this.QuickEntry('个人中心', '资料 / 改密码 / 退出', Routes.TeacherProfile)
 
               // 我的课程
               Text('我的课程').fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)

@@ -191,6 +191,18 @@ export class TeacherRepository {
     };
   }
 
+  async updateEmail(email: string): Promise<boolean> {
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.teacherUpdateEmail(email);
+        return true;
+      } catch (e) {
+        return this.fail<boolean>((e instanceof Error) ? e.message : '更新失败');
+      }
+    }
+    return true;
+  }
+
   // ===== 映射 =====
   private toCourse(c: RemoteTeacherCourse): TeacherCourse {
     return {

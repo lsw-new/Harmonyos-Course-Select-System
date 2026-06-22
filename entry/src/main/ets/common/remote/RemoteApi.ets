@@ -169,6 +169,15 @@ export interface RemoteTeacherAppealResult {
   status: string;
 }
 
+interface ChangePasswordBody {
+  oldPassword: string;
+  newPassword: string;
+}
+
+interface TeacherEmailBody {
+  email: string;
+}
+
 export interface ProfileUpdateBody {
   avatarUrl?: string;
   phone?: string;
@@ -1006,6 +1015,18 @@ export class RemoteApi {
   static async teacherHandleAppeal(id: string, decision: string, reply: string): Promise<RemoteTeacherAppealResult> {
     const body: TeacherAppealHandleBody = { decision: decision, reply: reply };
     return apiClient.post<RemoteTeacherAppealResult>('/teacher/grade-appeals/' + encodeURIComponent(id) + '/handle', body);
+  }
+
+  // 登录态改密（任意角色，后端按 JWT 账号校验原密码）
+  static async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    const body: ChangePasswordBody = { oldPassword: oldPassword, newPassword: newPassword };
+    await apiClient.post<Object>('/auth/change-password', body);
+  }
+
+  // 教师改本人邮箱
+  static async teacherUpdateEmail(email: string): Promise<void> {
+    const body: TeacherEmailBody = { email: email };
+    await apiClient.put<Object>('/teacher/profile', body);
   }
 
   static async listPractice(studentId: string, category?: string): Promise<RemotePractice[]> {

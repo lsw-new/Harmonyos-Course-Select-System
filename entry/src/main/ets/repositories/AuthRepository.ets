@@ -317,6 +317,16 @@ export class AuthRepository extends BaseRepository {
       return this.reject('两次新密码不一致');
     }
 
+    // 联机模式：走后端按 JWT 账号校验原密码并落库（修复原仅写本地 AccountStore、remote 下不改后端密码的缺口）。
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.changePassword(req.oldPassword, req.newPassword);
+        return this.delay<boolean>(true);
+      } catch (e) {
+        return this.reject((e instanceof Error) ? e.message : '修改密码失败');
+      }
+    }
+
     // 从 SessionStorage 取当前登录账号 ID
     const session = SessionStorage.get();
     const student = session.getStudent();
