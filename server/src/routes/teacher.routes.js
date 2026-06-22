@@ -474,4 +474,24 @@ router.post('/api/teacher/grade-appeals/:id/handle', authRequired, teacherOnly, 
   }
 });
 
+// ---- 教师本人资料：更新邮箱（college/title 为院系分配，只读不在此改）----
+router.put('/api/teacher/profile', authRequired, teacherOnly, async (req, res) => {
+  const email = String((req.body || {}).email || '').trim();
+  if (email.length > 0 && !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+    return res.status(400).json(fail('邮箱格式不正确'));
+  }
+  try {
+    const r = await pool.query(
+      'UPDATE dtest2.teacher_profiles SET email=$2 WHERE teacher_id=$1',
+      [req.auth.sub, email]
+    );
+    if (r.rowCount === 0) {
+      return res.status(404).json(fail('教师资料不存在'));
+    }
+    res.json(ok({ updated: true, email }));
+  } catch (e) {
+    serverError(res, '更新教师资料失败', e);
+  }
+});
+
 module.exports = router;

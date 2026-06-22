@@ -432,4 +432,46 @@ router.post('/api/auth/reset-password', authLimiter, async (req, res) => {
   }
 });
 
+// ---- 登录态修改密码（任意角色：学生/管理员/教师）----
+// 与「邮箱找回密码」分离：此处需登录 + 校验原密码，账号由 JWT 取（不可改他人密码）。
+router.post('/api/auth/change-password', authRequired, async (req, res) => {
+  const accountId = (req.auth && req.auth.sub) ? String(req.auth.sub) : '';
+  const b = req.body || {};
+  const oldPassword = b.oldPassword || '';
+  const newPassword = b.newPassword || '';
+  if (!accountId) {
+    return res.status(401).json(fail('未登录'));
+  }
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json(fail('请填写原密码与新密码'));
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json(fail('新密码至少 8 位'));
+  }
+  if (newPassword.length > 72) {
+    return res.status(400).json(fail('新密码长度不能超过 72 个字符'));
+  }
+  if (newPassword === oldPassword) {
+    return res.status(400).json(fail('新密码不能与原密码相同'));
+  }
+  try {
+    const acc = await pool.query('SELECT password_hash, salt FROM dtest2.accounts WHERE account_id=$1', [accountId]);
+    if (acc.rowCount === 0) {
+      return res.status(404).json(fail('账号不存在'));
+    }
+    const okOld = await verifyPassword(oldPassword, acc.rows[0].salt, acc.rows[0].password_hash);
+    if (!okOld) {
+      return res.status(400).json(fail('原密码错误'));
+    }
+    const newHash = await hashBcrypt(newPassword);
+    await pool.query(
+      'UPDATE dtest2.accounts SET password_hash=$2, salt=$3, updated_at=now() WHERE account_id=$1',
+      [accountId, newHash, '']
+    );
+    res.json(ok({ changed: true }));
+  } catch (e) {
+    serverError(res, '修改密码失败', e);
+  }
+});
+
 module.exports = router;

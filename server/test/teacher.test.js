@@ -210,3 +210,49 @@ describe('POST /api/teacher/grade-appeals/:id/handle（成绩申诉三端闭环�
     expect(res.status).toBe(400);
   });
 });
+
+describe('PUT /api/teacher/profile（教师改邮箱）', () => {
+  test('合法邮箱 → 200', async () => {
+    __mock.setRoutes([
+      { match: /UPDATE dtest2\.teacher_profiles SET email/, result: [{}] }
+    ]);
+    const res = await request(app).put('/api/teacher/profile').set('Authorization', teacher).send({ email: 'zhang@example.com' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.email).toBe('zhang@example.com');
+  });
+  test('非法邮箱 → 400', async () => {
+    const res = await request(app).put('/api/teacher/profile').set('Authorization', teacher).send({ email: 'not-an-email' });
+    expect(res.status).toBe(400);
+  });
+  test('学生 token → 403', async () => {
+    const res = await request(app).put('/api/teacher/profile').set('Authorization', student).send({ email: 'a@b.com' });
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('POST /api/auth/change-password（任意角色）', () => {
+  test('原密码正确 → 200 改密（更新 accounts）', async () => {
+    const { hashBcrypt } = require('../src/hash');
+    const h = await hashBcrypt('OldPass@1');
+    __mock.setRoutes([
+      { match: /SELECT password_hash, salt FROM dtest2\.accounts/, result: [{ password_hash: h, salt: '' }] },
+      { match: /UPDATE dtest2\.accounts SET password_hash/, result: [] }
+    ]);
+    const res = await request(app).post('/api/auth/change-password').set('Authorization', teacher).send({ oldPassword: 'OldPass@1', newPassword: 'NewPass@2x' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.changed).toBe(true);
+  });
+  test('原密码错误 → 400', async () => {
+    const { hashBcrypt } = require('../src/hash');
+    const h = await hashBcrypt('OldPass@1');
+    __mock.setRoutes([
+      { match: /SELECT password_hash, salt FROM dtest2\.accounts/, result: [{ password_hash: h, salt: '' }] }
+    ]);
+    const res = await request(app).post('/api/auth/change-password').set('Authorization', teacher).send({ oldPassword: 'WRONGpass', newPassword: 'NewPass@2x' });
+    expect(res.status).toBe(400);
+  });
+  test('未登录 → 401', async () => {
+    const res = await request(app).post('/api/auth/change-password').send({ oldPassword: 'x', newPassword: 'yyyyyyyy' });
+    expect(res.status).toBe(401);
+  });
+});
