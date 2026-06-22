@@ -1,3 +1,10 @@
+// ============================================================
+// 【演示用模拟数据 · Mock — 非真实数据】
+// 本文件为演示/离线展示专用，校历事件、审批节点、消息模板及安全策略均为人工编造。
+// remote 模式（AppConfig.runtimeMode = 'remote'）下，此文件中的数据不应作为数据来源出现；
+// 该模式下系统配置数据由 Track B 后端（https://lsw666.dns.army/api）提供。
+// ============================================================
+
 // 系统配置 / 校历 Mock 数据
 
 import { CalendarEvent, ApprovalNode, MsgTemplate, SecurityPolicy } from '../models/SysConfigModels';

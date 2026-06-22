@@ -22,7 +22,7 @@ struct SettingsPage {
   @State dndMode: boolean = false;
   @State homeworkReminder: boolean = true;
   @State biometric: boolean = false;
-  // #12 登录二次验证开关（仅联机，服务器为唯一事实来源）
+  // 登录二次验证开关（仅联机，服务器为唯一事实来源）
   @State twoFactorEnabled: boolean = false;
   @State twoFactorBusy: boolean = false;
   @State showLogoutConfirm: boolean = false;
@@ -38,7 +38,7 @@ struct SettingsPage {
     PreferenceStorage.get().getBoolean('dndMode', false).then((v: boolean) => { this.dndMode = v; });
     PreferenceStorage.get().getBoolean('homeworkReminder', true).then((v: boolean) => { this.homeworkReminder = v; });
     PreferenceStorage.get().getBoolean('biometric', false).then((v: boolean) => { this.biometric = v; });
-    // #12 登录二次验证开关：仅联机时读后端真实状态（mock 模式保持关闭且不可操作）
+    // 登录二次验证开关：仅联机时读后端真实状态（mock 模式保持关闭且不可操作）
     if (AppConfig.useRemote) {
       AuthRepository.get().getTwoFactor()
         .then((on: boolean) => { this.twoFactorEnabled = on; })
@@ -47,7 +47,7 @@ struct SettingsPage {
     this.refreshCacheSize();
   }
 
-  // #12 翻转登录二次验证开关：联机调后端，失败回滚并提示
+  // 翻转登录二次验证开关：联机调后端，失败回滚并提示
   private toggleTwoFactor(next: boolean): void {
     if (this.twoFactorBusy) {
       return;
@@ -128,7 +128,7 @@ struct SettingsPage {
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
   }
 
-  // #12 登录二次验证行：联机可切换；mock 模式置灰并显示「需联网」
+  // 登录二次验证行：联机可切换；mock 模式置灰并显示「需联网」
   @Builder TwoFactorRow() {
     Row() {
       Column() {

@@ -1,3 +1,10 @@
+// ============================================================
+// 【演示用模拟数据 · Mock — 非真实数据】
+// 本文件为演示/离线展示专用，所有评教任务及问卷内容均为人工编造，不代表真实评教结果。
+// remote 模式（AppConfig.runtimeMode = 'remote'）下，此文件中的数据不应作为数据来源出现；
+// 该模式下评教任务由 Track B 后端（https://lsw666.dns.army/api）按班级真实教师生成。
+// ============================================================
+
 import { EvaluationTask, EvaluationQuestionnaire } from '../models/Evaluation';
 
 // 23计算机科学与技术U9 班级课表的 9 门真实课程与授课教师（与后端 course_teachers 同源）

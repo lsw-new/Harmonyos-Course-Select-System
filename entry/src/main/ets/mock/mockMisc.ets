@@ -1,3 +1,10 @@
+// ============================================================
+// 【演示用模拟数据 · Mock — 非真实数据】
+// 本文件为演示/离线展示专用，所有数据均为人工编造，不代表任何真实用户、机构或业务结果。
+// remote 模式（AppConfig.runtimeMode = 'remote'）下，此文件中的数据不应作为数据来源出现；
+// 该模式下请假/反馈/实践入口数据由 Track B 后端（https://lsw666.dns.army/api）提供。
+// ============================================================
+
 import { LeaveRequest, FeedbackItem, PracticeEntry } from '../models/Misc';
 
 export const mockLeaveRequests: LeaveRequest[] = [

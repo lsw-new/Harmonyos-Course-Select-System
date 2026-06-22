@@ -1,3 +1,11 @@
+// ============================================================
+// 【演示用模拟数据 · Mock — 非真实数据】
+// 本文件为演示/离线展示专用，所有用户资料、账号信息及登录历史均为人工编造。
+// remote 模式（AppConfig.runtimeMode = 'remote'）下，此文件中的数据不应作为数据来源出现；
+// 该模式下用户资料由 Track B 后端（https://lsw666.dns.army/api）提供真实 profile。
+// 注意：mock 模式下登录恒显示此处内置的「李仕炜」资料，真实用户请使用 remote 模式。
+// ============================================================
+
 import { UserProfile, AccountInfo, LoginHistoryItem } from '../models/User';
 
 export const mockStudentProfile: UserProfile = {

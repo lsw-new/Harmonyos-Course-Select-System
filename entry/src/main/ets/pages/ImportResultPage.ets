@@ -90,7 +90,7 @@ struct ImportResultPage {
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-            // 错误明细区（结构化占位，实际明细由调用方通过后续版本传入）
+            // 错误明细区（演示占位数据：实际逐行错误列表需调用方通过路由参数传入，后续版本实现）
             Column() {
               Row({ space: 8 }) {
                 Column()

@@ -1,3 +1,10 @@
+// ============================================================
+// 【演示用模拟数据 · Mock — 非真实数据】
+// 本文件为演示/离线展示专用，所有首页摘要、快捷入口及登录记录均为人工编造。
+// remote 模式（AppConfig.runtimeMode = 'remote'）下，此文件中的数据不应作为数据来源出现；
+// 该模式下首页数据由 Track B 后端（https://lsw666.dns.army/api）提供。
+// ============================================================
+
 import { HomeSummary, QuickEntry, DownloadFile, RecentLogin, TermInfo } from '../models/Home';
 import { ScheduleItem } from '../models/Course';
 import { mockSchedule } from './mockCourses';

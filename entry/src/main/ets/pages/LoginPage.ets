@@ -22,7 +22,7 @@ struct LoginPage {
   @State remember: boolean = true;
   @State errorMsg: string = '';
   @State submitting: boolean = false;
-  // #12 登录二次验证步骤状态
+  // 登录二次验证步骤状态
   @State twoFactorStep: boolean = false;
   @State twoFactorAccount: string = '';
   @State twoFactorEmail: string = '';
@@ -39,7 +39,7 @@ struct LoginPage {
   // 记住我：登录/验证成功后统一保存或清除已记住的学号，再进入首页
   private finishLogin(): void {
     const s = SessionStorage.get();
-    // roadmap #6：教师会话跳教师端首页，其余（学生）进学生首页
+    // 教师会话跳教师端首页，其余（学生/管理员）进学生首页
     const target: string = s.getRole() === 'teacher' ? Routes.TeacherHome : Routes.Home;
     const rememberOp = this.remember
       ? s.saveRememberId(this.studentId)
@@ -90,7 +90,7 @@ struct LoginPage {
     });
   }
 
-  // #12 提交登录二次验证码
+  // 提交登录二次验证码
   private doVerify(): void {
     if (this.submitting) {
       return;
@@ -238,7 +238,7 @@ struct LoginPage {
             .width('100%')
             .margin({ top: 22 })
           } else {
-            // #12 登录二次验证步骤：脱敏邮箱 + 验证码输入
+            // 登录二次验证步骤：脱敏邮箱 + 验证码输入
             Column({ space: 12 }) {
               Text('登录二次验证')
                 .fontSize(15)

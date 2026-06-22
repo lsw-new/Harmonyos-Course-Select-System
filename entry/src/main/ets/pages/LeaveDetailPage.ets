@@ -109,12 +109,12 @@ struct LeaveDetailPage {
     .border({ width: { bottom: 1 }, color: '#15FFB3CE' })
   }
 
-  // #7 多级审批步骤是否存在（后端 steps[] 非空才走进度条，否则回退两段式 StepItem）
+  // 多级审批步骤是否存在（后端 steps[] 非空才走进度条，否则回退两段式 StepItem）
   private hasSteps(): boolean {
     return this.leave !== null && this.leave.steps !== undefined && this.leave.steps.length > 0;
   }
 
-  // #7 单步状态色：等待=灰、处理中=琥珀、通过=绿、驳回=玫红
+  // 单步状态色：等待=灰、处理中=琥珀、通过=绿、驳回=玫红
   private stepColor(s: string): string {
     if (s === 'pending') return '#D9B675';
     if (s === 'approved') return ElysiaTheme.SUCCESS;
@@ -136,7 +136,7 @@ struct LeaveDetailPage {
     return step.handler.length > 0 ? step.handler : step.handledAt;
   }
 
-  // #7 多级审批进度单步行：状态色条 + 标题/状态 Pill + 角色/处理人/意见（按需显示）
+  // 多级审批进度单步行：状态色条 + 标题/状态 Pill + 角色/处理人/意见（按需显示）
   @Builder MultiStepRow(step: ApprovalStepVm) {
     Row({ space: 10 }) {
       Column().width(10).height(38).borderRadius(6).backgroundColor(this.stepColor(step.status))

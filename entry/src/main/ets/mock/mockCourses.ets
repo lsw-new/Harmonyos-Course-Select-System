@@ -1,3 +1,11 @@
+// ============================================================
+// 【演示用模拟数据 · Mock — 非真实数据】
+// 本文件为演示/离线展示专用。mockCourses 为选课中心演示课程，mockSchedule 为李仕炜真实课表
+// （由 ScheduleImportService 从 my_schedule.xlsx 导入后固化，仅供 mock/local 模式展示）。
+// remote 模式（AppConfig.runtimeMode = 'remote'）下，课表数据由 Track B 后端按班级返回，
+// 选课数据亦来自后端，此文件中的数据不应作为数据来源出现。
+// ============================================================
+
 import { Course, ScheduleItem, SelectionCourse, SelectionRoundInfo } from '../models/Course';
 
 export const mockCourses: Course[] = [

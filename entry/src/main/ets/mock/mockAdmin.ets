@@ -1,3 +1,11 @@
+// ============================================================
+// 【演示用模拟数据 · Mock — 非真实数据】
+// 本文件为演示/离线展示专用，所有管理端资料、仪表盘统计、课程、审批及操作记录均为人工编造。
+// remote 模式（AppConfig.runtimeMode = 'remote'）下，此文件中的数据不应作为数据来源出现；
+// 该模式下管理端数据由 Track B 后端（https://lsw666.dns.army/api）提供真实数据。
+// 注意：mockAdminProfile 含演示权限矩阵，remote 模式下管理员权限以后端 profile 返回值为准。
+// ============================================================
+
 import {
   AdminProfile, AdminDashboardSummary, StudentAdminItem, AdminCourseItem,
   SelectionRound, GradeAuditItem, EvaluationStats, ApprovalItem, ApprovalDetail

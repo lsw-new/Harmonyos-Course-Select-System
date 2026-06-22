@@ -87,7 +87,7 @@ struct AttachmentPreviewPage {
             }.width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(18)
             .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 
-            // 预览占位区
+            // 预览区（当前为文件名展示，实际预览能力待系统文档 API 支持后接入）
             Column() {
               Text($r('app.string.attachmentpreview_section_preview')).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 10 })
               Column() {

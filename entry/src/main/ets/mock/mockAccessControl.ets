@@ -1,3 +1,10 @@
+// ============================================================
+// 【演示用模拟数据 · Mock — 非真实数据】
+// 本文件为演示/离线展示专用，所有角色、权限及操作日志均为人工编造，不代表真实系统配置。
+// remote 模式（AppConfig.runtimeMode = 'remote'）下，此文件中的数据不应作为数据来源出现；
+// 该模式下角色权限与审计日志由 Track B 后端（https://lsw666.dns.army/api）提供。
+// ============================================================
+
 // 访问控制 Mock 数据 · 角色 / 权限 / 操作日志
 import { AdminRoleView, AuditLogEntry, ModuleLabel } from '../models/AccessControlModels';
 

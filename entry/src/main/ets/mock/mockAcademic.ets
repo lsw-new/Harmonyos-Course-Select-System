@@ -1,3 +1,10 @@
+// ============================================================
+// 【演示用模拟数据 · Mock — 非真实数据】
+// 本文件为演示/离线展示专用，所有成绩、考试安排及学籍记录均为人工编造，不代表真实学业数据。
+// remote 模式（AppConfig.runtimeMode = 'remote'）下，此文件中的数据不应作为数据来源出现；
+// 该模式下成绩与考试数据由 Track B 后端（https://lsw666.dns.army/api）提供，经管理端审核发布后对学生可见。
+// ============================================================
+
 import { GradeRecord, GradeSummary, ExamArrangement, StudentRecord } from '../models/Academic';
 
 // 仅 status === 'published' 的成绩对学生端可见。

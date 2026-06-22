@@ -29,8 +29,12 @@ export class AppConfig {
   }
 
   // 远程调用失败是否允许静默回退本地 mock / 缓存：
-  // remote 模式一律禁止（失败即报错，避免后端不可用时给出误导性结果）；
-  // 其余模式本就不会触发远程路径，此值无实际影响。
+  // ┌─ mock/local 模式：返回 true，但这两种模式本就不走远程路径，此值无实际影响。
+  // └─ remote 模式：返回 false，禁止任何静默回退 mock 数据——失败必须报错上报，
+  //    防止后端不可用时 UI 静默展示 mock/mockAdmin 中的演示占位数据，造成数据误导。
+  // 【mock 与真实数据边界】mock/ 目录下的数据均为演示用固定数据，不反映真实用户/班级情况；
+  // remote 模式下，所有数据来源必须是 Track B 后端（https://lsw666.dns.army/api），
+  // 绝不能将 mock 数据作为兜底"真实"结果呈现给已登录的真实用户。
   static get allowMockFallbackInRemote(): boolean {
     return AppConfig.runtimeMode !== 'remote';
   }

@@ -121,7 +121,8 @@ export class StudentAdminRepository extends BaseRepository {
     return item;
   }
 
-  // 远程档案 → 学籍详情（后端暂无 GPA/学分/宿舍/导师等字段，以占位呈现）
+  // 远程档案 → 学籍详情（后端 student_profiles 暂无 GPA/学分/宿舍/导师字段，相关字段以默认值填充展示）
+  // 待办：待后端扩展档案字段后，从响应中读取真实值（前置条件：后端 /api/admin/students/:id 返回完整档案）
   private remoteToDetail(r: RemoteStudentDetail): StudentDetail {
     const yearText = r.grade.replace('级', '').trim();
     const detail: StudentDetail = {
@@ -210,7 +211,7 @@ export class StudentAdminRepository extends BaseRepository {
       return this.reject('\u65e0\u6743\u9650\u64cd\u4f5c', 'unauthorized');
     }
     if (AppConfig.useRemote) {
-      // \u540e\u7aef student_profiles \u6682\u65e0\u5b66\u7c4d\u72b6\u6001\u5b57\u6bb5\uff0c\u672c\u5730\u6539\u52a8\u4f1a\u4e0e\u670d\u52a1\u5668\u5206\u53c9\u2014\u2014\u6682\u4e0d\u652f\u6301
+      // \u5f85\u529e\uff1a\u540e\u7aef student_profiles \u6682\u65e0\u5b66\u7c4d\u72b6\u6001\u5b57\u6bb5\uff0cremote \u6a21\u5f0f\u4e0b\u672c\u5730\u4fee\u6539\u65e0\u6cd5\u540c\u6b65\u670d\u52a1\u5668\uff0c\u6682\u4e0d\u652f\u6301\uff08\u524d\u7f6e\u6761\u4ef6\uff1a\u540e\u7aef\u6269\u5c55\u5b66\u7c4d\u72b6\u6001\u5b57\u6bb5\u5e76\u63d0\u4f9b\u53d8\u66f4\u63a5\u53e3\uff09
       return this.reject('\u8054\u673a\u6a21\u5f0f\u6682\u4e0d\u652f\u6301\u5b66\u7c4d\u72b6\u6001\u53d8\u66f4\uff08\u670d\u52a1\u5668\u6863\u6848\u65e0\u8be5\u5b57\u6bb5\uff09');
     }
     if (!this.isAllowedStatus(nextStatus)) {

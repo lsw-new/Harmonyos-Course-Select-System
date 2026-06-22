@@ -72,7 +72,7 @@ struct AccountPage {
     });
   }
 
-  // 地点行：地点非空时「地点 · IP」，否则仅 IP（不展示占位垃圾）
+  // 地点行：地点非空时「地点 · IP」，否则仅 IP
   private locationLine(item: LoginHistoryItem): string {
     return item.location.length > 0 ? `${item.location} · ${item.ipAddress}` : item.ipAddress;
   }
