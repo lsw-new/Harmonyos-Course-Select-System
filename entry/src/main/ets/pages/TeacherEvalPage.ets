@@ -60,6 +60,10 @@ struct TeacherEvalPage {
           Text(this.rate(e)).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#5FB7A1')
           Text('提交率').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
         }.alignItems(HorizontalAlign.Start)
+        Column({ space: 2 }) {
+          Text(e.avgScore !== null ? `${e.avgScore}` : '—').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#B589FF')
+          Text('评分均值').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
+        }.alignItems(HorizontalAlign.Start)
       }.width('100%')
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)

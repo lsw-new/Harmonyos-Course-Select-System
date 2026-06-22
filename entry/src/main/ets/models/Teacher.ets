@@ -56,6 +56,7 @@ export interface TeacherEval {
   term: string;
   taskCount: number;
   submittedCount: number;
+  avgScore: number | null;
 }
 
 // 录入成绩入参一行

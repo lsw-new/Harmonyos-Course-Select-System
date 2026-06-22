@@ -277,15 +277,39 @@ router.get('/api/teacher/evaluations', authRequired, teacherOnly, async (req, re
        ORDER BY et.term DESC, c.name`,
       [name]
     );
-    const data = r.rows.map((row) => ({
-      courseId: row.course_id,
-      courseName: row.course_name,
-      term: row.term,
-      taskCount: Number(row.task_count || 0),
-      submittedCount: Number(row.submitted_count || 0),
-      // 评教均分需作答表聚合，MVP 留 null
-      avgScore: null
-    }));
+    // 评分均值：解析本教师各课程评教答卷的数值评分（与管理端口径一致：ans.score ?? ans.rating）。
+    const subs = await pool.query(
+      `SELECT et.course_id, es.answers_json
+       FROM dtest2.evaluation_submissions es
+       JOIN dtest2.evaluation_tasks et ON et.task_id = es.task_id
+       WHERE et.teacher_name = $1`,
+      [name]
+    );
+    const acc = new Map();
+    for (const row of subs.rows) {
+      const answers = Array.isArray(row.answers_json) ? row.answers_json : [];
+      for (const ans of answers) {
+        const v = Number(ans && (ans.score !== undefined ? ans.score : ans.rating));
+        if (Number.isFinite(v)) {
+          const cur = acc.get(row.course_id) || { sum: 0, n: 0 };
+          cur.sum += v;
+          cur.n += 1;
+          acc.set(row.course_id, cur);
+        }
+      }
+    }
+    const data = r.rows.map((row) => {
+      const a = acc.get(row.course_id);
+      const avg = (a && a.n > 0) ? Math.round((a.sum / a.n) * 10) / 10 : null;
+      return {
+        courseId: row.course_id,
+        courseName: row.course_name,
+        term: row.term,
+        taskCount: Number(row.task_count || 0),
+        submittedCount: Number(row.submitted_count || 0),
+        avgScore: avg
+      };
+    });
     res.json(ok(data));
   } catch (e) {
     serverError(res, '获取评教结果失败', e);

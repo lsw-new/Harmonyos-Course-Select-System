@@ -114,7 +114,8 @@ export class TeacherRepository {
           courseName: e.courseName,
           term: e.term,
           taskCount: e.taskCount,
-          submittedCount: e.submittedCount
+          submittedCount: e.submittedCount,
+          avgScore: e.avgScore
         }));
       } catch (e) {
         if (!AppConfig.allowMockFallbackInRemote) {
@@ -294,8 +295,8 @@ export class TeacherRepository {
 
   private mockEvals(): TeacherEval[] {
     return [
-      { courseId: 'mock-c1', courseName: '编译原理', term: '2025-2026-2', taskCount: 47, submittedCount: 30 },
-      { courseId: 'mock-c2', courseName: '操作系统', term: '2025-2026-2', taskCount: 47, submittedCount: 41 }
+      { courseId: 'mock-c1', courseName: '编译原理', term: '2025-2026-2', taskCount: 47, submittedCount: 30, avgScore: 4.6 },
+      { courseId: 'mock-c2', courseName: '操作系统', term: '2025-2026-2', taskCount: 47, submittedCount: 41, avgScore: 4.8 }
     ];
   }
 }
