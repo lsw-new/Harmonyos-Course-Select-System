@@ -46,6 +46,7 @@ export class TeacherRepository {
           courseCount: r.courseCount,
           studentCount: r.studentCount,
           pendingGradeCount: r.pendingGradeCount,
+          evalAvg: r.evalAvg,
           evalSubmitted: r.evalSubmitted
         };
       } catch (e) {
@@ -54,7 +55,7 @@ export class TeacherRepository {
         }
       }
     }
-    const mock: TeacherDashboard = { courseCount: 2, studentCount: 94, pendingGradeCount: 1, evalSubmitted: 47 };
+    const mock: TeacherDashboard = { courseCount: 2, studentCount: 94, pendingGradeCount: 1, evalAvg: 4.7, evalSubmitted: 47 };
     return mock;
   }
 
@@ -80,6 +81,7 @@ export class TeacherRepository {
           courseId: r.courseId,
           term: r.term,
           teachingClassName: r.teachingClassName,
+          published: r.published,
           students: r.students.map((s: RemoteTeacherStudent): TeacherStudent => this.toStudent(s))
         };
       } catch (e) {
@@ -281,6 +283,7 @@ export class TeacherRepository {
       className: s.className,
       score: s.score,
       gradePoint: s.gradePoint,
+      rank: s.rank,
       status: s.status
     };
   }
@@ -298,10 +301,11 @@ export class TeacherRepository {
       courseId: courseId,
       term: '2025-2026-2',
       teachingClassName: '23计算机U9',
+      published: false,
       students: [
-        { studentId: '2023307020941', name: '李仕炜', className: '23计算机U9', score: 88, gradePoint: 3.8, status: 'scored' },
-        { studentId: '2023307020942', name: '王同学', className: '23计算机U9', score: null, gradePoint: null, status: 'none' },
-        { studentId: '2023307020943', name: '张同学', className: '23计算机U9', score: 76, gradePoint: 2.6, status: 'scored' }
+        { studentId: '2023307020941', name: '李仕炜', className: '23计算机U9', score: 88, gradePoint: 3.8, rank: 1, status: 'scored' },
+        { studentId: '2023307020942', name: '王同学', className: '23计算机U9', score: null, gradePoint: null, rank: null, status: 'none' },
+        { studentId: '2023307020943', name: '张同学', className: '23计算机U9', score: 76, gradePoint: 2.6, rank: 2, status: 'scored' }
       ]
     };
   }

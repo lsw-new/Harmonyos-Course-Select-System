@@ -192,8 +192,13 @@ struct TeacherHomePage {
                 Column({ space: 6 }) {
                   Text(`欢迎，${this.teacherName()} 老师`)
                     .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).lineHeight(26)
-                  Text('在此查看授课班级、录入成绩与评教反馈')
-                    .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+                  if (this.dashboard !== null && this.dashboard.evalAvg !== null) {
+                    Text(`本学期评教均分 ${this.dashboard.evalAvg} / 5`)
+                      .fontSize(12).fontColor(ElysiaTheme.ROSE_500).fontWeight(FontWeight.Medium)
+                  } else {
+                    Text('在此查看授课班级、录入成绩与评教反馈')
+                      .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+                  }
                 }.alignItems(HorizontalAlign.Start).layoutWeight(1)
               }.width('100%').padding(18).borderRadius(24)
               .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_100, 0], [ElysiaTheme.LAV_200, 1]] })

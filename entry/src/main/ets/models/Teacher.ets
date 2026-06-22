@@ -9,11 +9,12 @@ export interface TeacherProfile {
   avatarUrl: string;
 }
 
-// 工作台概览四项
+// 工作台概览
 export interface TeacherDashboard {
   courseCount: number;
   studentCount: number;
   pendingGradeCount: number;
+  evalAvg: number | null;
   evalSubmitted: number;
 }
 
@@ -39,6 +40,7 @@ export interface TeacherStudent {
   className: string;
   score: number | null;
   gradePoint: number | null;
+  rank: number | null;
   status: string;
 }
 
@@ -47,6 +49,7 @@ export interface TeacherCourseStudents {
   courseId: string;
   term: string;
   teachingClassName: string;
+  published: boolean;
   students: TeacherStudent[];
 }
 

@@ -83,12 +83,32 @@ router.get('/api/teacher/dashboard', authRequired, teacherOnly, async (req, res)
       [name]
     );
     const row = r.rows[0] || {};
+    // 评教平均分：聚合本教师全部评教答卷的数值评分（与评教页/管理端口径一致：ans.score ?? ans.rating）。
+    const subs = await pool.query(
+      `SELECT es.answers_json
+       FROM dtest2.evaluation_submissions es
+       JOIN dtest2.evaluation_tasks et ON et.task_id = es.task_id
+       WHERE et.teacher_name = $1`,
+      [name]
+    );
+    let sum = 0;
+    let cnt = 0;
+    for (const s of subs.rows) {
+      const answers = Array.isArray(s.answers_json) ? s.answers_json : [];
+      for (const ans of answers) {
+        const v = Number(ans && (ans.score !== undefined ? ans.score : ans.rating));
+        if (Number.isFinite(v)) {
+          sum += v;
+          cnt += 1;
+        }
+      }
+    }
+    const evalAvg = cnt > 0 ? Math.round((sum / cnt) * 10) / 10 : null;
     res.json(ok({
       courseCount: Number(row.course_count || 0),
       studentCount: Number(row.student_count || 0),
       pendingGradeCount: Number(row.pending_grade_count || 0),
-      // 评教平均分需评教作答表聚合，MVP 暂以 null 呈现（已提交份数另见评教页）
-      evalAvg: null,
+      evalAvg: evalAvg,
       evalSubmitted: Number(row.eval_submitted || 0)
     }));
   } catch (e) {
@@ -155,7 +175,7 @@ router.get('/api/teacher/courses/:courseId/students', authRequired, teacherOnly,
     }
     const r = await pool.query(
       `SELECT cs.student_id, COALESCE(sp.name,'') AS name, COALESCE(sp.class_name,'') AS class_name,
-              g.score, g.grade_point,
+              g.score, g.grade_point, g.rank,
               CASE WHEN g.grade_id IS NULL THEN 'none' ELSE 'scored' END AS status
        FROM dtest2.class_students cs
        JOIN dtest2.student_profiles sp ON sp.student_id = cs.student_id
@@ -170,9 +190,16 @@ router.get('/api/teacher/courses/:courseId/students', authRequired, teacherOnly,
       className: row.class_name,
       score: num(row.score),
       gradePoint: num(row.grade_point),
+      rank: num(row.rank),
       status: row.status
     }));
-    res.json(ok({ courseId: task.course_id, term: task.term, teachingClassName: task.teaching_class_name, students }));
+    res.json(ok({
+      courseId: task.course_id,
+      term: task.term,
+      teachingClassName: task.teaching_class_name,
+      published: task.status === 'published',
+      students
+    }));
   } catch (e) {
     serverError(res, '获取课程学生失败', e);
   }

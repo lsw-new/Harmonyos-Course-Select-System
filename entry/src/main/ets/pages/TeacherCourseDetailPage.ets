@@ -16,6 +16,9 @@ interface EditRow {
   name: string;
   className: string;
   currentScore: string;
+  scoreNum: number;
+  gradePoint: number | null;
+  rank: number;
   input: string;
   status: string;
 }
@@ -28,6 +31,7 @@ struct TeacherCourseDetailPage {
   @State courseName: string = '';
   @State className: string = '';
   @State rows: EditRow[] = [];
+  @State published: boolean = false;
   @State distribution: TeacherGradeDistribution | null = null;
   private courseId: string = '';
   @StorageProp('breakpoint') bp: string = 'sm';
@@ -50,6 +54,7 @@ struct TeacherCourseDetailPage {
     this.errorMsg = '';
     TeacherRepository.get().getCourseStudents(this.courseId).then((data: TeacherCourseStudents) => {
       this.className = data.teachingClassName;
+      this.published = data.published;
       this.rows = data.students.map((s: TeacherStudent): EditRow => {
         const cur: string = this.scoreText(s.score);
         return {
@@ -57,6 +62,9 @@ struct TeacherCourseDetailPage {
           name: s.name,
           className: s.className,
           currentScore: cur,
+          scoreNum: s.score === null ? -1 : s.score,
+          gradePoint: s.gradePoint,
+          rank: s.rank === null ? 0 : s.rank,
           input: cur,
           status: s.status
         };
@@ -118,10 +126,19 @@ struct TeacherCourseDetailPage {
         name: r.name,
         className: r.className,
         currentScore: r.currentScore,
+        scoreNum: r.scoreNum,
+        gradePoint: r.gradePoint,
+        rank: r.rank,
         input: value,
         status: r.status
       };
     });
+  }
+
+  // 已评学生按分数降序的排名视图（只读）。后端 rank 可用则用之，否则按当前顺序序号兜底。
+  private rankedRows(): EditRow[] {
+    const scored = this.rows.filter((r: EditRow) => r.scoreNum >= 0);
+    return scored.sort((a: EditRow, b: EditRow) => b.scoreNum - a.scoreNum);
   }
 
   // 收集合法（0-100）输入为打分项；非数字/越界忽略
@@ -173,6 +190,46 @@ struct TeacherCourseDetailPage {
     return n;
   }
 
+  @Builder RankRow(r: EditRow, idx: number) {
+    Row({ space: 10 }) {
+      // 名次徽章：前三名玫瑰渐变，其余浅底
+      if (idx < 3) {
+        Stack() {
+          Text(`${r.rank > 0 ? r.rank : idx + 1}`).fontSize(13).fontWeight(FontWeight.Bold).fontColor(Color.White)
+        }
+        .width(28).height(28).borderRadius(14)
+        .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_500, 0], [ElysiaTheme.LAV_500, 1]] })
+      } else {
+        Stack() {
+          Text(`${r.rank > 0 ? r.rank : idx + 1}`).fontSize(13).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+        }
+        .width(28).height(28).borderRadius(14).backgroundColor(ElysiaTheme.glass())
+      }
+      Text(r.name.length > 0 ? r.name : r.studentId)
+        .fontSize(14).fontColor(ElysiaTheme.INK).layoutWeight(1)
+        .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+      Text(r.gradePoint !== null ? `绩点 ${r.gradePoint}` : '').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+      Text(`${r.scoreNum}`).fontSize(16).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_500)
+        .fontFamily(ElysiaTheme.FONT_DISPLAY)
+    }
+    .width('100%').padding({ left: 12, right: 12, top: 10, bottom: 10 })
+    .backgroundColor(ElysiaTheme.SURFACE)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(14)
+  }
+
+  @Builder RankingCard() {
+    Column({ space: 8 }) {
+      Row() {
+        Text('班级排名').fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
+        Pill({ text: this.published ? '已发布' : '未发布·仅本人可见' })
+      }.width('100%')
+      ForEach(this.rankedRows(), (item: EditRow, index: number) => {
+        this.RankRow(item, index)
+      }, (item: EditRow) => 'rank-' + item.studentId)
+    }.width('100%').padding(14).backgroundColor(ElysiaTheme.glass())
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(16).alignItems(HorizontalAlign.Start)
+  }
+
   @Builder StudentRow(r: EditRow) {
     Row({ space: 10 }) {
       // 状态点：已有成绩=青绿，未评=浅灰
@@ -222,6 +279,9 @@ struct TeacherCourseDetailPage {
               Column({ space: 10 }) {
                 if (this.distribution !== null) {
                   this.DistBar(this.distribution)
+                }
+                if (this.rankedRows().length > 0) {
+                  this.RankingCard()
                 }
                 Row() {
                   Text(`学生名单（${this.rows.length}）`).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)

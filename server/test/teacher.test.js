@@ -40,6 +40,19 @@ describe('GET /api/teacher/dashboard', () => {
     const q = __mock.getLog().find((e) => e.sql.indexOf('FROM dtest2.teacher_profiles') >= 0);
     expect(q.params).toContain('T001');
   });
+  test('有评教答卷 → evalAvg 聚合（score ?? rating）', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /AS course_count/, result: [{ course_count: 1, student_count: 47, pending_grade_count: 0, eval_submitted: 2 }] },
+      { match: /FROM dtest2\.evaluation_submissions es/, result: [
+        { answers_json: [{ score: 5 }, { score: 4 }] },
+        { answers_json: [{ rating: 3 }, { rating: 4 }] }
+      ] }
+    ]);
+    const res = await request(app).get('/api/teacher/dashboard').set('Authorization', teacher);
+    expect(res.status).toBe(200);
+    expect(res.body.data.evalAvg).toBe(4); // (5+4+3+4)/4 = 4.0
+  });
 });
 
 describe('GET /api/teacher/courses', () => {
@@ -68,15 +81,17 @@ describe('GET /api/teacher/courses/:courseId/students', () => {
         { task_id: 'gt-1', course_id: 'c1', term: '2025-2026-2', teaching_class_name: '23U9', status: 'inputting' }
       ] },
       { match: /FROM dtest2\.class_students cs\s+JOIN dtest2\.student_profiles sp[\s\S]*LEFT JOIN dtest2\.grades/, result: [
-        { student_id: 'S1', name: '李四', class_name: '23U9', score: '88.00', grade_point: '3.80', status: 'scored' },
-        { student_id: 'S2', name: '王五', class_name: '23U9', score: null, grade_point: null, status: 'none' }
+        { student_id: 'S1', name: '李四', class_name: '23U9', score: '88.00', grade_point: '3.80', rank: 1, status: 'scored' },
+        { student_id: 'S2', name: '王五', class_name: '23U9', score: null, grade_point: null, rank: null, status: 'none' }
       ] }
     ]);
     const res = await request(app).get('/api/teacher/courses/c1/students').set('Authorization', teacher);
     expect(res.status).toBe(200);
     expect(res.body.data.students).toHaveLength(2);
     expect(res.body.data.students[0].score).toBe(88);
+    expect(res.body.data.students[0].rank).toBe(1);
     expect(res.body.data.students[1].score).toBeNull();
+    expect(res.body.data.published).toBe(false); // task.status='inputting'
   });
 
   test('非本人课程（无 grade_task）→ 403', async () => {

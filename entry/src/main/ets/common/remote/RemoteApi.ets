@@ -91,6 +91,7 @@ export interface RemoteTeacherStudent {
   className: string;
   score: number | null;
   gradePoint: number | null;
+  rank: number | null;
   status: string;
 }
 
@@ -98,6 +99,7 @@ export interface RemoteTeacherCourseStudents {
   courseId: string;
   term: string;
   teachingClassName: string;
+  published: boolean;
   students: RemoteTeacherStudent[];
 }
 
