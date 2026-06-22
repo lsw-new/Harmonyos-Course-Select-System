@@ -2,7 +2,7 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill, PrimaryButton } from '../common/Components';
 import { TeacherRepository, TeacherGradeResult } from '../repositories/TeacherRepository';
-import { TeacherCourseStudents, TeacherStudent, TeacherScoreInput } from '../models/Teacher';
+import { TeacherCourseStudents, TeacherStudent, TeacherScoreInput, TeacherGradeDistribution } from '../models/Teacher';
 import { HttpError } from '../common/http/HttpError';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
@@ -28,6 +28,7 @@ struct TeacherCourseDetailPage {
   @State courseName: string = '';
   @State className: string = '';
   @State rows: EditRow[] = [];
+  @State distribution: TeacherGradeDistribution | null = null;
   private courseId: string = '';
   @StorageProp('breakpoint') bp: string = 'sm';
 
@@ -61,10 +62,50 @@ struct TeacherCourseDetailPage {
         };
       });
       this.loading = false;
+      // 成绩分布（次要信息，失败不影响名单）
+      TeacherRepository.get().getGradeDistribution(this.courseId).then((d: TeacherGradeDistribution) => {
+        this.distribution = d;
+      }).catch(() => {});
     }).catch((e: object) => {
       this.loading = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
     });
+  }
+
+  @Builder DistBar(d: TeacherGradeDistribution) {
+    Column({ space: 8 }) {
+      Row() {
+        Text('成绩分布').fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
+        Text(d.total > 0 ? `均分 ${d.avgScore} · ${d.total} 人` : '暂无成绩').fontSize(12).fontColor(ElysiaTheme.ROSE_500)
+      }.width('100%')
+      if (d.total > 0) {
+        Row() {
+          if (d.excellent > 0) {
+            Row().layoutWeight(d.excellent).height(14).backgroundColor('#5FB7A1')
+          }
+          if (d.good > 0) {
+            Row().layoutWeight(d.good).height(14).backgroundColor('#8BC34A')
+          }
+          if (d.medium > 0) {
+            Row().layoutWeight(d.medium).height(14).backgroundColor('#D9B675')
+          }
+          if (d.pass > 0) {
+            Row().layoutWeight(d.pass).height(14).backgroundColor('#E89B5F')
+          }
+          if (d.fail > 0) {
+            Row().layoutWeight(d.fail).height(14).backgroundColor(ElysiaTheme.ROSE_500)
+          }
+        }.width('100%').height(14).borderRadius(7).clip(true)
+        Row() {
+          Text(`优${d.excellent}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).layoutWeight(1)
+          Text(`良${d.good}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).layoutWeight(1)
+          Text(`中${d.medium}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).layoutWeight(1)
+          Text(`及格${d.pass}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).layoutWeight(1)
+          Text(`不及格${d.fail}`).fontSize(11).fontColor(ElysiaTheme.INK_SOFT).layoutWeight(1)
+        }.width('100%')
+      }
+    }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(16).alignItems(HorizontalAlign.Start)
   }
 
   private updateInput(studentId: string, value: string): void {
@@ -162,6 +203,9 @@ struct TeacherCourseDetailPage {
           Column() {
             Scroll() {
               Column({ space: 10 }) {
+                if (this.distribution !== null) {
+                  this.DistBar(this.distribution)
+                }
                 Row() {
                   Text(`学生名单（${this.rows.length}）`).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
                   Text('录入阶段 · 提交后由教务审核发布').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)

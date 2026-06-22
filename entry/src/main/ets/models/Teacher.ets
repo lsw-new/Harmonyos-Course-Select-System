@@ -74,6 +74,32 @@ export interface TeacherNotice {
   publishedAt: string;
 }
 
+// 某课程成绩分布
+export interface TeacherGradeDistribution {
+  excellent: number;
+  good: number;
+  medium: number;
+  pass: number;
+  fail: number;
+  total: number;
+  avgScore: number;
+}
+
+// 课表一项
+export interface TeacherScheduleItem {
+  itemId: string;
+  courseName: string;
+  className: string;
+  weekday: number;
+  periodStart: number;
+  periodEnd: number;
+  startTime: string;
+  endTime: string;
+  classroom: string;
+  weekText: string;
+  term: string;
+}
+
 // 我所授课程收到的成绩申诉一行
 export interface TeacherAppeal {
   appealId: string;

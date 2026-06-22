@@ -474,6 +474,74 @@ router.post('/api/teacher/grade-appeals/:id/handle', authRequired, teacherOnly, 
   }
 });
 
+// ---- 成绩分布（某课程，归属校验）：优/良/中/及格/不及格 + 均分 ----
+router.get('/api/teacher/courses/:courseId/grade-distribution', authRequired, teacherOnly, async (req, res) => {
+  try {
+    const name = await resolveTeacherName(req.auth.sub);
+    const task = name ? await ownedTask(req.params.courseId, name) : null;
+    if (!task) {
+      return res.status(403).json(fail('无权访问该课程或课程不存在'));
+    }
+    const r = await pool.query(
+      `SELECT
+         count(*) FILTER (WHERE score >= 90)::int AS excellent,
+         count(*) FILTER (WHERE score >= 80 AND score < 90)::int AS good,
+         count(*) FILTER (WHERE score >= 70 AND score < 80)::int AS medium,
+         count(*) FILTER (WHERE score >= 60 AND score < 70)::int AS pass,
+         count(*) FILTER (WHERE score < 60)::int AS fail,
+         count(*)::int AS total,
+         COALESCE(round(avg(score), 1), 0) AS avg_score
+       FROM dtest2.grades WHERE course_id = $1 AND term = $2`,
+      [task.course_id, task.term]
+    );
+    const row = r.rows[0] || {};
+    res.json(ok({
+      excellent: Number(row.excellent || 0),
+      good: Number(row.good || 0),
+      medium: Number(row.medium || 0),
+      pass: Number(row.pass || 0),
+      fail: Number(row.fail || 0),
+      total: Number(row.total || 0),
+      avgScore: Number(row.avg_score || 0)
+    }));
+  } catch (e) {
+    serverError(res, '获取成绩分布失败', e);
+  }
+});
+
+// ---- 我的课表（按教师姓名匹配班级课表项）----
+router.get('/api/teacher/schedule', authRequired, teacherOnly, async (req, res) => {
+  try {
+    const name = await resolveTeacherName(req.auth.sub);
+    if (!name) {
+      return res.json(ok([]));
+    }
+    const r = await pool.query(
+      `SELECT item_id, course_name, class_name, weekday, period_start, period_end,
+              start_time, end_time, classroom, week_text, term
+       FROM dtest2.class_schedule_items
+       WHERE teacher = $1
+       ORDER BY weekday, period_start`,
+      [name]
+    );
+    res.json(ok(r.rows.map((row) => ({
+      itemId: row.item_id,
+      courseName: row.course_name,
+      className: row.class_name,
+      weekday: Number(row.weekday),
+      periodStart: Number(row.period_start),
+      periodEnd: Number(row.period_end),
+      startTime: row.start_time,
+      endTime: row.end_time,
+      classroom: row.classroom || '',
+      weekText: row.week_text || '',
+      term: row.term
+    }))));
+  } catch (e) {
+    serverError(res, '获取课表失败', e);
+  }
+});
+
 // ---- 教师本人资料：更新邮箱（college/title 为院系分配，只读不在此改）----
 router.put('/api/teacher/profile', authRequired, teacherOnly, async (req, res) => {
   const email = String((req.body || {}).email || '').trim();

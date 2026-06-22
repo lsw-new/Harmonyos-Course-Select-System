@@ -211,6 +211,40 @@ describe('POST /api/teacher/grade-appeals/:id/handle（成绩申诉三端闭环�
   });
 });
 
+describe('GET /api/teacher/courses/:id/grade-distribution', () => {
+  test('归属课程 → 200 分桶+均分', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /FROM dtest2\.grade_tasks\s+WHERE course_id=\$1 AND teacher_name=\$2/, result: [{ task_id: 'gt-1', course_id: 'c1', term: '2025-2026-2', teaching_class_name: '23U9', status: 'inputting' }] },
+      { match: /FILTER \(WHERE score >= 90\)/, result: [{ excellent: 3, good: 10, medium: 20, pass: 8, fail: 6, total: 47, avg_score: '76.5' }] }
+    ]);
+    const res = await request(app).get('/api/teacher/courses/c1/grade-distribution').set('Authorization', teacher);
+    expect(res.status).toBe(200);
+    expect(res.body.data.total).toBe(47);
+    expect(res.body.data.avgScore).toBe(76.5);
+  });
+  test('非本人课程 → 403', async () => {
+    __mock.setRoutes([NAME, { match: /FROM dtest2\.grade_tasks\s+WHERE course_id=\$1 AND teacher_name=\$2/, result: [] }]);
+    const res = await request(app).get('/api/teacher/courses/cX/grade-distribution').set('Authorization', teacher);
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('GET /api/teacher/schedule', () => {
+  test('按姓名返回课表项', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /FROM dtest2\.class_schedule_items\s+WHERE teacher = \$1/, result: [
+        { item_id: 'it1', course_name: '编译原理', class_name: '23U9', weekday: 1, period_start: 1, period_end: 2, start_time: '08:00', end_time: '09:40', classroom: 'A101', week_text: '1-16周', term: '2025-2026-2' }
+      ] }
+    ]);
+    const res = await request(app).get('/api/teacher/schedule').set('Authorization', teacher);
+    expect(res.status).toBe(200);
+    expect(res.body.data[0].courseName).toBe('编译原理');
+    expect(res.body.data[0].weekday).toBe(1);
+  });
+});
+
 describe('PUT /api/teacher/profile（教师改邮箱）', () => {
   test('合法邮箱 → 200', async () => {
     __mock.setRoutes([

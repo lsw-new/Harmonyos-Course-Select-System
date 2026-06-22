@@ -178,6 +178,30 @@ interface TeacherEmailBody {
   email: string;
 }
 
+export interface RemoteTeacherGradeDistribution {
+  excellent: number;
+  good: number;
+  medium: number;
+  pass: number;
+  fail: number;
+  total: number;
+  avgScore: number;
+}
+
+export interface RemoteTeacherScheduleItem {
+  itemId: string;
+  courseName: string;
+  className: string;
+  weekday: number;
+  periodStart: number;
+  periodEnd: number;
+  startTime: string;
+  endTime: string;
+  classroom: string;
+  weekText: string;
+  term: string;
+}
+
 export interface ProfileUpdateBody {
   avatarUrl?: string;
   phone?: string;
@@ -1027,6 +1051,14 @@ export class RemoteApi {
   static async teacherUpdateEmail(email: string): Promise<void> {
     const body: TeacherEmailBody = { email: email };
     await apiClient.put<Object>('/teacher/profile', body);
+  }
+
+  static async teacherGradeDistribution(courseId: string): Promise<RemoteTeacherGradeDistribution> {
+    return apiClient.get<RemoteTeacherGradeDistribution>('/teacher/courses/' + encodeURIComponent(courseId) + '/grade-distribution');
+  }
+
+  static async teacherSchedule(): Promise<RemoteTeacherScheduleItem[]> {
+    return apiClient.get<RemoteTeacherScheduleItem[]>('/teacher/schedule');
   }
 
   static async listPractice(studentId: string, category?: string): Promise<RemotePractice[]> {

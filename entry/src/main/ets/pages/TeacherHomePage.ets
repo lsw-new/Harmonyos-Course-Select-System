@@ -163,6 +163,7 @@ struct TeacherHomePage {
               }.width('100%')
 
               // 快捷入口：课程通知 / 成绩申诉 / 评教反馈
+              this.QuickEntry('我的课表', '本学期授课安排', Routes.TeacherSchedule)
               this.QuickEntry('课程通知', '给授课班级发通知', Routes.TeacherNotice)
               this.QuickEntry('成绩申诉', '受理学生成绩复核', Routes.TeacherAppeal)
               this.QuickEntry('评教反馈', '查看课程评教情况', Routes.TeacherEval)

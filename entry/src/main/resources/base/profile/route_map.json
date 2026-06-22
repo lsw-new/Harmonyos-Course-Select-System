@@ -36,6 +36,11 @@
                           "buildFunction":  "TeacherProfilePageBuilder"
                       },
                       {
+                          "name":  "pages/TeacherSchedulePage",
+                          "pageSourceFile":  "src/main/ets/pages/TeacherSchedulePage.ets",
+                          "buildFunction":  "TeacherSchedulePageBuilder"
+                      },
+                      {
                           "name":  "pages/AccountPage",
                           "pageSourceFile":  "src/main/ets/pages/AccountPage.ets",
                           "buildFunction":  "AccountPageBuilder"

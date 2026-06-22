@@ -5,11 +5,13 @@ import { AppConfig } from '../app/AppConfig';
 import {
   RemoteApi, RemoteTeacherDashboard, RemoteTeacherCourse, RemoteTeacherStudent,
   RemoteTeacherCourseStudents, RemoteTeacherEval, RemoteTeacherGradeResult,
-  RemoteTeacherNotice, RemoteTeacherNoticeResult, RemoteTeacherAppeal, RemoteTeacherAppealResult
+  RemoteTeacherNotice, RemoteTeacherNoticeResult, RemoteTeacherAppeal, RemoteTeacherAppealResult,
+  RemoteTeacherGradeDistribution, RemoteTeacherScheduleItem
 } from '../common/remote/RemoteApi';
 import {
   TeacherDashboard, TeacherCourse, TeacherStudent, TeacherCourseStudents,
-  TeacherEval, TeacherScoreInput, TeacherNotice, TeacherAppeal
+  TeacherEval, TeacherScoreInput, TeacherNotice, TeacherAppeal,
+  TeacherGradeDistribution, TeacherScheduleItem
 } from '../models/Teacher';
 
 export interface TeacherGradeResult {
@@ -201,6 +203,44 @@ export class TeacherRepository {
       }
     }
     return true;
+  }
+
+  async getGradeDistribution(courseId: string): Promise<TeacherGradeDistribution> {
+    if (AppConfig.useRemote) {
+      try {
+        const r: RemoteTeacherGradeDistribution = await RemoteApi.teacherGradeDistribution(courseId);
+        return {
+          excellent: r.excellent, good: r.good, medium: r.medium,
+          pass: r.pass, fail: r.fail, total: r.total, avgScore: r.avgScore
+        };
+      } catch (e) {
+        if (!AppConfig.allowMockFallbackInRemote) {
+          return this.fail<TeacherGradeDistribution>('远程服务异常，请稍后重试');
+        }
+      }
+    }
+    return { excellent: 2, good: 3, medium: 1, pass: 1, fail: 0, total: 7, avgScore: 84.3 };
+  }
+
+  async getSchedule(): Promise<TeacherScheduleItem[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const list: RemoteTeacherScheduleItem[] = await RemoteApi.teacherSchedule();
+        return list.map((s: RemoteTeacherScheduleItem): TeacherScheduleItem => ({
+          itemId: s.itemId, courseName: s.courseName, className: s.className, weekday: s.weekday,
+          periodStart: s.periodStart, periodEnd: s.periodEnd, startTime: s.startTime, endTime: s.endTime,
+          classroom: s.classroom, weekText: s.weekText, term: s.term
+        }));
+      } catch (e) {
+        if (!AppConfig.allowMockFallbackInRemote) {
+          return this.fail<TeacherScheduleItem[]>('远程服务异常，请稍后重试');
+        }
+      }
+    }
+    return [
+      { itemId: 'ms1', courseName: '编译原理', className: '23计算机U9', weekday: 1, periodStart: 1, periodEnd: 2, startTime: '08:00', endTime: '09:40', classroom: '教7-802', weekText: '1-16周', term: '2025-2026-2' },
+      { itemId: 'ms2', courseName: '操作系统', className: '23计算机U9', weekday: 3, periodStart: 5, periodEnd: 6, startTime: '14:00', endTime: '15:40', classroom: '教5-301', weekText: '1-16周', term: '2025-2026-2' }
+    ];
   }
 
   // ===== 映射 =====
