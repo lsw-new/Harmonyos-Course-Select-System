@@ -160,8 +160,25 @@ struct TeacherCourseDetailPage {
     });
   }
 
+  // 已录入人数（原始已有成绩 + 本次填入合法分数）
+  private enteredCount(): number {
+    let n = 0;
+    this.rows.forEach((r: EditRow) => {
+      const text = r.input.trim();
+      const valid = text.length > 0 && Number.isFinite(Number(text)) && Number(text) >= 0 && Number(text) <= 100;
+      if (r.currentScore.length > 0 || valid) {
+        n += 1;
+      }
+    });
+    return n;
+  }
+
   @Builder StudentRow(r: EditRow) {
     Row({ space: 10 }) {
+      // 状态点：已有成绩=青绿，未评=浅灰
+      Column()
+        .width(8).height(8).borderRadius(4)
+        .backgroundColor(r.currentScore.length > 0 ? '#5FB7A1' : ElysiaTheme.hairline())
       Column({ space: 2 }) {
         Text(r.name.length > 0 ? r.name : r.studentId)
           .fontSize(14).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK)
@@ -208,8 +225,9 @@ struct TeacherCourseDetailPage {
                 }
                 Row() {
                   Text(`学生名单（${this.rows.length}）`).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
-                  Text('录入阶段 · 提交后由教务审核发布').fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+                  Text(`已录入 ${this.enteredCount()}/${this.rows.length}`).fontSize(11).fontColor(ElysiaTheme.ROSE_500).fontWeight(FontWeight.Medium)
                 }.width('100%').margin({ top: 4, bottom: 2 })
+                Text('录入阶段 · 提交后由教务审核发布').fontSize(11).fontColor(ElysiaTheme.INK_MUTE).width('100%')
 
                 if (this.rows.length === 0) {
                   EmptyState({ title: '该班暂无已注册学生' })

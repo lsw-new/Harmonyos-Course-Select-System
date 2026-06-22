@@ -43,6 +43,13 @@ struct TeacherEvalPage {
     return `${Math.round((e.submittedCount / e.taskCount) * 100)}%`;
   }
 
+  private rateValue(e: TeacherEval): number {
+    if (e.taskCount <= 0) {
+      return 0;
+    }
+    return Math.min(100, Math.round((e.submittedCount / e.taskCount) * 100));
+  }
+
   @Builder EvalRow(e: TeacherEval) {
     Column({ space: 8 }) {
       Row({ space: 6 }) {
@@ -64,6 +71,12 @@ struct TeacherEvalPage {
           Text(e.avgScore !== null ? `${e.avgScore}` : '—').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#B589FF')
           Text('评分均值').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
         }.alignItems(HorizontalAlign.Start)
+      }.width('100%')
+      // 提交率进度条
+      Stack({ alignContent: Alignment.Start }) {
+        Row().width('100%').height(6).backgroundColor(ElysiaTheme.hairline()).borderRadius(3)
+        Row().width(`${this.rateValue(e)}%`).height(6).borderRadius(3)
+          .linearGradient({ angle: 90, colors: [[ElysiaTheme.ROSE_500, 0], [ElysiaTheme.LAV_500, 1]] })
       }.width('100%')
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)

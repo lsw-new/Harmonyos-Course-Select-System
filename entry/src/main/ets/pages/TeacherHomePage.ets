@@ -1,8 +1,9 @@
 // 教师端首页（roadmap #6）：工作台概览 + 我的课程入口 + 评教入口 + 退出登录。
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
+import { AppIcon } from '../common/widgets/AppIcon';
 import { TeacherRepository } from '../repositories/TeacherRepository';
-import { TeacherDashboard, TeacherCourse } from '../models/Teacher';
+import { TeacherDashboard, TeacherCourse, TeacherAppeal } from '../models/Teacher';
 import { SessionStorage } from '../common/storage/SessionStorage';
 import { HttpError } from '../common/http/HttpError';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
@@ -17,6 +18,7 @@ struct TeacherHomePage {
   @State errorMsg: string = '';
   @State dashboard: TeacherDashboard | null = null;
   @State courses: TeacherCourse[] = [];
+  @State pendingAppeals: number = 0;
   @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
@@ -48,6 +50,10 @@ struct TeacherHomePage {
     }).then((list: TeacherCourse[]) => {
       this.courses = list;
       this.loading = false;
+      // 待处理申诉数（工作台徽标，次要信息：失败不阻断首页）
+      repo.getAppeals().then((appeals: TeacherAppeal[]) => {
+        this.pendingAppeals = appeals.filter((a: TeacherAppeal) => a.status === 'pending').length;
+      }).catch(() => {});
     }).catch((e: object) => {
       this.loading = false;
       this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
@@ -87,22 +93,40 @@ struct TeacherHomePage {
     return s;
   }
 
-  @Builder MetricCol(value: string, label: string, color: string) {
-    Column() {
+  @Builder MetricCol(icon: string, value: string, label: string, color: string) {
+    Column({ space: 2 }) {
+      AppIcon({ name: icon, iconSize: 16 })
       Text(value)
         .fontSize(22).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
         .fontColor(color).fontFamily(ElysiaTheme.FONT_DISPLAY)
-      Text(label).fontSize(10).fontColor(ElysiaTheme.INK_SOFT).margin({ top: 2 })
-    }.layoutWeight(1).height(70).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+      Text(label).fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
+    }.layoutWeight(1).height(82).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
     .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
   }
 
-  @Builder QuickEntry(title: string, subtitle: string, route: string) {
-    Row({ space: 10 }) {
+  // 工作台快捷入口：左侧图标徽片 + 标题/副标题 + 可选未处理数徽标。
+  @Builder QuickEntry(icon: string, title: string, subtitle: string, route: string, badge: number) {
+    Row({ space: 12 }) {
+      Stack() {
+        AppIcon({ name: icon, iconSize: 24 })
+      }
+      .width(46).height(46).borderRadius(15)
+      .linearGradient({ angle: 135, colors: [[Color.White, 0], [ElysiaTheme.ROSE_100, 1]] })
+      .border({ width: 1, color: ElysiaTheme.hairline() })
+      .shadow({ radius: 8, color: '#33F2709C', offsetX: 0, offsetY: 3 })
+
       Column({ space: 2 }) {
         Text(title).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
         Text(subtitle).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+
+      if (badge > 0) {
+        Text(`${badge}`)
+          .fontSize(11).fontColor(Color.White).fontWeight(FontWeight.Bold)
+          .constraintSize({ minWidth: 18 }).height(18).textAlign(TextAlign.Center)
+          .padding({ left: 5, right: 5 })
+          .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(9)
+      }
       Text('›').fontSize(18).fontColor(ElysiaTheme.ROSE_500)
     }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18)
@@ -177,18 +201,18 @@ struct TeacherHomePage {
 
               // 指标卡
               Row({ space: 10 }) {
-                this.MetricCol(`${this.dashboard ? this.dashboard.courseCount : 0}`, '授课', ElysiaTheme.ROSE_500)
-                this.MetricCol(`${this.dashboard ? this.dashboard.studentCount : 0}`, '学生', '#B589FF')
-                this.MetricCol(`${this.dashboard ? this.dashboard.pendingGradeCount : 0}`, '待录入', '#D9B675')
-                this.MetricCol(`${this.dashboard ? this.dashboard.evalSubmitted : 0}`, '评教', '#5FB7A1')
+                this.MetricCol('course', `${this.dashboard ? this.dashboard.courseCount : 0}`, '授课', ElysiaTheme.ROSE_500)
+                this.MetricCol('students', `${this.dashboard ? this.dashboard.studentCount : 0}`, '学生', '#B589FF')
+                this.MetricCol('grades', `${this.dashboard ? this.dashboard.pendingGradeCount : 0}`, '待录入', '#D9B675')
+                this.MetricCol('evaluation', `${this.dashboard ? this.dashboard.evalSubmitted : 0}`, '评教', '#5FB7A1')
               }.width('100%')
 
-              // 快捷入口：课程通知 / 成绩申诉 / 评教反馈
-              this.QuickEntry('我的课表', '本学期授课安排', Routes.TeacherSchedule)
-              this.QuickEntry('课程通知', '给授课班级发通知', Routes.TeacherNotice)
-              this.QuickEntry('成绩申诉', '受理学生成绩复核', Routes.TeacherAppeal)
-              this.QuickEntry('评教反馈', '查看课程评教情况', Routes.TeacherEval)
-              this.QuickEntry('个人中心', '资料 / 改密码 / 退出', Routes.TeacherProfile)
+              // 快捷入口：课表 / 通知 / 申诉（带待办徽标）/ 评教 / 个人中心
+              this.QuickEntry('schedule', '我的课表', '本学期授课安排', Routes.TeacherSchedule, 0)
+              this.QuickEntry('notice', '课程通知', '给授课班级发通知', Routes.TeacherNotice, 0)
+              this.QuickEntry('feedback', '成绩申诉', '受理学生成绩复核', Routes.TeacherAppeal, this.pendingAppeals)
+              this.QuickEntry('evaluation', '评教反馈', '查看课程评教情况', Routes.TeacherEval, 0)
+              this.QuickEntry('mine', '个人中心', '资料 / 改密码 / 退出', Routes.TeacherProfile, 0)
 
               // 我的课程
               Text('我的课程').fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
