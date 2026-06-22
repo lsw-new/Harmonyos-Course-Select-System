@@ -21,6 +21,7 @@ interface AppealRow {
   status: string;
   reply: string;
   replyInput: string;
+  submittedAt: string;
 }
 
 @Component
@@ -36,11 +37,20 @@ struct TeacherAppealPage {
     return this.rows.filter((r: AppealRow) => r.status === 'pending').length;
   }
 
-  // 待处理优先：默认仅看待处理，可切换全部；列表内待处理排在前。
+  private handledCount(): number {
+    return this.rows.filter((r: AppealRow) => r.status !== 'pending').length;
+  }
+
+  // 待处理优先：三态筛选；列表内待处理排在前。
   private visibleRows(): AppealRow[] {
-    const list = this.filter === 'pending'
-      ? this.rows.filter((r: AppealRow) => r.status === 'pending')
-      : this.rows.slice();
+    let list: AppealRow[];
+    if (this.filter === 'pending') {
+      list = this.rows.filter((r: AppealRow) => r.status === 'pending');
+    } else if (this.filter === 'handled') {
+      list = this.rows.filter((r: AppealRow) => r.status !== 'pending');
+    } else {
+      list = this.rows.slice();
+    }
     return list.sort((a: AppealRow, b: AppealRow) => {
       const pa = a.status === 'pending' ? 0 : 1;
       const pb = b.status === 'pending' ? 0 : 1;
@@ -67,7 +77,8 @@ struct TeacherAppealPage {
         reason: a.reason,
         status: a.status,
         reply: a.reply,
-        replyInput: ''
+        replyInput: '',
+        submittedAt: a.submittedAt
       }));
       this.loading = false;
     }).catch((e: object) => {
@@ -84,7 +95,7 @@ struct TeacherAppealPage {
       return {
         appealId: r.appealId, studentName: r.studentName, studentId: r.studentId,
         courseName: r.courseName, reason: r.reason, status: r.status, reply: r.reply,
-        replyInput: value
+        replyInput: value, submittedAt: r.submittedAt
       };
     });
   }
@@ -157,6 +168,9 @@ struct TeacherAppealPage {
       } else if (r.reply.length > 0) {
         Text(`处理回复：${r.reply}`).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
       }
+      if (r.submittedAt.length > 0) {
+        Text(`申诉时间：${r.submittedAt}`).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
+      }
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18).alignItems(HorizontalAlign.Start)
@@ -178,10 +192,11 @@ struct TeacherAppealPage {
         } else {
           Scroll() {
             Column({ space: 12 }) {
-              // 筛选切换：待处理（带计数）/ 全部
+              // 筛选切换：待处理（带计数）/ 已处理（带计数）/ 全部
               Row({ space: 8 }) {
                 this.FilterChip('pending', `待处理${this.pendingCount() > 0 ? ' ' + this.pendingCount() : ''}`)
-                this.FilterChip('all', '全部')
+                this.FilterChip('handled', `已处理${this.handledCount() > 0 ? ' ' + this.handledCount() : ''}`)
+                this.FilterChip('all', `全部 ${this.rows.length}`)
               }.width('100%')
 
               if (this.rows.length === 0) {

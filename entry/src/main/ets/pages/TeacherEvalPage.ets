@@ -68,6 +68,33 @@ struct TeacherEvalPage {
     return t > 0 ? Math.min(100, Math.round((this.totalSubmitted() / t) * 100)) : 0;
   }
 
+  private rateColor(v: number): string {
+    if (v >= 80) {
+      return '#5FB7A1';
+    }
+    if (v >= 50) {
+      return '#D9B675';
+    }
+    return ElysiaTheme.ROSE_500;
+  }
+
+  private sortedItems(): TeacherEval[] {
+    return this.items.slice().sort((a: TeacherEval, b: TeacherEval) => this.rateValue(a) - this.rateValue(b));
+  }
+
+  private lowestItem(): TeacherEval | null {
+    if (this.items.length === 0) {
+      return null;
+    }
+    let lowest: TeacherEval = this.items[0];
+    this.items.forEach((e: TeacherEval) => {
+      if (this.rateValue(e) < this.rateValue(lowest)) {
+        lowest = e;
+      }
+    });
+    return lowest;
+  }
+
   private overallAvg(): number | null {
     let sum = 0;
     let n = 0;
@@ -81,22 +108,28 @@ struct TeacherEvalPage {
   }
 
   @Builder SummaryCard() {
-    Row() {
-      Column({ space: 2 }) {
-        Text(`${this.totalSubmitted()}/${this.totalTasks()}`).fontSize(18).fontWeight(FontWeight.Bold)
-          .fontColor(ElysiaTheme.ROSE_500).fontFamily(ElysiaTheme.FONT_DISPLAY)
-        Text('总提交').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
-      }.layoutWeight(1).alignItems(HorizontalAlign.Center)
-      Column({ space: 2 }) {
-        Text(`${this.overallRate()}%`).fontSize(18).fontWeight(FontWeight.Bold)
-          .fontColor('#5FB7A1').fontFamily(ElysiaTheme.FONT_DISPLAY)
-        Text('总提交率').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
-      }.layoutWeight(1).alignItems(HorizontalAlign.Center)
-      Column({ space: 2 }) {
-        Text(this.overallAvg() !== null ? `${this.overallAvg()}` : '—').fontSize(18).fontWeight(FontWeight.Bold)
-          .fontColor('#B589FF').fontFamily(ElysiaTheme.FONT_DISPLAY)
-        Text('总评分均值').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
-      }.layoutWeight(1).alignItems(HorizontalAlign.Center)
+    Column({ space: 10 }) {
+      Row() {
+        Column({ space: 2 }) {
+          Text(`${this.totalSubmitted()}/${this.totalTasks()}`).fontSize(18).fontWeight(FontWeight.Bold)
+            .fontColor(ElysiaTheme.ROSE_500).fontFamily(ElysiaTheme.FONT_DISPLAY)
+          Text('总提交').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
+        }.layoutWeight(1).alignItems(HorizontalAlign.Center)
+        Column({ space: 2 }) {
+          Text(`${this.overallRate()}%`).fontSize(18).fontWeight(FontWeight.Bold)
+            .fontColor('#5FB7A1').fontFamily(ElysiaTheme.FONT_DISPLAY)
+          Text('总提交率').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
+        }.layoutWeight(1).alignItems(HorizontalAlign.Center)
+        Column({ space: 2 }) {
+          Text(this.overallAvg() !== null ? `${this.overallAvg()}` : '—').fontSize(18).fontWeight(FontWeight.Bold)
+            .fontColor('#B589FF').fontFamily(ElysiaTheme.FONT_DISPLAY)
+          Text('总评分均值').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
+        }.layoutWeight(1).alignItems(HorizontalAlign.Center)
+      }.width('100%')
+      if (this.lowestItem() !== null && this.rateValue(this.lowestItem() as TeacherEval) < 100) {
+        Text(`最需关注：${(this.lowestItem() as TeacherEval).courseName.length > 0 ? (this.lowestItem() as TeacherEval).courseName : (this.lowestItem() as TeacherEval).courseId}  提交率 ${this.rateValue(this.lowestItem() as TeacherEval)}%`)
+          .fontSize(11).fontColor(ElysiaTheme.ROSE_500).width('100%').textAlign(TextAlign.Center)
+      }
     }.width('100%').padding(16).backgroundColor(ElysiaTheme.glass())
     .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
   }
@@ -115,7 +148,7 @@ struct TeacherEvalPage {
           Text('已提交/总数').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
         }.alignItems(HorizontalAlign.Start)
         Column({ space: 2 }) {
-          Text(this.rate(e)).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#5FB7A1')
+          Text(this.rate(e)).fontSize(16).fontWeight(FontWeight.Bold).fontColor(this.rateColor(this.rateValue(e)))
           Text('提交率').fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
         }.alignItems(HorizontalAlign.Start)
         Column({ space: 2 }) {
@@ -127,7 +160,7 @@ struct TeacherEvalPage {
       Stack({ alignContent: Alignment.Start }) {
         Row().width('100%').height(6).backgroundColor(ElysiaTheme.hairline()).borderRadius(3)
         Row().width(`${this.rateValue(e)}%`).height(6).borderRadius(3)
-          .linearGradient({ angle: 90, colors: [[ElysiaTheme.ROSE_500, 0], [ElysiaTheme.LAV_500, 1]] })
+          .backgroundColor(this.rateColor(this.rateValue(e)))
       }.width('100%')
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
@@ -155,7 +188,7 @@ struct TeacherEvalPage {
                 EmptyState({ title: '暂无评教数据' })
               } else {
                 this.SummaryCard()
-                ForEach(this.items, (item: TeacherEval) => {
+                ForEach(this.sortedItems(), (item: TeacherEval) => {
                   this.EvalRow(item)
                 }, (item: TeacherEval) => item.courseId + '-' + item.term)
               }

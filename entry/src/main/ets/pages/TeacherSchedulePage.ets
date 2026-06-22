@@ -55,7 +55,63 @@ struct TeacherSchedulePage {
     return this.items[index].weekday !== this.items[index - 1].weekday;
   }
 
-  @Builder ItemCard(it: TeacherScheduleItem, isToday: boolean) {
+  // 当前时间，零填充 "HH:mm"
+  private nowHHMM(): string {
+    const d = new Date();
+    const h = d.getHours();
+    const m = d.getMinutes();
+    const hStr = h < 10 ? '0' + h.toString() : h.toString();
+    const mStr = m < 10 ? '0' + m.toString() : m.toString();
+    return hStr + ':' + mStr;
+  }
+
+  // 今日所有课表项
+  private todayItems(): TeacherScheduleItem[] {
+    const today = this.todayWeekday();
+    return this.items.filter((it: TeacherScheduleItem) => it.weekday === today);
+  }
+
+  // 今日下一节课（第一个 startTime >= nowHHMM()）
+  private nextTodayItem(): TeacherScheduleItem | null {
+    const now = this.nowHHMM();
+    const list = this.todayItems();
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].startTime >= now) {
+        return list[i];
+      }
+    }
+    return null;
+  }
+
+  @Builder NextClassCard() {
+    Column({ space: 6 }) {
+      Text('下一节课').fontSize(11).fontColor(ElysiaTheme.ROSE_500).fontWeight(FontWeight.Bold)
+        .alignSelf(ItemAlign.Start)
+      if (this.nextTodayItem() !== null) {
+        Row({ space: 8 }) {
+          Text((this.nextTodayItem() as TeacherScheduleItem).courseName)
+            .fontSize(17).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+            .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+        }.width('100%')
+        Text(`${(this.nextTodayItem() as TeacherScheduleItem).startTime}-${(this.nextTodayItem() as TeacherScheduleItem).endTime} · ${(this.nextTodayItem() as TeacherScheduleItem).classroom}`)
+          .fontSize(13).fontColor(ElysiaTheme.INK_SOFT).alignSelf(ItemAlign.Start)
+        Text((this.nextTodayItem() as TeacherScheduleItem).className)
+          .fontSize(12).fontColor(ElysiaTheme.INK_MUTE).alignSelf(ItemAlign.Start)
+      } else if (this.todayItems().length > 0) {
+        Text('今日课程已结束').fontSize(15).fontColor(ElysiaTheme.INK_SOFT).alignSelf(ItemAlign.Start)
+      } else {
+        Text('今天没有课').fontSize(15).fontColor(ElysiaTheme.INK_MUTE).alignSelf(ItemAlign.Start)
+      }
+      Text(`今日 ${this.todayItems().length} 节课`)
+        .fontSize(11).fontColor(ElysiaTheme.INK_MUTE).alignSelf(ItemAlign.Start)
+    }
+    .width('100%').padding(16)
+    .backgroundColor(ElysiaTheme.ROSE_50)
+    .border({ width: 1.5, color: ElysiaTheme.ROSE_200 }).borderRadius(18)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder ItemCard(it: TeacherScheduleItem, isToday: boolean, ongoing: boolean) {
     Row({ space: 10 }) {
       Column()
         .width(10).height(48).borderRadius(6)
@@ -64,6 +120,12 @@ struct TeacherSchedulePage {
         Row({ space: 6 }) {
           Text(it.courseName).fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
             .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+          if (ongoing) {
+            Text('进行中')
+              .fontSize(10).fontColor(Color.White).fontWeight(FontWeight.Bold)
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .backgroundColor(ElysiaTheme.ROSE_500).borderRadius(8)
+          }
           Pill({ text: `第${it.periodStart}-${it.periodEnd}节` })
         }
         Text(`${it.startTime}-${it.endTime} · ${it.classroom}`).fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
@@ -95,6 +157,7 @@ struct TeacherSchedulePage {
               if (this.items.length === 0) {
                 EmptyState({ title: '本学期暂无课表' })
               } else {
+                this.NextClassCard()
                 ForEach(this.items, (item: TeacherScheduleItem, index: number) => {
                   if (this.isNewDay(index)) {
                     Row({ space: 8 }) {
@@ -108,7 +171,10 @@ struct TeacherSchedulePage {
                       }
                     }.width('100%').margin({ top: index === 0 ? 4 : 8, bottom: 2 })
                   }
-                  this.ItemCard(item, item.weekday === this.todayWeekday())
+                  this.ItemCard(item, item.weekday === this.todayWeekday(),
+                    item.weekday === this.todayWeekday() &&
+                    item.startTime <= this.nowHHMM() &&
+                    this.nowHHMM() <= item.endTime)
                 }, (item: TeacherScheduleItem) => item.itemId)
               }
               SafeBottom()
