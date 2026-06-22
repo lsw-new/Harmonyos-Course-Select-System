@@ -2,7 +2,7 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
 import { TeacherRepository } from '../repositories/TeacherRepository';
-import { TeacherEval } from '../models/Teacher';
+import { TeacherEval, TeacherEvalBreakdown } from '../models/Teacher';
 import { HttpError } from '../common/http/HttpError';
 import { LoadingState, ErrorState, EmptyState } from '../common/widgets/StateViews';
 import { AppRoute, Routes } from '../app/AppRoute';
@@ -15,6 +15,9 @@ struct TeacherEvalPage {
   @State loading: boolean = true;
   @State errorMsg: string = '';
   @State items: TeacherEval[] = [];
+  // 展开中的课程（空串=全部折叠）+ 已加载的按题细分缓存（按 courseId）
+  @State expandedCourseId: string = '';
+  @State breakdowns: Map<string, TeacherEvalBreakdown[]> = new Map();
   @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
@@ -107,6 +110,78 @@ struct TeacherEvalPage {
     return n > 0 ? Math.round((sum / n) * 10) / 10 : null;
   }
 
+  // 展开/折叠某课程的按题细分；首次展开且未缓存则拉取后整体替换 Record（不可变更新）。
+  private toggleExpand(courseId: string): void {
+    if (this.expandedCourseId === courseId) {
+      this.expandedCourseId = '';
+      return;
+    }
+    this.expandedCourseId = courseId;
+    if (this.breakdowns.has(courseId)) {
+      return;
+    }
+    TeacherRepository.get().getEvalBreakdown(courseId).then((list: TeacherEvalBreakdown[]) => {
+      this.breakdowns = this.withBreakdown(courseId, list);
+    }).catch(() => {
+      this.breakdowns = this.withBreakdown(courseId, []);
+    });
+  }
+
+  // 不可变更新：基于现有缓存整体复制并写入该课程的细分。
+  private withBreakdown(courseId: string, list: TeacherEvalBreakdown[]): Map<string, TeacherEvalBreakdown[]> {
+    const next: Map<string, TeacherEvalBreakdown[]> = new Map(this.breakdowns);
+    next.set(courseId, list);
+    return next;
+  }
+
+  private breakdownOf(courseId: string): TeacherEvalBreakdown[] {
+    const list = this.breakdowns.get(courseId);
+    return list !== undefined ? list : [];
+  }
+
+  // 每题进度条占比：avg/5*100，截顶到 [0,100]。
+  private barPercent(avg: number | null): number {
+    if (avg === null) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, Math.round((avg / 5) * 100)));
+  }
+
+  private avgLabel(avg: number | null): string {
+    return avg !== null ? `${avg}` : '—';
+  }
+
+  @Builder BreakdownRow(b: TeacherEvalBreakdown) {
+    Column({ space: 4 }) {
+      Row({ space: 6 }) {
+        Text(b.title).fontSize(12).fontColor(ElysiaTheme.INK).layoutWeight(1)
+          .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(this.avgLabel(b.avg)).fontSize(12).fontWeight(FontWeight.Bold).fontColor('#B589FF')
+      }.width('100%')
+      Stack({ alignContent: Alignment.Start }) {
+        Row().width('100%').height(5).backgroundColor(ElysiaTheme.hairline()).borderRadius(3)
+        Row().width(`${this.barPercent(b.avg)}%`).height(5).borderRadius(3).backgroundColor('#B589FF')
+      }.width('100%')
+    }.width('100%').alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder BreakdownPanel(courseId: string) {
+    Column({ space: 10 }) {
+      Text('按题目细分').fontSize(12).fontWeight(FontWeight.Medium).fontColor(ElysiaTheme.INK_SOFT).width('100%')
+      if (this.breakdownOf(courseId).length === 0) {
+        Text('暂无评分题数据').fontSize(11).fontColor(ElysiaTheme.INK_MUTE).width('100%')
+      } else {
+        ForEach(this.breakdownOf(courseId), (b: TeacherEvalBreakdown) => {
+          this.BreakdownRow(b)
+        }, (b: TeacherEvalBreakdown) => b.questionId)
+      }
+    }
+    .width('100%').padding(12).margin({ top: 8 })
+    .backgroundColor(ElysiaTheme.glass())
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(12)
+    .alignItems(HorizontalAlign.Start)
+  }
+
   @Builder SummaryCard() {
     Column({ space: 10 }) {
       Row() {
@@ -140,6 +215,7 @@ struct TeacherEvalPage {
         Text(e.courseName.length > 0 ? e.courseName : e.courseId)
           .fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
           .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(this.expandedCourseId === e.courseId ? '收起' : '按题目').fontSize(11).fontColor(ElysiaTheme.LAV_500)
         Pill({ text: e.term })
       }
       Row({ space: 16 }) {
@@ -162,9 +238,14 @@ struct TeacherEvalPage {
         Row().width(`${this.rateValue(e)}%`).height(6).borderRadius(3)
           .backgroundColor(this.rateColor(this.rateValue(e)))
       }.width('100%')
+      // 展开时显示按题目细分面板
+      if (this.expandedCourseId === e.courseId) {
+        this.BreakdownPanel(e.courseId)
+      }
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18).alignItems(HorizontalAlign.Start)
+    .onClick(() => { this.toggleExpand(e.courseId); })
   }
 
   build() {

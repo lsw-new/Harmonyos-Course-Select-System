@@ -89,6 +89,15 @@ struct TeacherNoticePage {
     });
   }
 
+  private withdraw(noticeId: string): void {
+    TeacherRepository.get().withdrawNotice(noticeId).then(() => {
+      Toast.show(this.getUIContext(), '已撤回');
+      this.reload();
+    }).catch((e: object) => {
+      Toast.show(this.getUIContext(), (e instanceof Error) ? (e as Error).message : '撤回失败');
+    });
+  }
+
   @Builder CourseChip(c: TeacherCourse) {
     Text(c.name)
       .fontSize(13).fontColor(this.selectedCourseId === c.courseId ? Color.White : ElysiaTheme.INK)
@@ -132,6 +141,10 @@ struct TeacherNoticePage {
         Text(n.publishedAt).fontSize(11).fontColor(ElysiaTheme.INK_MUTE)
       }
       .layoutWeight(1).alignItems(HorizontalAlign.Start)
+      Text('撤回')
+        .fontSize(12).fontColor(ElysiaTheme.ROSE_500)
+        .padding({ left: 8, right: 4, top: 4, bottom: 4 })
+        .onClick(() => { this.withdraw(n.noticeId); })
     }
     .width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
     .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(16)

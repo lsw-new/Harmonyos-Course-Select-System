@@ -112,6 +112,13 @@ export interface RemoteTeacherEval {
   avgScore: number | null;
 }
 
+export interface RemoteTeacherEvalBreakdown {
+  questionId: string;
+  title: string;
+  avg: number | null;
+  count: number;
+}
+
 interface TeacherScoreItem {
   studentId: string;
   score: number;
@@ -182,6 +189,10 @@ interface TeacherEmailBody {
 
 interface TeacherAvatarBody {
   avatarUrl: string;
+}
+
+interface TeacherWithdrawBody {
+  noticeId: string;
 }
 
 export interface RemoteTeacherGradeDistribution {
@@ -1036,6 +1047,17 @@ export class RemoteApi {
 
   static async teacherNotices(): Promise<RemoteTeacherNotice[]> {
     return apiClient.get<RemoteTeacherNotice[]>('/teacher/notices');
+  }
+
+  // 撤回课程通知（后端从 JWT 校验归属 + 路由参数取 id，body 仅占位需显式类型）
+  static async teacherWithdrawNotice(noticeId: string): Promise<void> {
+    const body: TeacherWithdrawBody = { noticeId: noticeId };
+    await apiClient.post<Object>('/teacher/notices/' + encodeURIComponent(noticeId) + '/withdraw', body);
+  }
+
+  // 评教按题目细分（某课程每题均分），后端按归属校验
+  static async teacherEvalBreakdown(courseId: string): Promise<RemoteTeacherEvalBreakdown[]> {
+    return apiClient.get<RemoteTeacherEvalBreakdown[]>('/teacher/courses/' + encodeURIComponent(courseId) + '/eval-breakdown');
   }
 
   static async teacherGradeAppeals(): Promise<RemoteTeacherAppeal[]> {

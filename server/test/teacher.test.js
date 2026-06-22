@@ -40,13 +40,13 @@ describe('GET /api/teacher/dashboard', () => {
     const q = __mock.getLog().find((e) => e.sql.indexOf('FROM dtest2.teacher_profiles') >= 0);
     expect(q.params).toContain('T001');
   });
-  test('有评教答卷 → evalAvg 聚合（score ?? rating）', async () => {
+  test('有评教答卷 → evalAvg 聚合（answers_json 的 value）', async () => {
     __mock.setRoutes([
       NAME,
       { match: /AS course_count/, result: [{ course_count: 1, student_count: 47, pending_grade_count: 0, eval_submitted: 2 }] },
       { match: /FROM dtest2\.evaluation_submissions es/, result: [
-        { answers_json: [{ score: 5 }, { score: 4 }] },
-        { answers_json: [{ rating: 3 }, { rating: 4 }] }
+        { answers_json: [{ questionId: 'q1', value: 5 }, { questionId: 'q2', value: 4 }] },
+        { answers_json: [{ questionId: 'q1', value: 3 }, { questionId: 'q2', value: 4 }] }
       ] }
     ]);
     const res = await request(app).get('/api/teacher/dashboard').set('Authorization', teacher);
@@ -188,6 +188,66 @@ describe('POST /api/teacher/notices（课程通知三端闭环）', () => {
   test('空标题 → 400', async () => {
     const res = await request(app).post('/api/teacher/notices').set('Authorization', teacher).send({ courseId: 'c1', title: '', content: 'y' });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/teacher/notices/:id/withdraw（课程通知撤回）', () => {
+  test('撤回本人通知 → 200，删消息 + 删通知', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /SELECT notice_id FROM dtest2\.notices WHERE notice_id=\$1 AND publisher=\$2 AND category='课程通知'/, result: [{ notice_id: 'n1' }] },
+      { match: /DELETE FROM dtest2\.messages WHERE route='pages\/NoticeDetailPage'/, result: [] },
+      { match: /DELETE FROM dtest2\.notices WHERE notice_id=\$1/, result: [] }
+    ]);
+    const res = await request(app).post('/api/teacher/notices/n1/withdraw').set('Authorization', teacher);
+    expect(res.status).toBe(200);
+    expect(res.body.data.withdrawn).toBe(true);
+    expect(__mock.getLog().some((e) => e.sql.indexOf('DELETE FROM dtest2.messages') >= 0)).toBe(true);
+    expect(__mock.getLog().some((e) => e.sql.indexOf('DELETE FROM dtest2.notices') >= 0)).toBe(true);
+    expect(__mock.executed('COMMIT')).toBe(true);
+  });
+
+  test('撤回非本人通知 → 403', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /SELECT notice_id FROM dtest2\.notices WHERE notice_id=\$1 AND publisher=\$2 AND category='课程通知'/, result: [] }
+    ]);
+    const res = await request(app).post('/api/teacher/notices/nX/withdraw').set('Authorization', teacher);
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('GET /api/teacher/courses/:courseId/eval-breakdown（评教按题目细分）', () => {
+  test('无 evaluation_tasks（非本人课程）→ 403', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /SELECT 1 FROM dtest2\.evaluation_tasks WHERE course_id=\$1 AND teacher_name=\$2/, result: [] }
+    ]);
+    const res = await request(app).get('/api/teacher/courses/cX/eval-breakdown').set('Authorization', teacher);
+    expect(res.status).toBe(403);
+  });
+
+  test('从 {questionId,value} 聚合出每题均值', async () => {
+    __mock.setRoutes([
+      NAME,
+      { match: /SELECT 1 FROM dtest2\.evaluation_tasks WHERE course_id=\$1 AND teacher_name=\$2/, result: [{ '?column?': 1 }] },
+      { match: /SELECT t\.questions_json[\s\S]*JOIN dtest2\.evaluation_tasks et ON et\.template_id/, result: [
+        { questions_json: [{ id: 'q1', title: '教学态度' }, { id: 'q2', title: '课堂内容' }] }
+      ] },
+      { match: /SELECT es\.answers_json[\s\S]*WHERE et\.course_id=\$1 AND et\.teacher_name=\$2/, result: [
+        { answers_json: [{ questionId: 'q1', value: 5 }, { questionId: 'q2', value: 4 }] },
+        { answers_json: [{ questionId: 'q1', value: 4 }, { questionId: 'q2', value: 3 }] }
+      ] }
+    ]);
+    const res = await request(app).get('/api/teacher/courses/c1/eval-breakdown').set('Authorization', teacher);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+    expect(res.body.data[0].questionId).toBe('q1');
+    expect(res.body.data[0].title).toBe('教学态度');
+    expect(res.body.data[0].avg).toBe(4.5); // (5+4)/2
+    expect(res.body.data[0].count).toBe(2);
+    expect(res.body.data[1].questionId).toBe('q2');
+    expect(res.body.data[1].avg).toBe(3.5); // (4+3)/2
   });
 });
 

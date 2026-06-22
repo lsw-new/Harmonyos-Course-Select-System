@@ -6,12 +6,12 @@ import {
   RemoteApi, RemoteTeacherDashboard, RemoteTeacherCourse, RemoteTeacherStudent,
   RemoteTeacherCourseStudents, RemoteTeacherEval, RemoteTeacherGradeResult,
   RemoteTeacherNotice, RemoteTeacherNoticeResult, RemoteTeacherAppeal, RemoteTeacherAppealResult,
-  RemoteTeacherGradeDistribution, RemoteTeacherScheduleItem
+  RemoteTeacherGradeDistribution, RemoteTeacherScheduleItem, RemoteTeacherEvalBreakdown
 } from '../common/remote/RemoteApi';
 import {
   TeacherDashboard, TeacherCourse, TeacherStudent, TeacherCourseStudents,
   TeacherEval, TeacherScoreInput, TeacherNotice, TeacherAppeal,
-  TeacherGradeDistribution, TeacherScheduleItem
+  TeacherGradeDistribution, TeacherScheduleItem, TeacherEvalBreakdown
 } from '../models/Teacher';
 
 export interface TeacherGradeResult {
@@ -157,6 +157,40 @@ export class TeacherRepository {
     }
     return [
       { noticeId: 'mn1', title: '本周五补考通知', summary: '本周五补考，正常课程暂停', category: '课程通知', urgency: 'normal', publishedAt: '2026-06-20 10:00' }
+    ];
+  }
+
+  // 撤回课程通知：远程成功返 true，失败抛错（页面 Toast）；mock 直接成功。
+  async withdrawNotice(noticeId: string): Promise<boolean> {
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.teacherWithdrawNotice(noticeId);
+        return true;
+      } catch (e) {
+        return this.fail<boolean>((e instanceof Error) ? e.message : '撤回失败');
+      }
+    }
+    return true;
+  }
+
+  // 评教按题目细分：远程取每题均分；mock 返样例题目。
+  async getEvalBreakdown(courseId: string): Promise<TeacherEvalBreakdown[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const list: RemoteTeacherEvalBreakdown[] = await RemoteApi.teacherEvalBreakdown(courseId);
+        return list.map((b: RemoteTeacherEvalBreakdown): TeacherEvalBreakdown => ({
+          questionId: b.questionId, title: b.title, avg: b.avg, count: b.count
+        }));
+      } catch (e) {
+        if (!AppConfig.allowMockFallbackInRemote) {
+          return this.fail<TeacherEvalBreakdown[]>('远程服务异常，请稍后重试');
+        }
+      }
+    }
+    return [
+      { questionId: 'q1', title: '教学态度认真负责', avg: 4.7, count: 30 },
+      { questionId: 'q2', title: '课堂内容充实', avg: 4.5, count: 30 },
+      { questionId: 'q3', title: '答疑解惑及时', avg: 4.3, count: 30 }
     ];
   }
 

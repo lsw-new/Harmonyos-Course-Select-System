@@ -83,7 +83,8 @@ router.get('/api/teacher/dashboard', authRequired, teacherOnly, async (req, res)
       [name]
     );
     const row = r.rows[0] || {};
-    // 评教平均分：聚合本教师全部评教答卷的数值评分（与评教页/管理端口径一致：ans.score ?? ans.rating）。
+    // 评教平均分：聚合本教师全部评教答卷的数值评分。answers_json 元素形如
+    // {questionId, value}，评分题 value 为数字（之前误读 ans.score/ans.rating，恒得 null）。
     const subs = await pool.query(
       `SELECT es.answers_json
        FROM dtest2.evaluation_submissions es
@@ -96,7 +97,7 @@ router.get('/api/teacher/dashboard', authRequired, teacherOnly, async (req, res)
     for (const s of subs.rows) {
       const answers = Array.isArray(s.answers_json) ? s.answers_json : [];
       for (const ans of answers) {
-        const v = Number(ans && (ans.score !== undefined ? ans.score : ans.rating));
+        const v = (ans && typeof ans.value === 'number') ? ans.value : Number(ans && ans.value);
         if (Number.isFinite(v)) {
           sum += v;
           cnt += 1;
@@ -328,7 +329,8 @@ router.get('/api/teacher/evaluations', authRequired, teacherOnly, async (req, re
        ORDER BY et.term DESC, c.name`,
       [name]
     );
-    // 评分均值：解析本教师各课程评教答卷的数值评分（与管理端口径一致：ans.score ?? ans.rating）。
+    // 评分均值：解析本教师各课程评教答卷的数值评分。answers_json 元素形如
+    // {questionId, value}，评分题 value 为数字（之前误读 ans.score/ans.rating，恒得 null）。
     const subs = await pool.query(
       `SELECT et.course_id, es.answers_json
        FROM dtest2.evaluation_submissions es
@@ -340,7 +342,7 @@ router.get('/api/teacher/evaluations', authRequired, teacherOnly, async (req, re
     for (const row of subs.rows) {
       const answers = Array.isArray(row.answers_json) ? row.answers_json : [];
       for (const ans of answers) {
-        const v = Number(ans && (ans.score !== undefined ? ans.score : ans.rating));
+        const v = (ans && typeof ans.value === 'number') ? ans.value : Number(ans && ans.value);
         if (Number.isFinite(v)) {
           const cur = acc.get(row.course_id) || { sum: 0, n: 0 };
           cur.sum += v;
@@ -450,6 +452,112 @@ router.get('/api/teacher/notices', authRequired, teacherOnly, async (req, res) =
     }))));
   } catch (e) {
     serverError(res, '查询我的通知失败', e);
+  }
+});
+
+// 撤回课程通知：归属校验（本人 + 课程通知）后，同事务删除本通知关联的学生消息 + 通知本体。
+router.post('/api/teacher/notices/:id/withdraw', authRequired, teacherOnly, async (req, res) => {
+  const name = await resolveTeacherName(req.auth.sub);
+  if (!name) {
+    return res.status(403).json(fail('无权撤回该通知或通知不存在'));
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const owned = await client.query(
+      `SELECT notice_id FROM dtest2.notices WHERE notice_id=$1 AND publisher=$2 AND category='课程通知'`,
+      [req.params.id, name]
+    );
+    if (owned.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(403).json(fail('无权撤回该通知或通知不存在'));
+    }
+    await client.query(
+      `DELETE FROM dtest2.messages WHERE route='pages/NoticeDetailPage' AND param=$1`,
+      [req.params.id]
+    );
+    await client.query(`DELETE FROM dtest2.notices WHERE notice_id=$1`, [req.params.id]);
+    await client.query('COMMIT');
+    res.json(ok({ withdrawn: true }));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    serverError(res, '撤回课程通知失败', e);
+  } finally {
+    client.release();
+  }
+});
+
+// ---- 评教按题目细分（某课程，归属校验）：每题平均分 + 答卷数 ----
+router.get('/api/teacher/courses/:courseId/eval-breakdown', authRequired, teacherOnly, async (req, res) => {
+  try {
+    const name = await resolveTeacherName(req.auth.sub);
+    if (!name) {
+      return res.status(403).json(fail('无权访问该课程或课程不存在'));
+    }
+    // 归属校验：该教师此课程须有评教任务
+    const owned = await pool.query(
+      `SELECT 1 FROM dtest2.evaluation_tasks WHERE course_id=$1 AND teacher_name=$2 LIMIT 1`,
+      [req.params.courseId, name]
+    );
+    if (owned.rowCount === 0) {
+      return res.status(403).json(fail('无权访问该课程或课程不存在'));
+    }
+    // 题目标题映射（合并该课程关联模板的全部题目）
+    const tpls = await pool.query(
+      `SELECT t.questions_json
+       FROM dtest2.evaluation_templates t
+       JOIN dtest2.evaluation_tasks et ON et.template_id = t.template_id
+       WHERE et.course_id=$1 AND et.teacher_name=$2`,
+      [req.params.courseId, name]
+    );
+    const titleMap = new Map();
+    for (const row of tpls.rows) {
+      const questions = Array.isArray(row.questions_json) ? row.questions_json : [];
+      for (const q of questions) {
+        if (q && q.id !== undefined && q.id !== null) {
+          titleMap.set(String(q.id), q.title !== undefined && q.title !== null ? String(q.title) : '');
+        }
+      }
+    }
+    // 逐答案按题聚合数值评分
+    const subs = await pool.query(
+      `SELECT es.answers_json
+       FROM dtest2.evaluation_submissions es
+       JOIN dtest2.evaluation_tasks et ON et.task_id = es.task_id
+       WHERE et.course_id=$1 AND et.teacher_name=$2`,
+      [req.params.courseId, name]
+    );
+    const acc = new Map();
+    for (const row of subs.rows) {
+      const answers = Array.isArray(row.answers_json) ? row.answers_json : [];
+      for (const ans of answers) {
+        if (!ans || ans.questionId === undefined || ans.questionId === null) {
+          continue;
+        }
+        const v = (typeof ans.value === 'number') ? ans.value : Number(ans.value);
+        if (!Number.isFinite(v)) {
+          continue;
+        }
+        const qid = String(ans.questionId);
+        const cur = acc.get(qid) || { sum: 0, count: 0 };
+        cur.sum += v;
+        cur.count += 1;
+        acc.set(qid, cur);
+      }
+    }
+    const data = Array.from(acc.keys()).sort().map((qid) => {
+      const a = acc.get(qid);
+      const title = titleMap.has(qid) ? titleMap.get(qid) : qid;
+      return {
+        questionId: qid,
+        title: title && title.length > 0 ? title : qid,
+        avg: a.count > 0 ? Math.round((a.sum / a.count) * 10) / 10 : null,
+        count: a.count
+      };
+    });
+    res.json(ok(data));
+  } catch (e) {
+    serverError(res, '获取评教细分失败', e);
   }
 });
 

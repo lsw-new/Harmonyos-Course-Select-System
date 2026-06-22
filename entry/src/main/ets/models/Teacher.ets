@@ -105,6 +105,14 @@ export interface TeacherScheduleItem {
   term: string;
 }
 
+// 评教按题目细分一行（某课程每题均分 + 答卷数）
+export interface TeacherEvalBreakdown {
+  questionId: string;
+  title: string;
+  avg: number | null;
+  count: number;
+}
+
 // 我所授课程收到的成绩申诉一行
 export interface TeacherAppeal {
   appealId: string;
