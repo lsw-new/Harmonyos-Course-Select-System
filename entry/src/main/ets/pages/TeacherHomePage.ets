@@ -31,6 +31,11 @@ struct TeacherHomePage {
     return t ? t.name : '老师';
   }
 
+  private teacherAvatar(): string {
+    const t = SessionStorage.get().getTeacher();
+    return t ? t.avatarUrl : '';
+  }
+
   private reload(): void {
     this.loading = true;
     this.errorMsg = '';
@@ -144,13 +149,29 @@ struct TeacherHomePage {
         } else {
           Scroll() {
             Column({ space: 14 }) {
-              // Hero
-              Column({ space: 6 }) {
-                Text(`欢迎，${this.teacherName()} 老师`)
-                  .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).lineHeight(26)
-                Text('在此查看授课班级、录入成绩与评教反馈')
-                  .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
-              }.width('100%').alignItems(HorizontalAlign.Start).padding(18).borderRadius(24)
+              // Hero（头像 + 欢迎语）
+              Row({ space: 14 }) {
+                if (this.teacherAvatar().length > 0) {
+                  Image(this.teacherAvatar())
+                    .width(56).height(56).borderRadius(28)
+                    .objectFit(ImageFit.Cover)
+                    .border({ width: 2, color: Color.White })
+                } else {
+                  Stack() {
+                    Text(this.teacherName().length > 0 ? this.teacherName().charAt(0) : '师')
+                      .fontSize(22).fontWeight(FontWeight.Bold).fontColor(Color.White)
+                  }
+                  .width(56).height(56).borderRadius(28)
+                  .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.ROSE_500, 1]] })
+                  .alignContent(Alignment.Center)
+                }
+                Column({ space: 6 }) {
+                  Text(`欢迎，${this.teacherName()} 老师`)
+                    .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).lineHeight(26)
+                  Text('在此查看授课班级、录入成绩与评教反馈')
+                    .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+                }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+              }.width('100%').padding(18).borderRadius(24)
               .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_100, 0], [ElysiaTheme.LAV_200, 1]] })
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
 

@@ -6,6 +6,7 @@ import { AuthRepository } from '../repositories/AuthRepository';
 import { ChangePasswordRequest } from '../models/User';
 import { TeacherProfile } from '../models/Teacher';
 import { SessionStorage } from '../common/storage/SessionStorage';
+import { FileService } from '../common/services/FileService';
 import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
@@ -16,6 +17,8 @@ import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
 struct TeacherProfilePage {
   @State email: string = '';
   @State savingEmail: boolean = false;
+  @State avatarUrl: string = '';
+  @State pickingAvatar: boolean = false;
   @State oldPwd: string = '';
   @State newPwd: string = '';
   @State confirmPwd: string = '';
@@ -29,6 +32,7 @@ struct TeacherProfilePage {
     const t = SessionStorage.get().getTeacher();
     if (t) {
       this.email = t.email;
+      this.avatarUrl = t.avatarUrl;
     }
   }
 
@@ -37,7 +41,35 @@ struct TeacherProfilePage {
     if (t) {
       return t;
     }
-    return { teacherId: '', name: '老师', college: '', title: '', email: '' };
+    return { teacherId: '', name: '老师', college: '', title: '', email: '', avatarUrl: '' };
+  }
+
+  // 选图 → 上传对象存储 → 写后端 → 刷新会话（与学生端同构）。
+  private pickAvatar(): void {
+    if (this.pickingAvatar) {
+      return;
+    }
+    this.pickingAvatar = true;
+    FileService.pickAndUploadAvatarImage().then((uri: string) => {
+      return TeacherRepository.get().updateAvatar(uri).then(() => uri);
+    }).then((uri: string) => {
+      this.avatarUrl = uri;
+      const session = SessionStorage.get();
+      const t = session.getTeacher();
+      const token = session.getToken();
+      if (t && token) {
+        const next: TeacherProfile = {
+          teacherId: t.teacherId, name: t.name, college: t.college,
+          title: t.title, email: t.email, avatarUrl: uri
+        };
+        session.setTeacherSession(token, next).catch(() => undefined);
+      }
+      this.pickingAvatar = false;
+      Toast.show(this.getUIContext(), '头像已更新');
+    }).catch((e: object) => {
+      this.pickingAvatar = false;
+      Toast.show(this.getUIContext(), (e instanceof Error) ? (e as Error).message : '选择头像失败');
+    });
   }
 
   private saveEmail(): void {
@@ -118,15 +150,38 @@ struct TeacherProfilePage {
 
         Scroll() {
           Column({ space: 14 }) {
-            // 资料卡
+            // 资料卡（头像 hero 居中 + 资料明细）
             Column({ space: 2 }) {
+              Column({ space: 8 }) {
+                if (this.avatarUrl.length > 0) {
+                  Image(this.avatarUrl)
+                    .width(84).height(84).borderRadius(42)
+                    .objectFit(ImageFit.Cover)
+                    .border({ width: 2, color: ElysiaTheme.ROSE_100 })
+                } else {
+                  Stack() {
+                    Text(this.profile().name.length > 0 ? this.profile().name.charAt(0) : '师')
+                      .fontSize(30).fontWeight(FontWeight.Bold).fontColor(Color.White)
+                  }
+                  .width(84).height(84).borderRadius(42)
+                  .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.ROSE_500, 1]] })
+                  .alignContent(Alignment.Center)
+                }
+                Text(this.pickingAvatar ? '上传中…' : '更换头像')
+                  .fontSize(12).fontColor(Color.White).fontWeight(FontWeight.Bold)
+                  .padding({ left: 16, right: 16, top: 7, bottom: 7 })
+                  .backgroundColor(this.pickingAvatar ? ElysiaTheme.INK_MUTE : ElysiaTheme.ROSE_500)
+                  .borderRadius(999)
+                  .onClick(() => this.pickAvatar())
+              }.width('100%').padding({ bottom: 10 })
+
               Text(this.profile().name).fontSize(20).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
               Text(`工号 ${this.profile().teacherId}`).fontSize(12).fontColor(ElysiaTheme.INK_MUTE).margin({ bottom: 6 })
               Divider().color(ElysiaTheme.hairlineSoft())
               this.InfoRow('学院', this.profile().college)
               this.InfoRow('职称', this.profile().title)
             }.width('100%').padding(18).backgroundColor(ElysiaTheme.SURFACE)
-            .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18).alignItems(HorizontalAlign.Start)
+            .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18).alignItems(HorizontalAlign.Center)
 
             // 改邮箱
             Column({ space: 10 }) {

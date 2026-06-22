@@ -38,6 +38,7 @@ interface StoredTeacherProfile {
   college?: string;
   title?: string;
   email?: string;
+  avatarUrl?: string;
 }
 
 export class SessionStorage {
@@ -186,7 +187,8 @@ export class SessionStorage {
       name: value.name as string,
       college: value.college ?? '',
       title: value.title ?? '',
-      email: value.email ?? ''
+      email: value.email ?? '',
+      avatarUrl: value.avatarUrl ?? ''
     };
   }
 

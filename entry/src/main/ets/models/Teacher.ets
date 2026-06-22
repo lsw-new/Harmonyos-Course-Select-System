@@ -6,6 +6,7 @@ export interface TeacherProfile {
   college: string;
   title: string;
   email: string;
+  avatarUrl: string;
 }
 
 // 工作台概览四项

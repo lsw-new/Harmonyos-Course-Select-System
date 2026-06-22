@@ -262,6 +262,23 @@ describe('PUT /api/teacher/profile（教师改邮箱）', () => {
     const res = await request(app).put('/api/teacher/profile').set('Authorization', student).send({ email: 'a@b.com' });
     expect(res.status).toBe(403);
   });
+  test('对象存储头像 URL → 200 回写 avatar_url', async () => {
+    __mock.setRoutes([
+      { match: /UPDATE dtest2\.teacher_profiles SET avatar_url/, result: [{}] }
+    ]);
+    const url = '/api/uploads/up-12345678-1234-1234-1234-1234567890ab';
+    const res = await request(app).put('/api/teacher/profile').set('Authorization', teacher).send({ avatarUrl: url });
+    expect(res.status).toBe(200);
+    expect(res.body.data.avatarUrl).toBe(url);
+  });
+  test('非法头像格式 → 400', async () => {
+    const res = await request(app).put('/api/teacher/profile').set('Authorization', teacher).send({ avatarUrl: 'javascript:alert(1)' });
+    expect(res.status).toBe(400);
+  });
+  test('无任何字段 → 400', async () => {
+    const res = await request(app).put('/api/teacher/profile').set('Authorization', teacher).send({});
+    expect(res.status).toBe(400);
+  });
 });
 
 describe('POST /api/auth/change-password（任意角色）', () => {

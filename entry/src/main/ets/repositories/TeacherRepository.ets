@@ -206,6 +206,19 @@ export class TeacherRepository {
     return true;
   }
 
+  // 更新头像：avatarUrl 由 FileService.pickAndUploadAvatarImage 产出（绝对 https 或 data URL）。
+  async updateAvatar(avatarUrl: string): Promise<boolean> {
+    if (AppConfig.useRemote) {
+      try {
+        await RemoteApi.teacherUpdateAvatar(avatarUrl);
+        return true;
+      } catch (e) {
+        return this.fail<boolean>((e instanceof Error) ? e.message : '更新头像失败');
+      }
+    }
+    return true;
+  }
+
   async getGradeDistribution(courseId: string): Promise<TeacherGradeDistribution> {
     if (AppConfig.useRemote) {
       try {

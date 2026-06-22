@@ -40,6 +40,30 @@ async function resolveTeacherName(teacherId) {
 
 const num = (v) => (v === null || v === undefined ? null : Number(v));
 
+// 头像校验（与学生端 profile.routes 同口径）：空串允许清除；
+// data URL（≤约150KB）、#9 对象存储 URL（/api/uploads/up-<uuid>）、或 http(s) 外链（≤500）。
+const TEACHER_AVATAR_DATA_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const TEACHER_AVATAR_UPLOAD_RE = /^\/api\/uploads\/up-[0-9a-f-]{36}$/;
+const TEACHER_AVATAR_MAX_LEN = 200000;
+function validateTeacherAvatar(value) {
+  if (value === '') {
+    return null;
+  }
+  if (TEACHER_AVATAR_DATA_RE.test(value)) {
+    return value.length > TEACHER_AVATAR_MAX_LEN ? '头像图片过大，请重新选择' : null;
+  }
+  if (TEACHER_AVATAR_UPLOAD_RE.test(value)) {
+    return null;
+  }
+  if ((value.startsWith('https://') || value.startsWith('http://')) && value.length <= 500) {
+    return null;
+  }
+  if (value.length > TEACHER_AVATAR_MAX_LEN) {
+    return '头像图片过大，请重新选择';
+  }
+  return '头像格式不合法';
+}
+
 // ---- 教师工作台概览 ----
 router.get('/api/teacher/dashboard', authRequired, teacherOnly, async (req, res) => {
   try {
@@ -566,21 +590,44 @@ router.get('/api/teacher/schedule', authRequired, teacherOnly, async (req, res) 
   }
 });
 
-// ---- 教师本人资料：更新邮箱（college/title 为院系分配，只读不在此改）----
+// ---- 教师本人资料：更新邮箱 / 头像（college/title 为院系分配，只读不在此改）----
+// 仅更新本次提交的字段；头像复用 #9 对象存储（/api/uploads/<up-uuid>）或 data URL。
 router.put('/api/teacher/profile', authRequired, teacherOnly, async (req, res) => {
-  const email = String((req.body || {}).email || '').trim();
-  if (email.length > 0 && !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
-    return res.status(400).json(fail('邮箱格式不正确'));
+  const b = req.body || {};
+  const sets = [];
+  const params = [];
+  const echo = { updated: true };
+  if (typeof b.email === 'string') {
+    const email = b.email.trim();
+    if (email.length > 0 && !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+      return res.status(400).json(fail('邮箱格式不正确'));
+    }
+    params.push(email);
+    sets.push(`email=$${params.length}`);
+    echo.email = email;
+  }
+  if (typeof b.avatarUrl === 'string') {
+    const err = validateTeacherAvatar(b.avatarUrl);
+    if (err) {
+      return res.status(400).json(fail(err));
+    }
+    params.push(b.avatarUrl);
+    sets.push(`avatar_url=$${params.length}`);
+    echo.avatarUrl = b.avatarUrl;
+  }
+  if (sets.length === 0) {
+    return res.status(400).json(fail('没有可更新的字段'));
   }
   try {
+    params.push(req.auth.sub);
     const r = await pool.query(
-      'UPDATE dtest2.teacher_profiles SET email=$2 WHERE teacher_id=$1',
-      [req.auth.sub, email]
+      `UPDATE dtest2.teacher_profiles SET ${sets.join(', ')} WHERE teacher_id=$${params.length}`,
+      params
     );
     if (r.rowCount === 0) {
       return res.status(404).json(fail('教师资料不存在'));
     }
-    res.json(ok({ updated: true, email }));
+    res.json(ok(echo));
   } catch (e) {
     serverError(res, '更新教师资料失败', e);
   }

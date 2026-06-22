@@ -178,6 +178,10 @@ interface TeacherEmailBody {
   email: string;
 }
 
+interface TeacherAvatarBody {
+  avatarUrl: string;
+}
+
 export interface RemoteTeacherGradeDistribution {
   excellent: number;
   good: number;
@@ -1050,6 +1054,11 @@ export class RemoteApi {
   // 教师改本人邮箱
   static async teacherUpdateEmail(email: string): Promise<void> {
     const body: TeacherEmailBody = { email: email };
+    await apiClient.put<Object>('/teacher/profile', body);
+  }
+
+  static async teacherUpdateAvatar(avatarUrl: string): Promise<void> {
+    const body: TeacherAvatarBody = { avatarUrl: avatarUrl };
     await apiClient.put<Object>('/teacher/profile', body);
   }
 

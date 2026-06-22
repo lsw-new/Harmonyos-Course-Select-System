@@ -54,7 +54,7 @@ async function fetchAdminProfile(adminId) {
 
 async function fetchTeacherProfile(teacherId) {
   const r = await pool.query(
-    `SELECT teacher_id, name, college, title, email FROM dtest2.teacher_profiles WHERE teacher_id=$1`,
+    `SELECT teacher_id, name, college, title, email, avatar_url FROM dtest2.teacher_profiles WHERE teacher_id=$1`,
     [teacherId]
   );
   if (r.rowCount === 0) return null;
@@ -65,6 +65,7 @@ async function fetchTeacherProfile(teacherId) {
     college: t.college || '',
     title: t.title || '',
     email: t.email || '',
+    avatarUrl: t.avatar_url || '',
     role: 'teacher'
   };
 }

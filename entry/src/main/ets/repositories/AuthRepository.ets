@@ -103,7 +103,8 @@ export class AuthRepository extends BaseRepository {
       name: p.name ?? '',
       college: p.college ?? '',
       title: p.title ?? '',
-      email: p.email ?? ''
+      email: p.email ?? '',
+      avatarUrl: p.avatarUrl ?? ''
     };
   }
 
