@@ -92,6 +92,18 @@ struct TeacherHomePage {
     .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
   }
 
+  @Builder QuickEntry(title: string, subtitle: string, route: string) {
+    Row({ space: 10 }) {
+      Column({ space: 2 }) {
+        Text(title).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+        Text(subtitle).fontSize(11).fontColor(ElysiaTheme.INK_SOFT)
+      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+      Text('›').fontSize(18).fontColor(ElysiaTheme.ROSE_500)
+    }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
+    .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18)
+    .onClick(() => AppRoute.go(route))
+  }
+
   @Builder CourseRow(c: TeacherCourse) {
     Row({ space: 10 }) {
       Column()
@@ -150,13 +162,10 @@ struct TeacherHomePage {
                 this.MetricCol(`${this.dashboard ? this.dashboard.evalSubmitted : 0}`, '评教', '#5FB7A1')
               }.width('100%')
 
-              // 评教入口
-              Row() {
-                Text('我的评教反馈').fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
-                Text('查看 ›').fontSize(13).fontColor(ElysiaTheme.ROSE_500)
-              }.width('100%').padding(14).backgroundColor(ElysiaTheme.SURFACE)
-              .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18)
-              .onClick(() => AppRoute.go(Routes.TeacherEval))
+              // 快捷入口：课程通知 / 成绩申诉 / 评教反馈
+              this.QuickEntry('课程通知', '给授课班级发通知', Routes.TeacherNotice)
+              this.QuickEntry('成绩申诉', '受理学生成绩复核', Routes.TeacherAppeal)
+              this.QuickEntry('评教反馈', '查看课程评教情况', Routes.TeacherEval)
 
               // 我的课程
               Text('我的课程').fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)

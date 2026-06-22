@@ -4,17 +4,23 @@
 import { AppConfig } from '../app/AppConfig';
 import {
   RemoteApi, RemoteTeacherDashboard, RemoteTeacherCourse, RemoteTeacherStudent,
-  RemoteTeacherCourseStudents, RemoteTeacherEval, RemoteTeacherGradeResult
+  RemoteTeacherCourseStudents, RemoteTeacherEval, RemoteTeacherGradeResult,
+  RemoteTeacherNotice, RemoteTeacherNoticeResult, RemoteTeacherAppeal, RemoteTeacherAppealResult
 } from '../common/remote/RemoteApi';
 import {
   TeacherDashboard, TeacherCourse, TeacherStudent, TeacherCourseStudents,
-  TeacherEval, TeacherScoreInput
+  TeacherEval, TeacherScoreInput, TeacherNotice, TeacherAppeal
 } from '../models/Teacher';
 
 export interface TeacherGradeResult {
   updated: number;
   inputProgress: number;
   status: string;
+}
+
+export interface TeacherNoticeResult {
+  noticeId: string;
+  recipients: number;
 }
 
 export class TeacherRepository {
@@ -115,6 +121,74 @@ export class TeacherRepository {
       }
     }
     return this.mockEvals();
+  }
+
+  async publishNotice(courseId: string, title: string, content: string): Promise<TeacherNoticeResult> {
+    if (AppConfig.useRemote) {
+      try {
+        const r: RemoteTeacherNoticeResult = await RemoteApi.teacherPublishNotice(courseId, title, content);
+        return { noticeId: r.noticeId, recipients: r.recipients };
+      } catch (e) {
+        return this.fail<TeacherNoticeResult>((e instanceof Error) ? e.message : '发布失败');
+      }
+    }
+    const mock: TeacherNoticeResult = { noticeId: 'mock-notice', recipients: 47 };
+    return mock;
+  }
+
+  async getNotices(): Promise<TeacherNotice[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const list: RemoteTeacherNotice[] = await RemoteApi.teacherNotices();
+        return list.map((n: RemoteTeacherNotice): TeacherNotice => ({
+          noticeId: n.noticeId, title: n.title, summary: n.summary,
+          category: n.category, urgency: n.urgency, publishedAt: n.publishedAt
+        }));
+      } catch (e) {
+        if (!AppConfig.allowMockFallbackInRemote) {
+          return this.fail<TeacherNotice[]>('远程服务异常，请稍后重试');
+        }
+      }
+    }
+    return [
+      { noticeId: 'mn1', title: '本周五补考通知', summary: '本周五补考，正常课程暂停', category: '课程通知', urgency: 'normal', publishedAt: '2026-06-20 10:00' }
+    ];
+  }
+
+  async getAppeals(): Promise<TeacherAppeal[]> {
+    if (AppConfig.useRemote) {
+      try {
+        const list: RemoteTeacherAppeal[] = await RemoteApi.teacherGradeAppeals();
+        return list.map((a: RemoteTeacherAppeal): TeacherAppeal => this.toAppeal(a));
+      } catch (e) {
+        if (!AppConfig.allowMockFallbackInRemote) {
+          return this.fail<TeacherAppeal[]>('远程服务异常，请稍后重试');
+        }
+      }
+    }
+    return [
+      { appealId: 'ma1', studentId: '2023307020941', studentName: '李仕炜', courseId: 'mock-c1', courseName: '编译原理', term: '2025-2026-2', reason: '平时分疑似漏算，请复核', status: 'pending', reply: '', submittedAt: '2026-06-19 14:00' }
+    ];
+  }
+
+  async handleAppeal(appealId: string, decision: string, reply: string): Promise<string> {
+    if (AppConfig.useRemote) {
+      try {
+        const r: RemoteTeacherAppealResult = await RemoteApi.teacherHandleAppeal(appealId, decision, reply);
+        return r.status;
+      } catch (e) {
+        return this.fail<string>((e instanceof Error) ? e.message : '处理失败');
+      }
+    }
+    return decision;
+  }
+
+  private toAppeal(a: RemoteTeacherAppeal): TeacherAppeal {
+    return {
+      appealId: a.appealId, studentId: a.studentId, studentName: a.studentName,
+      courseId: a.courseId, courseName: a.courseName, term: a.term,
+      reason: a.reason, status: a.status, reply: a.reply, submittedAt: a.submittedAt
+    };
   }
 
   // ===== 映射 =====

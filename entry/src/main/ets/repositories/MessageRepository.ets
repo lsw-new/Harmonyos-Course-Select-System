@@ -187,7 +187,8 @@ export class MessageRepository {
 
   // 后端 param 为标量：请假审批存 leave_id，前端请假详情页按 key 'id' 取参；其余消息无参。
   private buildParam(r: RemoteMessage): Record<string, Object> | undefined {
-    if (r.route === Routes.LeaveDetail && r.param.length > 0) {
+    // 请假详情与通知详情均按 key 'id' 取参（教师课程通知消息深链 NoticeDetail）
+    if ((r.route === Routes.LeaveDetail || r.route === Routes.NoticeDetail) && r.param.length > 0) {
       const p: Record<string, Object> = { 'id': r.param };
       return p;
     }

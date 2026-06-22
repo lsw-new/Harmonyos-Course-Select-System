@@ -21,6 +21,16 @@
                           "buildFunction":  "TeacherEvalPageBuilder"
                       },
                       {
+                          "name":  "pages/TeacherNoticePage",
+                          "pageSourceFile":  "src/main/ets/pages/TeacherNoticePage.ets",
+                          "buildFunction":  "TeacherNoticePageBuilder"
+                      },
+                      {
+                          "name":  "pages/TeacherAppealPage",
+                          "pageSourceFile":  "src/main/ets/pages/TeacherAppealPage.ets",
+                          "buildFunction":  "TeacherAppealPageBuilder"
+                      },
+                      {
                           "name":  "pages/AccountPage",
                           "pageSourceFile":  "src/main/ets/pages/AccountPage.ets",
                           "buildFunction":  "AccountPageBuilder"

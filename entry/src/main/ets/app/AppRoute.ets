@@ -41,6 +41,8 @@ export class Routes {
   static readonly TeacherHome = 'pages/TeacherHomePage';
   static readonly TeacherCourseDetail = 'pages/TeacherCourseDetailPage';
   static readonly TeacherEval = 'pages/TeacherEvalPage';
+  static readonly TeacherNotice = 'pages/TeacherNoticePage';
+  static readonly TeacherAppeal = 'pages/TeacherAppealPage';
   static readonly AdminStudents = 'pages/AdminStudentsPage';
   static readonly AdminCourses = 'pages/AdminCoursesPage';
   static readonly AdminSelection = 'pages/AdminSelectionPage';
@@ -104,7 +106,8 @@ const ADMIN_ROUTES: string[] = [
 ];
 
 const TEACHER_ROUTES: string[] = [
-  Routes.TeacherHome, Routes.TeacherCourseDetail, Routes.TeacherEval
+  Routes.TeacherHome, Routes.TeacherCourseDetail, Routes.TeacherEval,
+  Routes.TeacherNotice, Routes.TeacherAppeal
 ];
 
 const PUBLIC_ROUTES: string[] = [

@@ -63,3 +63,27 @@ export interface TeacherScoreInput {
   studentId: string;
   score: number;
 }
+
+// 教师发布的课程通知一行
+export interface TeacherNotice {
+  noticeId: string;
+  title: string;
+  summary: string;
+  category: string;
+  urgency: string;
+  publishedAt: string;
+}
+
+// 我所授课程收到的成绩申诉一行
+export interface TeacherAppeal {
+  appealId: string;
+  studentId: string;
+  studentName: string;
+  courseId: string;
+  courseName: string;
+  term: string;
+  reason: string;
+  status: string;
+  reply: string;
+  submittedAt: string;
+}

@@ -125,6 +125,50 @@ export interface RemoteTeacherGradeResult {
   status: string;
 }
 
+export interface RemoteTeacherNotice {
+  noticeId: string;
+  title: string;
+  summary: string;
+  category: string;
+  urgency: string;
+  publishedAt: string;
+}
+
+interface TeacherNoticeBody {
+  courseId: string;
+  title: string;
+  content: string;
+  urgency: string;
+}
+
+export interface RemoteTeacherNoticeResult {
+  noticeId: string;
+  recipients: number;
+}
+
+export interface RemoteTeacherAppeal {
+  appealId: string;
+  studentId: string;
+  studentName: string;
+  courseId: string;
+  courseName: string;
+  term: string;
+  reason: string;
+  status: string;
+  reply: string;
+  submittedAt: string;
+}
+
+interface TeacherAppealHandleBody {
+  decision: string;
+  reply: string;
+}
+
+export interface RemoteTeacherAppealResult {
+  appealId: string;
+  status: string;
+}
+
 export interface ProfileUpdateBody {
   avatarUrl?: string;
   phone?: string;
@@ -944,6 +988,24 @@ export class RemoteApi {
 
   static async teacherEvaluations(): Promise<RemoteTeacherEval[]> {
     return apiClient.get<RemoteTeacherEval[]>('/teacher/evaluations');
+  }
+
+  static async teacherPublishNotice(courseId: string, title: string, content: string): Promise<RemoteTeacherNoticeResult> {
+    const body: TeacherNoticeBody = { courseId: courseId, title: title, content: content, urgency: 'normal' };
+    return apiClient.post<RemoteTeacherNoticeResult>('/teacher/notices', body);
+  }
+
+  static async teacherNotices(): Promise<RemoteTeacherNotice[]> {
+    return apiClient.get<RemoteTeacherNotice[]>('/teacher/notices');
+  }
+
+  static async teacherGradeAppeals(): Promise<RemoteTeacherAppeal[]> {
+    return apiClient.get<RemoteTeacherAppeal[]>('/teacher/grade-appeals');
+  }
+
+  static async teacherHandleAppeal(id: string, decision: string, reply: string): Promise<RemoteTeacherAppealResult> {
+    const body: TeacherAppealHandleBody = { decision: decision, reply: reply };
+    return apiClient.post<RemoteTeacherAppealResult>('/teacher/grade-appeals/' + encodeURIComponent(id) + '/handle', body);
   }
 
   static async listPractice(studentId: string, category?: string): Promise<RemotePractice[]> {
