@@ -1,0 +1,38 @@
+# 完整 HarmonyOS HAP 构建（仅手动触发，运行在自托管 runner 上）。
+#
+# 为什么不在托管 runner 上跑：
+#   HarmonyOS HAP 的真实编译与 Hypium 测试依赖 DevEco Studio SDK（hvigor + ohos sdk）。
+#   GitHub 托管 runner（ubuntu-latest 等）没有该 SDK，无法构建 HAP。
+#   因此完整构建必须放到「装了 DevEco 的机器」上的自托管 runner。
+#
+# 如何启用：
+#   1. 在一台装有 DevEco Studio 的机器上注册自托管 runner，并打上 `harmonyos` 标签：
+#        ./config.sh --url <仓库地址> --token <token> --labels harmonyos
+#      （Windows 用 config.cmd；Gitee 镜像到 GitHub 后在 GitHub 仓库 Settings → Actions → Runners 注册）
+#   2. 在该 runner 机器上设置环境变量 DEVECO_SDK_HOME 指向 DevEco 的 sdk 目录，
+#      例如 Windows: D:\DevEco Studio\sdk    macOS: ~/Library/Huawei/Sdk
+#      （hvigorw.js 默认位于 DevEco 安装目录的 tools/hvigor/bin 下，
+#       下方按 "$DEVECO_SDK_HOME/../tools/hvigor/bin" 推断；不同机器布局可能不同，按需调整。）
+#
+# 仅 workflow_dispatch：避免在没有自托管 runner 时任务一直排队阻塞。
+name: frontend-build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-hap:
+    runs-on: [self-hosted, harmonyos]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble HAP (hvigor)
+        env:
+          DEVECO_SDK_HOME: ${{ env.DEVECO_SDK_HOME }}
+        # hvigorw.js 路径按 DevEco 安装布局推断，必要时按机器实际路径调整。
+        run: node "$DEVECO_SDK_HOME/../tools/hvigor/bin/hvigorw.js" assembleHap --no-daemon
+      - name: Run Hypium tests (optional)
+        # 可选：本地等价为 hvigorw test；如无测试套件可移除此步骤。
+        continue-on-error: true
+        env:
+          DEVECO_SDK_HOME: ${{ env.DEVECO_SDK_HOME }}
+        run: node "$DEVECO_SDK_HOME/../tools/hvigor/bin/hvigorw.js" test --no-daemon

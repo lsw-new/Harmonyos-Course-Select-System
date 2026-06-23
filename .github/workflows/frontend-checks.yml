@@ -1,0 +1,29 @@
+# 前端 ArkTS 静态检查门禁（始终可用，托管 runner 即可运行）。
+# 仓库托管在 Gitee；如镜像到 GitHub 即自动运行。
+# 注意：HarmonyOS HAP 真实编译需 DevEco SDK，托管 runner 无 SDK，故此处只做静态门禁。
+# 完整 HAP 构建见 frontend-build.yml（自托管 runner）。本地门禁：node scripts/ci/check-frontend.js
+name: frontend-checks
+
+on:
+  push:
+    paths:
+      - 'entry/**'
+      - 'scripts/ci/check-frontend.js'
+      - '.github/workflows/frontend-checks.yml'
+  pull_request:
+    paths:
+      - 'entry/**'
+      - 'scripts/ci/check-frontend.js'
+      - '.github/workflows/frontend-checks.yml'
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: ArkTS static gate
+        run: node scripts/ci/check-frontend.js
