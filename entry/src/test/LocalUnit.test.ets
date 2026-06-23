@@ -15,6 +15,7 @@ import { LeaveRequest } from '../main/ets/models/Misc';
 import { FileService } from '../main/ets/common/services/FileService';
 import { ScheduleImportService } from '../main/ets/common/services/ScheduleImportService';
 import { ScheduleItem } from '../main/ets/models/Course';
+import { AppConfig, RuntimeMode } from '../main/ets/app/AppConfig';
 
 async function clearLocalUnitState(): Promise<void> {
   await SessionStorage.get().clear();
@@ -57,7 +58,12 @@ async function captureErrorMessage(action: () => Promise<void>): Promise<string>
 
 export default function localUnitTest() {
   describe('localUnitTest', () => {
+    // 本套件验证「单机/本地」仓储逻辑（LocalDataStore/Preferences），须在 local 模式下运行；
+    // 应用默认 runtimeMode='remote'（生产联机），若不强制切换会走网络导致 401「未授权」。
+    let prevRuntimeMode: RuntimeMode = 'remote';
     beforeAll(() => {
+      prevRuntimeMode = AppConfig.runtimeMode;
+      AppConfig.runtimeMode = 'local';
     });
     beforeEach(async () => {
       await clearLocalUnitState();
@@ -66,6 +72,7 @@ export default function localUnitTest() {
       await clearLocalUnitState();
     });
     afterAll(() => {
+      AppConfig.runtimeMode = prevRuntimeMode;
     });
 
     it('scheduleImportServiceParsesGridWeeksAndOfferings', 0, () => {
