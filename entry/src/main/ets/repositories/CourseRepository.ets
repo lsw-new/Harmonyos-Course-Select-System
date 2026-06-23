@@ -218,6 +218,10 @@ export class CourseRepository extends BaseRepository {
         const remote = await RemoteApi.listAllCourses();
         return remote.map((r) => CourseLogic.toStudentCourse(CourseLogic.remoteToAdminCourse(r)));
       } catch (e) {
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
         // 远程失败回退本地目录
       }
     }
@@ -245,6 +249,10 @@ export class CourseRepository extends BaseRepository {
             .filter((s) => CourseLogic.isValidScheduleItem(s));
           this.remoteScheduleLoaded = true;
         } catch (e) {
+          // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+          if (!AppConfig.allowMockFallbackInRemote) {
+            throw new Error('远程服务异常，请稍后重试');
+          }
           // 远程不可用回退本地内置课表，与其余远程读分支的容错策略一致
         }
       }

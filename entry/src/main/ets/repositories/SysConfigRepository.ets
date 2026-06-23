@@ -146,6 +146,10 @@ export class SysConfigRepository extends BaseRepository {
         const remote = await RemoteApi.calendarEvents();
         return this.delayCopy<CalendarEvent[]>(remote.map((r) => this.remoteToCalendarEvent(r)));
       } catch (e) {
+        // \u8fdc\u7a0b\u5931\u8d25\uff1aremote \u6a21\u5f0f\u7981\u6b62\u9759\u9ed8\u56de\u9000\u65f6\u76f4\u63a5\u629b\u9519\uff0c\u4ea4\u7531\u9875\u9762\u9519\u8bef\u6001\u5448\u73b0
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('\u8fdc\u7a0b\u670d\u52a1\u5f02\u5e38\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5');
+        }
         // \u8fdc\u7a0b\u5931\u8d25\u56de\u9000\u672c\u5730\u6821\u5386
       }
     }

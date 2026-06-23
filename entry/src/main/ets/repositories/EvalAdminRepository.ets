@@ -213,6 +213,10 @@ export class EvalAdminRepository extends BaseRepository {
         };
         return this.delayCopy<EvalAdminStats>(stats);
       } catch (e) {
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
         // 远程失败回退本地 mock 统计
       }
     }

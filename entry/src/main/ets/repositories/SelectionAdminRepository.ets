@@ -229,6 +229,10 @@ export class SelectionAdminRepository extends BaseRepository {
         const remote = await RemoteApi.adminSelectionStats();
         return this.delayCopy<AdminRound[]>(remote.map((r) => this.remoteToRound(r)));
       } catch (e) {
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
         // 远程失败回退本地轮次数据
       }
     }
@@ -244,6 +248,10 @@ export class SelectionAdminRepository extends BaseRepository {
         const running = remote.find((r) => r.status === 'running');
         return running ? this.remoteToRound(running) : undefined;
       } catch (e) {
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
         // 远程失败回退本地
       }
     }

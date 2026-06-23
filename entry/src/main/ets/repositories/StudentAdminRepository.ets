@@ -153,6 +153,10 @@ export class StudentAdminRepository extends BaseRepository {
         const remote = await RemoteApi.adminListStudents(query, college);
         return this.delayCopy<StudentAdminItem[]>(remote.map((r) => this.remoteToListItem(r)));
       } catch (e) {
+        // 远程失败：remote 模式禁止静默回退时直接抛错，交由页面错误态呈现
+        if (!AppConfig.allowMockFallbackInRemote) {
+          throw new Error('远程服务异常，请稍后重试');
+        }
         // 远程失败回退本地名册
       }
     }
