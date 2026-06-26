@@ -9,6 +9,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { TeacherTabBar } from '../common/widgets/TabBars';
 
 @Component
 struct TeacherSchedulePage {
@@ -145,8 +146,9 @@ struct TeacherSchedulePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '我的课表', subtitle: '本学期授课安排', onBack: () => AppRoute.back() })
+        TopBar({ title: '我的课表', subtitle: '本学期授课安排', showBack: false })
 
+        Column() {
         if (this.loading) {
           Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
@@ -181,6 +183,16 @@ struct TeacherSchedulePage {
             }.padding({ left: 16, right: 16, top: 8, bottom: 16 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
+        }.width('100%').layoutWeight(1)
+
+        TeacherTabBar({
+          active: 'schedule',
+          onTap: (id: string, route: string) => {
+            if (id !== 'schedule') {
+              AppRoute.go(route, { replace: true });
+            }
+          }
+        })
       }
       .width('100%').height('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')

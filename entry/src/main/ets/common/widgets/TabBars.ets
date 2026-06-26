@@ -27,6 +27,14 @@ export const ADMIN_TABS: TabItem[] = [
   { id: 'mine', label: '我的', icon: 'madame', route: 'pages/AdminProfilePage' }
 ];
 
+export const TEACHER_TABS: TabItem[] = [
+  { id: 'home', label: '工作台', icon: 'dashboard', route: 'pages/TeacherHomePage' },
+  { id: 'schedule', label: '课表', icon: 'schedule', route: 'pages/TeacherSchedulePage' },
+  { id: 'notice', label: '通知', icon: 'notice', route: 'pages/TeacherNoticePage' },
+  { id: 'eval', label: '评教', icon: 'evaluation', route: 'pages/TeacherEvalPage' },
+  { id: 'mine', label: '我的', icon: 'mine', route: 'pages/TeacherProfilePage' }
+];
+
 @Component
 export struct StudentTabBar {
   @Prop active: string = 'home';
@@ -70,6 +78,39 @@ export struct AdminTabBar {
   build() {
     Row() {
       ForEach(ADMIN_TABS, (tab: TabItem) => {
+        Column() {
+          AppIcon({ name: tab.icon, iconSize: 24, dim: tab.id !== this.active })
+          Text(tab.label)
+            .fontSize(AppFontSize.small)
+            .fontStyle(FontStyle.Italic)
+            .fontColor(tab.id === this.active ? ElysiaTheme.ROSE_600 : ElysiaTheme.INK_MUTE)
+            .margin({ top: 2 })
+            .fontFamily(AppFontFamily.display)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Center)
+        .onClick(() => {
+          if (this.onTap) this.onTap(tab.id, tab.route);
+        })
+      })
+    }
+    .width('100%')
+    .padding({ top: 8, bottom: 14 + this.safeBottom, left: 14, right: 14 })
+    .backgroundColor(ElysiaTheme.barBg())
+    .border({ width: { top: 1 }, color: ElysiaTheme.hairlineSoft() })
+  }
+}
+
+@Component
+export struct TeacherTabBar {
+  @Prop active: string = 'home';
+  // 底部手势指示条避让高度（vp），由 EntryAbility 测量写入；随设备自适应。
+  @StorageProp('safeBottom') safeBottom: number = 0;
+  onTap?: (id: string, route: string) => void;
+
+  build() {
+    Row() {
+      ForEach(TEACHER_TABS, (tab: TabItem) => {
         Column() {
           AppIcon({ name: tab.icon, iconSize: 24, dim: tab.id !== this.active })
           Text(tab.label)

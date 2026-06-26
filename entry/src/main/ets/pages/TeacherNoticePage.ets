@@ -11,6 +11,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { TeacherTabBar } from '../common/widgets/TabBars';
 
 @Component
 struct TeacherNoticePage {
@@ -158,8 +159,9 @@ struct TeacherNoticePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '课程通知', subtitle: '发布给授课班级', onBack: () => AppRoute.back() })
+        TopBar({ title: '课程通知', subtitle: '发布给授课班级', showBack: false })
 
+        Column() {
         if (this.loading) {
           Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
@@ -221,6 +223,16 @@ struct TeacherNoticePage {
             }.padding({ left: 16, right: 16, top: 8, bottom: 16 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
+        }.width('100%').layoutWeight(1)
+
+        TeacherTabBar({
+          active: 'notice',
+          onTap: (id: string, route: string) => {
+            if (id !== 'notice') {
+              AppRoute.go(route, { replace: true });
+            }
+          }
+        })
       }
       .width('100%').height('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')

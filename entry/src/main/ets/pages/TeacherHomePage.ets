@@ -2,6 +2,7 @@
 import { ElysiaTheme } from '../common/Theme';
 import { TopBar, Pill } from '../common/Components';
 import { AppIcon } from '../common/widgets/AppIcon';
+import { TeacherTabBar } from '../common/widgets/TabBars';
 import { TeacherRepository } from '../repositories/TeacherRepository';
 import { TeacherDashboard, TeacherCourse, TeacherAppeal } from '../models/Teacher';
 import { SessionStorage } from '../common/storage/SessionStorage';
@@ -201,8 +202,9 @@ struct TeacherHomePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '教师工作台', subtitle: this.teacherName() })
+        TopBar({ title: '教师工作台', subtitle: this.teacherName(), showBack: false })
 
+        Column() {
         if (this.loading) {
           Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
@@ -256,13 +258,9 @@ struct TeacherHomePage {
                 this.MetricCol(`${this.dashboard ? this.dashboard.evalSubmitted : 0}`, '评教', '#5FB7A1')
               }.width('100%')
 
-              // 快捷操作
-              this.SectionEyebrow('快捷操作')
-              this.QuickEntry('schedule', '我的课表', '本学期授课安排', Routes.TeacherSchedule, 0)
-              this.QuickEntry('notice', '课程通知', '给授课班级发通知', Routes.TeacherNotice, 0)
+              // 待办：成绩申诉（带待处理徽标；其余功能已进底部导航）
+              this.SectionEyebrow('待办事项')
               this.QuickEntry('feedback', '成绩申诉', '受理学生成绩复核', Routes.TeacherAppeal, this.pendingAppeals)
-              this.QuickEntry('evaluation', '评教反馈', '查看课程评教情况', Routes.TeacherEval, 0)
-              this.QuickEntry('mine', '个人中心', '资料 / 改密码 / 退出', Routes.TeacherProfile, 0)
 
               // 我的课程（工作队列）
               this.SectionEyebrow(`我的课程 · ${this.courses.length}`)
@@ -275,18 +273,19 @@ struct TeacherHomePage {
                   }, (item: TeacherCourse) => item.courseId + '-' + item.taskId)
                 }.width('100%')
               }
-
-              // 退出登录
-              Text('退出登录')
-                .fontSize(14).fontColor(ElysiaTheme.ROSE_500).fontWeight(FontWeight.Medium)
-                .width('100%').textAlign(TextAlign.Center).padding(14).margin({ top: 6 })
-                .border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
-                .onClick(() => this.logout())
-
-              SafeBottom()
-            }.padding({ left: 16, right: 16, bottom: 16 })
+            }.padding({ left: 16, right: 16, top: 4, bottom: 16 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
+        }.width('100%').layoutWeight(1)
+
+        TeacherTabBar({
+          active: 'home',
+          onTap: (id: string, route: string) => {
+            if (id !== 'home') {
+              AppRoute.go(route, { replace: true });
+            }
+          }
+        })
       }
       .width('100%').height('100%')
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })

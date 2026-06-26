@@ -9,6 +9,7 @@ import { AppRoute, Routes } from '../app/AppRoute';
 import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { TeacherTabBar } from '../common/widgets/TabBars';
 
 @Component
 struct TeacherEvalPage {
@@ -256,8 +257,9 @@ struct TeacherEvalPage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '评教反馈', subtitle: '按课程查看提交情况', onBack: () => AppRoute.back() })
+        TopBar({ title: '评教反馈', subtitle: '按课程查看提交情况', showBack: false })
 
+        Column() {
         if (this.loading) {
           Column() { LoadingState({}) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else if (this.errorMsg.length > 0) {
@@ -277,6 +279,16 @@ struct TeacherEvalPage {
             }.padding({ left: 16, right: 16, top: 8, bottom: 16 })
           }.scrollBar(BarState.Off).layoutWeight(1)
         }
+        }.width('100%').layoutWeight(1)
+
+        TeacherTabBar({
+          active: 'eval',
+          onTap: (id: string, route: string) => {
+            if (id !== 'eval') {
+              AppRoute.go(route, { replace: true });
+            }
+          }
+        })
       }
       .width('100%').height('100%')
       .constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })

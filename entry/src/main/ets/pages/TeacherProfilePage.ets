@@ -12,6 +12,7 @@ import { RouteLoadingOverlay } from '../common/widgets/RouteLoadingOverlay';
 import { BreakpointManager } from '../common/widgets/Breakpoint';
 import { Toast } from '../common/widgets/Feedback';
 import { SafeTop, SafeBottom } from '../common/widgets/SafeArea';
+import { TeacherTabBar } from '../common/widgets/TabBars';
 
 @Component
 struct TeacherProfilePage {
@@ -146,8 +147,9 @@ struct TeacherProfilePage {
 
       Column() {
         SafeTop()
-        TopBar({ title: '个人中心', subtitle: this.profile().name, onBack: () => AppRoute.back() })
+        TopBar({ title: '个人中心', subtitle: this.profile().name, showBack: false })
 
+        Column() {
         Scroll() {
           Column({ space: 14 }) {
             // 资料卡（头像 hero 居中 + 资料明细）
@@ -214,6 +216,16 @@ struct TeacherProfilePage {
             SafeBottom()
           }.padding({ left: 16, right: 16, top: 8, bottom: 16 })
         }.scrollBar(BarState.Off).layoutWeight(1)
+        }.width('100%').layoutWeight(1)
+
+        TeacherTabBar({
+          active: 'mine',
+          onTap: (id: string, route: string) => {
+            if (id !== 'mine') {
+              AppRoute.go(route, { replace: true });
+            }
+          }
+        })
       }
       .width('100%').height('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
     }.width('100%').height('100%')
