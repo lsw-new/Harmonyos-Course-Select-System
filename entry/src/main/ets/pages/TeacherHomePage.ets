@@ -38,6 +38,36 @@ struct TeacherHomePage {
     return t ? t.avatarUrl : '';
   }
 
+  // 教师身份行：职称 · 学院（缺失回退）——「工作台身份头」的权威信息行。
+  private teacherIdentity(): string {
+    const t = SessionStorage.get().getTeacher();
+    if (!t) {
+      return '授课教师';
+    }
+    const parts: string[] = [];
+    if (t.title.length > 0) {
+      parts.push(t.title);
+    }
+    if (t.college.length > 0) {
+      parts.push(t.college);
+    }
+    return parts.length > 0 ? parts.join(' · ') : '授课教师';
+  }
+
+  // 成绩任务状态色（结构即信息：课程行左侧细条按状态着色）。
+  private statusColor(s: string): string {
+    if (s === 'published') {
+      return '#5FB7A1';
+    }
+    if (s === 'pendingAudit') {
+      return ElysiaTheme.LAV_500;
+    }
+    if (s === 'rejected' || s === 'appealed') {
+      return ElysiaTheme.ROSE_500;
+    }
+    return '#D9B675';
+  }
+
   private reload(): void {
     this.loading = true;
     this.errorMsg = '';
@@ -93,27 +123,34 @@ struct TeacherHomePage {
     return s;
   }
 
-  @Builder MetricCol(icon: string, value: string, label: string, color: string) {
-    Column({ space: 2 }) {
-      AppIcon({ name: icon, iconSize: 16 })
+  // 小型大写眼眉，作为结构性分节标识（教务工作台语汇）。
+  @Builder SectionEyebrow(text: string) {
+    Row({ space: 8 }) {
+      Column().width(14).height(2).borderRadius(1).backgroundColor(ElysiaTheme.ROSE_700)
+      Text(text).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).fontWeight(FontWeight.Medium).letterSpacing(1)
+    }.width('100%').margin({ top: 4, bottom: 2 })
+  }
+
+  // 指标读数：中性大号数字 + 顶部细色条编码该项语义，安静克制如控制台读数。
+  @Builder MetricCol(value: string, label: string, color: string) {
+    Column({ space: 0 }) {
+      Row().width(22).height(3).borderRadius(2).backgroundColor(color).margin({ bottom: 8 })
       Text(value)
-        .fontSize(22).fontStyle(FontStyle.Italic).fontWeight(FontWeight.Bold)
-        .fontColor(color).fontFamily(ElysiaTheme.FONT_DISPLAY)
-      Text(label).fontSize(10).fontColor(ElysiaTheme.INK_SOFT)
-    }.layoutWeight(1).height(82).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-    .backgroundColor(ElysiaTheme.glass()).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(18)
+        .fontSize(25).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).fontFamily(ElysiaTheme.FONT_DISPLAY)
+      Text(label).fontSize(10).fontColor(ElysiaTheme.INK_MUTE).margin({ top: 3 })
+    }.layoutWeight(1).height(86).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+    .backgroundColor(ElysiaTheme.SURFACE).border({ width: 1, color: ElysiaTheme.hairline() }).borderRadius(16)
   }
 
   // 工作台快捷入口：左侧图标徽片 + 标题/副标题 + 可选未处理数徽标。
   @Builder QuickEntry(icon: string, title: string, subtitle: string, route: string, badge: number) {
     Row({ space: 12 }) {
       Stack() {
-        AppIcon({ name: icon, iconSize: 24 })
+        AppIcon({ name: icon, iconSize: 22 })
       }
-      .width(46).height(46).borderRadius(15)
-      .linearGradient({ angle: 135, colors: [[Color.White, 0], [ElysiaTheme.ROSE_100, 1]] })
+      .width(42).height(42).borderRadius(12)
+      .backgroundColor(ElysiaTheme.ROSE_50)
       .border({ width: 1, color: ElysiaTheme.hairline() })
-      .shadow({ radius: 8, color: '#33F2709C', offsetX: 0, offsetY: 3 })
 
       Column({ space: 2 }) {
         Text(title).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
@@ -136,8 +173,8 @@ struct TeacherHomePage {
   @Builder CourseRow(c: TeacherCourse) {
     Row({ space: 10 }) {
       Column()
-        .width(10).height(46).borderRadius(6)
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_500, 0], [ElysiaTheme.LAV_500, 1]] })
+        .width(4).height(46).borderRadius(2)
+        .backgroundColor(this.statusColor(c.gradeStatus))
       Column({ space: 4 }) {
         Row({ space: 6 }) {
           Text(c.name)
@@ -173,55 +210,62 @@ struct TeacherHomePage {
         } else {
           Scroll() {
             Column({ space: 14 }) {
-              // Hero（头像 + 欢迎语）
-              Row({ space: 14 }) {
-                if (this.teacherAvatar().length > 0) {
-                  Image(this.teacherAvatar())
-                    .width(56).height(56).borderRadius(28)
-                    .objectFit(ImageFit.Cover)
-                    .border({ width: 2, color: Color.White })
-                } else {
-                  Stack() {
-                    Text(this.teacherName().length > 0 ? this.teacherName().charAt(0) : '师')
-                      .fontSize(22).fontWeight(FontWeight.Bold).fontColor(Color.White)
-                  }
-                  .width(56).height(56).borderRadius(28)
-                  .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_200, 0], [ElysiaTheme.ROSE_500, 1]] })
-                  .alignContent(Alignment.Center)
-                }
-                Column({ space: 6 }) {
-                  Text(`欢迎，${this.teacherName()} 老师`)
-                    .fontSize(19).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).lineHeight(26)
-                  if (this.dashboard !== null && this.dashboard.evalAvg !== null) {
-                    Text(`本学期评教均分 ${this.dashboard.evalAvg} / 5`)
-                      .fontSize(12).fontColor(ElysiaTheme.ROSE_500).fontWeight(FontWeight.Medium)
+              // 工作台身份头（faculty console）：眼眉 + 深玫瑰细竖条 + 头像 + 姓名/职称·学院 + 评教均分读数
+              Column({ space: 0 }) {
+                Text('教师工作台 · FACULTY CONSOLE')
+                  .fontSize(10).fontColor(ElysiaTheme.INK_MUTE).letterSpacing(1.5).fontWeight(FontWeight.Medium)
+                Row({ space: 13 }) {
+                  Column().width(3).height(48).borderRadius(2).backgroundColor(ElysiaTheme.ROSE_700)
+                  if (this.teacherAvatar().length > 0) {
+                    Image(this.teacherAvatar())
+                      .width(52).height(52).borderRadius(26).objectFit(ImageFit.Cover)
+                      .border({ width: 1.5, color: ElysiaTheme.ROSE_200 })
                   } else {
-                    Text('在此查看授课班级、录入成绩与评教反馈')
-                      .fontSize(12).fontColor(ElysiaTheme.INK_SOFT)
+                    Stack() {
+                      Text(this.teacherName().length > 0 ? this.teacherName().charAt(0) : '师')
+                        .fontSize(21).fontWeight(FontWeight.Bold).fontColor(Color.White).fontFamily(ElysiaTheme.FONT_DISPLAY)
+                    }
+                    .width(52).height(52).borderRadius(26)
+                    .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_500, 0], [ElysiaTheme.ROSE_700, 1]] })
+                    .alignContent(Alignment.Center)
                   }
-                }.alignItems(HorizontalAlign.Start).layoutWeight(1)
-              }.width('100%').padding(18).borderRadius(24)
-              .linearGradient({ angle: 135, colors: [[ElysiaTheme.ROSE_100, 0], [ElysiaTheme.LAV_200, 1]] })
-              .border({ width: 1, color: ElysiaTheme.hairlineSoft() })
+                  Column({ space: 4 }) {
+                    Text(this.teacherName())
+                      .fontSize(21).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
+                      .fontFamily(ElysiaTheme.FONT_DISPLAY).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                    Text(this.teacherIdentity())
+                      .fontSize(12).fontColor(ElysiaTheme.INK_SOFT).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                  }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+                  if (this.dashboard !== null && this.dashboard.evalAvg !== null) {
+                    Column({ space: 1 }) {
+                      Text(`${this.dashboard.evalAvg}`)
+                        .fontSize(22).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.ROSE_700).fontFamily(ElysiaTheme.FONT_DISPLAY)
+                      Text('评教均分').fontSize(9).fontColor(ElysiaTheme.INK_MUTE)
+                    }.alignItems(HorizontalAlign.End)
+                  }
+                }.width('100%').margin({ top: 12 })
+              }
+              .width('100%').padding(16).backgroundColor(ElysiaTheme.SURFACE).borderRadius(20)
+              .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).alignItems(HorizontalAlign.Start)
 
-              // 指标卡
+              // 指标读数条
               Row({ space: 10 }) {
-                this.MetricCol('course', `${this.dashboard ? this.dashboard.courseCount : 0}`, '授课', ElysiaTheme.ROSE_500)
-                this.MetricCol('students', `${this.dashboard ? this.dashboard.studentCount : 0}`, '学生', '#B589FF')
-                this.MetricCol('grades', `${this.dashboard ? this.dashboard.pendingGradeCount : 0}`, '待录入', '#D9B675')
-                this.MetricCol('evaluation', `${this.dashboard ? this.dashboard.evalSubmitted : 0}`, '评教', '#5FB7A1')
+                this.MetricCol(`${this.dashboard ? this.dashboard.courseCount : 0}`, '授课', ElysiaTheme.ROSE_500)
+                this.MetricCol(`${this.dashboard ? this.dashboard.studentCount : 0}`, '学生', ElysiaTheme.LAV_500)
+                this.MetricCol(`${this.dashboard ? this.dashboard.pendingGradeCount : 0}`, '待录入', '#D9B675')
+                this.MetricCol(`${this.dashboard ? this.dashboard.evalSubmitted : 0}`, '评教', '#5FB7A1')
               }.width('100%')
 
-              // 快捷入口：课表 / 通知 / 申诉（带待办徽标）/ 评教 / 个人中心
+              // 快捷操作
+              this.SectionEyebrow('快捷操作')
               this.QuickEntry('schedule', '我的课表', '本学期授课安排', Routes.TeacherSchedule, 0)
               this.QuickEntry('notice', '课程通知', '给授课班级发通知', Routes.TeacherNotice, 0)
               this.QuickEntry('feedback', '成绩申诉', '受理学生成绩复核', Routes.TeacherAppeal, this.pendingAppeals)
               this.QuickEntry('evaluation', '评教反馈', '查看课程评教情况', Routes.TeacherEval, 0)
               this.QuickEntry('mine', '个人中心', '资料 / 改密码 / 退出', Routes.TeacherProfile, 0)
 
-              // 我的课程
-              Text('我的课程').fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)
-                .width('100%').margin({ top: 4 })
+              // 我的课程（工作队列）
+              this.SectionEyebrow(`我的课程 · ${this.courses.length}`)
               if (this.courses.length === 0) {
                 EmptyState({ title: '暂无授课课程' })
               } else {
