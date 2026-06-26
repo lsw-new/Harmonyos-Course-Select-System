@@ -24,6 +24,7 @@ struct TeacherNoticePage {
   @State title: string = '';
   @State content: string = '';
   @State urgency: string = 'normal';
+  @State isRefreshing: boolean = false;
   @StorageProp('breakpoint') bp: string = 'sm';
 
   private urgencyLabel(u: string): string {
@@ -43,9 +44,12 @@ struct TeacherNoticePage {
     this.reload();
   }
 
-  private reload(): void {
-    this.loading = true;
-    this.errorMsg = '';
+  // isRefresh=true：下拉刷新，不切整页 loading（保留当前内容），完成后复位指示器。
+  private reload(isRefresh: boolean = false): void {
+    if (!isRefresh) {
+      this.loading = true;
+      this.errorMsg = '';
+    }
     const repo = TeacherRepository.get();
     const cP = repo.getCourses();
     const nP = repo.getNotices();
@@ -58,9 +62,13 @@ struct TeacherNoticePage {
     }).then((ns: TeacherNotice[]) => {
       this.notices = ns;
       this.loading = false;
+      this.isRefreshing = false;
     }).catch((e: object) => {
-      this.loading = false;
-      this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+      this.isRefreshing = false;
+      if (!isRefresh) {
+        this.loading = false;
+        this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+      }
     });
   }
 
@@ -175,6 +183,7 @@ struct TeacherNoticePage {
         } else if (this.errorMsg.length > 0) {
           Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.reload() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
+          Refresh({ refreshing: $$this.isRefreshing }) {
           Scroll() {
             Column({ space: 12 }) {
               // 发布表单
@@ -229,7 +238,10 @@ struct TeacherNoticePage {
               }
               SafeBottom()
             }.padding({ left: 16, right: 16, top: 8, bottom: 16 })
-          }.scrollBar(BarState.Off).layoutWeight(1)
+          }.scrollBar(BarState.Off).width('100%').height('100%')
+          }
+          .onRefreshing(() => { this.reload(true); })
+          .layoutWeight(1)
         }
         }.width('100%').layoutWeight(1)
 

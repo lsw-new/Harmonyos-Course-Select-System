@@ -20,6 +20,7 @@ struct TeacherHomePage {
   @State dashboard: TeacherDashboard | null = null;
   @State courses: TeacherCourse[] = [];
   @State pendingAppeals: number = 0;
+  @State isRefreshing: boolean = false;
   @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
@@ -69,9 +70,12 @@ struct TeacherHomePage {
     return '#D9B675';
   }
 
-  private reload(): void {
-    this.loading = true;
-    this.errorMsg = '';
+  // isRefresh=true：下拉刷新，不切整页 loading（保留当前内容），完成后复位指示器。
+  private reload(isRefresh: boolean = false): void {
+    if (!isRefresh) {
+      this.loading = true;
+      this.errorMsg = '';
+    }
     const repo = TeacherRepository.get();
     const dashP = repo.getDashboard();
     const coursesP = repo.getCourses();
@@ -81,13 +85,17 @@ struct TeacherHomePage {
     }).then((list: TeacherCourse[]) => {
       this.courses = list;
       this.loading = false;
+      this.isRefreshing = false;
       // 待处理申诉数（工作台徽标，次要信息：失败不阻断首页）
       repo.getAppeals().then((appeals: TeacherAppeal[]) => {
         this.pendingAppeals = appeals.filter((a: TeacherAppeal) => a.status === 'pending').length;
       }).catch(() => {});
     }).catch((e: object) => {
-      this.loading = false;
-      this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+      this.isRefreshing = false;
+      if (!isRefresh) {
+        this.loading = false;
+        this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+      }
     });
   }
 
@@ -210,6 +218,7 @@ struct TeacherHomePage {
         } else if (this.errorMsg.length > 0) {
           Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.reload() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
+          Refresh({ refreshing: $$this.isRefreshing }) {
           Scroll() {
             Column({ space: 14 }) {
               // 工作台身份头（faculty console）：眼眉 + 深玫瑰细竖条 + 头像 + 姓名/职称·学院 + 评教均分读数
@@ -274,7 +283,10 @@ struct TeacherHomePage {
                 }.width('100%')
               }
             }.padding({ left: 16, right: 16, top: 4, bottom: 16 })
-          }.scrollBar(BarState.Off).layoutWeight(1)
+          }.scrollBar(BarState.Off).width('100%').height('100%')
+          }
+          .onRefreshing(() => { this.reload(true); })
+          .layoutWeight(1)
         }
         }.width('100%').layoutWeight(1)
 

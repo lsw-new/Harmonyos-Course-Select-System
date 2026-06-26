@@ -19,6 +19,7 @@ struct TeacherEvalPage {
   // 展开中的课程（空串=全部折叠）+ 已加载的按题细分缓存（按 courseId）
   @State expandedCourseId: string = '';
   @State breakdowns: Map<string, TeacherEvalBreakdown[]> = new Map();
+  @State isRefreshing: boolean = false;
   @StorageProp('breakpoint') bp: string = 'sm';
 
   aboutToAppear(): void {
@@ -28,15 +29,22 @@ struct TeacherEvalPage {
     this.reload();
   }
 
-  private reload(): void {
-    this.loading = true;
-    this.errorMsg = '';
+  // isRefresh=true：下拉刷新，不切整页 loading（保留当前内容），完成后复位指示器。
+  private reload(isRefresh: boolean = false): void {
+    if (!isRefresh) {
+      this.loading = true;
+      this.errorMsg = '';
+    }
     TeacherRepository.get().getEvaluations().then((list: TeacherEval[]) => {
       this.items = list;
       this.loading = false;
+      this.isRefreshing = false;
     }).catch((e: object) => {
-      this.loading = false;
-      this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+      this.isRefreshing = false;
+      if (!isRefresh) {
+        this.loading = false;
+        this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+      }
     });
   }
 
@@ -265,19 +273,23 @@ struct TeacherEvalPage {
         } else if (this.errorMsg.length > 0) {
           Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.reload() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
-          Scroll() {
-            Column({ space: 12 }) {
-              if (this.items.length === 0) {
-                EmptyState({ title: '暂无评教数据' })
-              } else {
-                this.SummaryCard()
-                ForEach(this.sortedItems(), (item: TeacherEval) => {
-                  this.EvalRow(item)
-                }, (item: TeacherEval) => item.courseId + '-' + item.term)
-              }
-              SafeBottom()
-            }.padding({ left: 16, right: 16, top: 8, bottom: 16 })
-          }.scrollBar(BarState.Off).layoutWeight(1)
+          Refresh({ refreshing: $$this.isRefreshing }) {
+            Scroll() {
+              Column({ space: 12 }) {
+                if (this.items.length === 0) {
+                  EmptyState({ title: '暂无评教数据' })
+                } else {
+                  this.SummaryCard()
+                  ForEach(this.sortedItems(), (item: TeacherEval) => {
+                    this.EvalRow(item)
+                  }, (item: TeacherEval) => item.courseId + '-' + item.term)
+                }
+                SafeBottom()
+              }.padding({ left: 16, right: 16, top: 8, bottom: 16 })
+            }.scrollBar(BarState.Off).width('100%').height('100%')
+          }
+          .onRefreshing(() => { this.reload(true); })
+          .layoutWeight(1)
         }
         }.width('100%').layoutWeight(1)
 

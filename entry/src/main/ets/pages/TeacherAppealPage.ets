@@ -31,6 +31,7 @@ struct TeacherAppealPage {
   @State errorMsg: string = '';
   @State rows: AppealRow[] = [];
   @State filter: string = 'pending';
+  @State isRefreshing: boolean = false;
   @StorageProp('breakpoint') bp: string = 'sm';
 
   private pendingCount(): number {
@@ -65,9 +66,12 @@ struct TeacherAppealPage {
     this.reload();
   }
 
-  private reload(): void {
-    this.loading = true;
-    this.errorMsg = '';
+  // isRefresh=true：下拉刷新，不切整页 loading（保留当前内容），完成后复位指示器。
+  private reload(isRefresh: boolean = false): void {
+    if (!isRefresh) {
+      this.loading = true;
+      this.errorMsg = '';
+    }
     TeacherRepository.get().getAppeals().then((list: TeacherAppeal[]) => {
       this.rows = list.map((a: TeacherAppeal): AppealRow => ({
         appealId: a.appealId,
@@ -81,9 +85,13 @@ struct TeacherAppealPage {
         submittedAt: a.submittedAt
       }));
       this.loading = false;
+      this.isRefreshing = false;
     }).catch((e: object) => {
-      this.loading = false;
-      this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+      this.isRefreshing = false;
+      if (!isRefresh) {
+        this.loading = false;
+        this.errorMsg = (e instanceof HttpError) ? (e as HttpError).message : '加载失败';
+      }
     });
   }
 
@@ -190,6 +198,7 @@ struct TeacherAppealPage {
         } else if (this.errorMsg.length > 0) {
           Column() { ErrorState({ message: this.errorMsg, onRetry: () => this.reload() }) }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
         } else {
+          Refresh({ refreshing: $$this.isRefreshing }) {
           Scroll() {
             Column({ space: 12 }) {
               // 筛选切换：待处理（带计数）/ 已处理（带计数）/ 全部
@@ -210,7 +219,10 @@ struct TeacherAppealPage {
               }
               SafeBottom()
             }.padding({ left: 16, right: 16, top: 8, bottom: 16 })
-          }.scrollBar(BarState.Off).layoutWeight(1)
+          }.scrollBar(BarState.Off).width('100%').height('100%')
+          }
+          .onRefreshing(() => { this.reload(true); })
+          .layoutWeight(1)
         }
       }
       .width('100%').height('100%').constraintSize({ maxWidth: BreakpointManager.contentMaxWidth(this.bp) })
