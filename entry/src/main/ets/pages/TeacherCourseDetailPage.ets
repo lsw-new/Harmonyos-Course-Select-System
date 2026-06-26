@@ -219,7 +219,8 @@ struct TeacherCourseDetailPage {
 
   @Builder RankingCard() {
     Column({ space: 8 }) {
-      Row() {
+      Row({ space: 8 }) {
+        Column().width(3).height(14).borderRadius(1).backgroundColor(ElysiaTheme.ROSE_700)
         Text('班级排名').fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
         Pill({ text: this.published ? '已发布' : '未发布·仅本人可见' })
       }.width('100%')
@@ -284,7 +285,8 @@ struct TeacherCourseDetailPage {
                   this.RankingCard()
                 }
                 Row() {
-                  Text(`学生名单（${this.rows.length}）`).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1)
+                  Column().width(3).height(14).borderRadius(1).backgroundColor(ElysiaTheme.ROSE_700)
+                  Text(`学生名单（${this.rows.length}）`).fontSize(14).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).layoutWeight(1).margin({ left: 8 })
                   Text(`已录入 ${this.enteredCount()}/${this.rows.length}`).fontSize(11).fontColor(ElysiaTheme.ROSE_500).fontWeight(FontWeight.Medium)
                 }.width('100%').margin({ top: 4, bottom: 2 })
                 Text('录入阶段 · 提交后由教务审核发布').fontSize(11).fontColor(ElysiaTheme.INK_MUTE).width('100%')

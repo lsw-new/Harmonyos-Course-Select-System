@@ -285,17 +285,26 @@ export class AcademicRepository extends BaseRepository {
         record.gpaText = (remote.gpa !== null) ? remote.gpa.toFixed(2) : '—';
         record.earnedCredits = remote.earnedCredits;
         record.passedCount = remote.passedCount;
-        // 学籍注册字段（roadmap #3）
+        // 学籍注册字段（roadmap #3）：来自后端 DB，null 表示未填
         record.politicalStatus = remote.politicalStatus;
         record.ethnicity = remote.ethnicity;
         record.nativePlace = remote.nativePlace;
         record.enrollmentDate = remote.enrollmentDate;
         record.programLength = remote.programLength;
-        // educationLevel 是 StudentRecord 中已有的 string 字段，null-safe 覆盖
-        if (remote.educationLevel !== null) {
-          record.educationLevel = remote.educationLevel;
-        }
         record.enrollmentStatus = remote.enrollmentStatus;
+        record.educationLevel = remote.educationLevel !== null ? remote.educationLevel : '暂无';
+        // 后端无权威数据源的档案字段：remote 模式下不沿用演示模板，统一标注「暂无」/「—」，绝不编造假值。
+        record.schoolingLength = remote.programLength !== null ? remote.programLength : '暂无';
+        record.recordStatus = remote.enrollmentStatus !== null ? remote.enrollmentStatus : '暂无';
+        record.gender = '暂无';
+        record.studentCategory = '暂无';
+        record.studyMode = '暂无';
+        record.campus = '暂无';
+        record.effectiveDate = '暂无';
+        record.englishName = undefined;
+        record.direction = undefined;
+        record.graduationDate = undefined;
+        record.remark = undefined;
       } catch (e) {
         // 远程失败：保留兜底，学籍页仍可展示身份字段
       }
