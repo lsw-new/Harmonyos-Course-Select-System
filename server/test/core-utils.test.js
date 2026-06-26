@@ -76,12 +76,15 @@ describe('core utility branches', () => {
 
   test('serverError logs non-stack errors and returns a sanitized 500 envelope', () => {
     const { serverError } = require('../src/middleware/errorHandler');
+    const logger = require('../src/logger');
     const res = makeResponse();
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    // serverError 现经结构化 logger.error 记录（label + stack 入 meta），替代旧 console.error。
+    const errSpy = jest.spyOn(logger, 'error');
 
     serverError(res, '测试失败', 'plain-error', 'server_error');
 
-    expect(consoleSpy).toHaveBeenCalledWith('[dtest2-api] 测试失败:', 'plain-error');
+    expect(errSpy).toHaveBeenCalledWith('测试失败', { stack: 'plain-error' });
+    errSpy.mockRestore();
     expect(res.statusCode).toBe(500);
     expect(res.body).toEqual({
       success: false,

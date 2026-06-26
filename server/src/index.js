@@ -6,6 +6,8 @@ const express = require('express');
 const cors = require('cors');
 const { pool } = require('./db');
 const { ok } = require('./envelope');
+const logger = require('./logger');
+const pkg = require('../package.json');
 // 仅保留 /health 与底部 re-export 所需；各域路由各自 require 自己的依赖。
 const { parseCourseWeeks, coursesConflict } = require('./mappers');
 const { globalLimiter } = require('./middleware/rateLimit');
@@ -49,11 +51,35 @@ app.use(express.json({ limit: '300kb' }));
 // 审计落库：自动记录全部 /api 写操作 + 认证事件（响应结束后异步写，不阻断业务）
 app.use(require('./middleware/audit').auditTrail());
 
+// 运维可观测性：请求完成日志。始终注册并执行（测试也覆盖代码行），
+// 靠 logger 在 NODE_ENV==='test' 下静默来保持测试输出干净。
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    logger.info('request', {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      ms: Math.round(ms),
+      ip: req.ip
+    });
+  });
+  next();
+});
+
 // ---- 健康检查（/api/health 供公网经 nginx /api 反代访问；裸 /health 供本机直连）----
 app.get(['/health', '/api/health'], async (req, res) => {
   try {
     const r = await pool.query('SELECT now() AS now');
-    res.json(ok({ db: 'ok', now: r.rows[0].now }));
+    res.json(ok({
+      db: 'ok',
+      now: r.rows[0].now,
+      uptime: Math.round(process.uptime()),
+      version: pkg.version,
+      nodeEnv: process.env.NODE_ENV || 'development',
+      time: new Date().toISOString()
+    }));
   } catch (e) {
     serverError(res, '数据库连接失败', e);
   }

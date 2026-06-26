@@ -3,9 +3,10 @@
 // 不把 e.message 回给客户端，避免泄露 DB 约束名 / 连接串 / 内部实现等敏感细节。
 
 const { fail } = require('../envelope');
+const logger = require('../logger');
 
 function serverError(res, label, e, code) {
-  console.error(`[dtest2-api] ${label}:`, (e && e.stack) ? e.stack : e);
+  logger.error(label, { stack: (e && e.stack) ? e.stack : String(e) });
   return res.status(500).json(fail(`${label}，请稍后重试`, code));
 }
 
@@ -26,11 +27,11 @@ const PG_SAFE_MESSAGES = {
 // 完整错误仍记入服务端日志便于排查。非约束类错误（无 e.code）交回 serverError 走 500。
 function pgClientError(res, label, e) {
   if (e && e.code && PG_SAFE_MESSAGES[e.code]) {
-    console.error(`[dtest2-api] ${label} (pg ${e.code}):`, e.message);
+    logger.error(`${label} (pg ${e.code})`, { message: e.message });
     return res.status(400).json(fail(`${label}：${PG_SAFE_MESSAGES[e.code]}`));
   }
   if (e && e.code) {
-    console.error(`[dtest2-api] ${label} (pg ${e.code}):`, e.message);
+    logger.error(`${label} (pg ${e.code})`, { message: e.message });
     return res.status(400).json(fail(`${label}，请检查输入数据`));
   }
   return serverError(res, label, e);
