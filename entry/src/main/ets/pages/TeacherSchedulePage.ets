@@ -115,8 +115,8 @@ struct TeacherSchedulePage {
   @Builder ItemCard(it: TeacherScheduleItem, isToday: boolean, ongoing: boolean) {
     Row({ space: 10 }) {
       Column()
-        .width(10).height(48).borderRadius(6)
-        .linearGradient({ angle: 180, colors: [[ElysiaTheme.ROSE_500, 0], [ElysiaTheme.LAV_500, 1]] })
+        .width(4).height(48).borderRadius(2)
+        .backgroundColor(ongoing ? ElysiaTheme.ROSE_500 : ElysiaTheme.ROSE_700)
       Column({ space: 4 }) {
         Row({ space: 6 }) {
           Text(it.courseName).fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK)

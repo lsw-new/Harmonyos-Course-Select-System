@@ -99,6 +99,14 @@ struct TeacherNoticePage {
     });
   }
 
+  // 分节眼眉（与教师工作台同款：深玫瑰细线 + 字距标签）
+  @Builder SectionEyebrow(text: string) {
+    Row({ space: 8 }) {
+      Column().width(14).height(2).borderRadius(1).backgroundColor(ElysiaTheme.ROSE_700)
+      Text(text).fontSize(11).fontColor(ElysiaTheme.INK_MUTE).fontWeight(FontWeight.Medium).letterSpacing(1)
+    }.width('100%').margin({ top: 4, bottom: 2 })
+  }
+
   @Builder CourseChip(c: TeacherCourse) {
     Text(c.name)
       .fontSize(13).fontColor(this.selectedCourseId === c.courseId ? Color.White : ElysiaTheme.INK)
@@ -209,7 +217,7 @@ struct TeacherNoticePage {
               .border({ width: 1, color: ElysiaTheme.hairlineSoft() }).borderRadius(18).alignItems(HorizontalAlign.Start)
 
               // 我的发布
-              Text('我发布的通知').fontSize(15).fontWeight(FontWeight.Bold).fontColor(ElysiaTheme.INK).width('100%').margin({ top: 4 })
+              this.SectionEyebrow('我发布的通知')
               if (this.notices.length === 0) {
                 EmptyState({ title: '还没有发布过通知' })
               } else {
