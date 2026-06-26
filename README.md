@@ -153,7 +153,7 @@ curl -s -X POST https://<你的域名>/api/auth/login \
 
 本项目是“绷住了小组”的软件工程课程作业，目标是实现一个面向 HarmonyOS NEXT 的教学管理系统 App。
 
-系统围绕学生端与管理端两类角色设计，覆盖登录注册、首页工作台、课程课表、选课中心、成绩考试、评教反馈、请假实践、学生管理、课程管理、成绩管理、通知发布和审批管理等教学管理核心场景。
+系统围绕学生端、教师端与管理端三类角色设计，覆盖登录注册、首页工作台、课程课表、选课中心、成绩考试、评教反馈、请假实践，教师端的成绩录入、班级排名、课程通知、成绩申诉，以及管理端的学生管理、课程管理、成绩审核、通知发布和审批管理等教学管理核心场景，并配套可部署的 Track B 远程后端（Node + Express + Postgres）。
 
 ## 项目定位
 
@@ -304,7 +304,8 @@ curl -s -X POST https://<你的域名>/api/auth/login \
 │       │       └── List.test.ets                # 设备测试套件聚合入口
 │       └── test/                                # 本地单元测试（无需设备）
 │           ├── List.test.ets                    # 本地测试套件聚合入口
-│           └── LocalUnit.test.ets               # 16 例本地单测（仓储/课表解析器/文件安全/会话/管理端状态机）
+│           ├── LocalUnit.test.ets               # 本地单测（仓储/课表解析器/文件安全/会话/管理端状态机，强制 local 模式）
+│           └── TeacherUnit.test.ets             # 教师端仓储 mock 形态单测（强制 mock 模式）
 ├── server/                                      # Track B 远程后端 API（Node 18 + Express + pg，CommonJS 免构建）
 │   ├── .env.example                             # 环境变量模板（PG 连接 / JWT_SECRET / SMTP 凭据占位，真实值仅在服务器）
 │   ├── .gitignore                               # 忽略 .env / node_modules / coverage
@@ -431,7 +432,7 @@ entry/src/main/ets/
 ├── entrybackupability/
 │   └── EntryBackupAbility.ets        # 系统数据备份/恢复能力骨架（onBackup / onRestore）
 ├── app/                              # 应用编排
-│   ├── AppConfig.ets                 # 运行配置：runtimeMode（mock/local/remote 单一开关，默认 mock）+ baseUrl；useRemote 等为派生 getter
+│   ├── AppConfig.ets                 # 运行配置：runtimeMode（mock/local/remote 单一开关，默认 remote）+ baseUrl；useRemote 等为派生 getter（remote 失败禁止静默回退 mock）
 │   ├── AppRoute.ets                  # Navigation 系统路由表门面：go/back/clearTo/getParam + 角色 & 细粒度权限守卫
 │   └── AppStartup.ets                # 启动注入：初始化本地 RDB / Preferences、恢复会话、安全 token 对齐
 ├── models/                           # 领域模型（纯 interface / type，无逻辑）
@@ -523,7 +524,7 @@ entry/src/main/ets/
 │   │   └── TextStyles.ets            # 文字样式 token
 │   ├── Components.ets                # 通用组件库（TopBar / 卡片 / 按钮 / 输入框 / Pill / Divider …）
 │   └── Theme.ets                     # 主题聚合与玫瑰学院风设计 token
-└── pages/                            # 60 个页面文件 = 1 个 @Entry 根容器 + 59 个业务页（逐页角色见下方「完整页面清单」表）
+└── pages/                            # 67 个页面文件 = 1 个 @Entry 根容器 + 66 个业务页（含 7 个教师端页面，逐页角色见下方「完整页面清单」表）
     ├── Index.ets                     # 唯一 @Entry：托管 Navigation(AppRoute.stack)，按会话 push 初始路由
     ├── LoginPage.ets                 # 认证：学生登录
     ├── RegisterPage.ets              # 认证：注册（邮箱验证码 + 班级名册白名单）
@@ -624,15 +625,29 @@ entry/src/main/ets/
 - 通知发布：通知编辑、发布范围选择（mock 演示）
 - 审批管理：审批中心、审批详情、通过与驳回操作（mock 演示）
 
+### 教师端
+
+> 教师端为本期新增的第三类角色（账号 role=`teacher`，由 `teacher_profiles` 落库，按教师姓名与课程/成绩/评教任务关联）。各功能均做**三端闭环**（学生 ↔ 教师 ↔ 管理端），数据走 Track B 后端。
+
+- 教师认证：工号密码登录，登录下发本人 `teacher_profiles`（姓名 / 学院 / 职称 / 邮箱 / 头像）
+- 工作台：授课 / 学生 / 待录入 / 评教四项指标卡（带图标）、本学期评教均分、待处理申诉徽标、授课课程入口
+- 我的课程 / 录入成绩：按教学班名单录入成绩（录入即「待审核」，仍由管理端两段式审核发布）；学生行状态点 + 已录入计数 + **班级排名**（只读，前三名渐变名次徽章）+ 成绩分布直方图
+- 评教反馈：按课程聚合提交率 / 提交进度条 / 评分均值，跨课程**总览卡**（总提交 / 提交率 / 评分均值 + 「最需关注」最低提交率课程），点课程行展开**按题目细分**每题均分
+- 课程通知：选课程发通知（普通 / 重要 / 紧急），给本班学生同步发消息（深链通知详情），支持**撤回**（删通知 + 关联消息）
+- 成绩申诉：受理 / 驳回学生成绩复核并回执到学生消息，支持「待处理 / 已处理 / 全部」筛选与计数
+- 我的课表：本学期授课安排按星期分组，**今日高亮 +「下一节课」卡片 + 进行中标记**
+- 个人中心：资料查看 + 改邮箱 + **更换头像**（复用对象存储）+ 改密码 + 退出登录
+
 ## 后端服务（Track B）
 
 `server/` 目录为 App 的远程后端 API，仅在 `AppConfig.useRemote = true` 时被调用。
 
 - **技术栈**：Node.js 18 + Express + `pg`（CommonJS 免构建），直连 Postgres（`dtest2` schema），统一返回 `ApiResponse` 信封 `{ success, data, error }`。
-- **源码结构**：`src/index.js` 仅做装配（中间件 + `/health` + 按域 `app.use(require('./routes/*'))`，约 80 行）；各域路由拆到 `src/routes/*.routes.js`（认证 / 选课 / 成绩 / 课表 / 通知 / 请假 / 反馈 / 评教 / 实践 / 资料 / 管理端 / 管理统计 / 课程管理 / 数据库管理），公共件在 `src/middleware/`（限流 / 错误处理 / 细粒度鉴权）与 `src/repositories/`（profile 读取），纯映射与 SQL 常量在 `src/mappers.js`。
+- **源码结构**：`src/index.js` 仅做装配（中间件 + 请求日志 + `/health` + 按域 `app.use(require('./routes/*'))`）；各域路由拆到 `src/routes/*.routes.js`（认证 / 选课 / 成绩 / 课表 / 通知 / 消息 / 请假 / 反馈 / 评教 / 实践 / 成绩申诉 / 考试 / 资料 / 对象存储 / 推送 / **教师端** / 管理端 / 管理统计 / 课程管理 / 报表导出 / 数据库管理），公共件在 `src/middleware/`（限流 / 错误处理 / 细粒度鉴权 / 审计落库）与 `src/repositories/`（profile 读取），纯映射与 SQL 常量在 `src/mappers.js`，零依赖结构化日志在 `src/logger.js`。
 - **部署**：pm2 进程 `dtest2-api` 监听本机 `:8090`（公网仅开放 80/443）；前置 **nginx 反向代理**终止 TLS（Let's Encrypt 证书），对外为 `https://lsw666.dns.army/api`；Web 管理控制台托管于 `https://lsw666.dns.army/admin/`。完整搭建步骤见本文最上方「**后端部署教程（从零到上线）**」。
-- **覆盖域**：认证（登录 / 注册 / 找回密码 / 邮箱验证码）、课程、选课（事务校验）、成绩、通知、请假、反馈、评教、实践，以及管理端的学生管理、成绩审核、审批、通知发布、角色权限、评教模板、审计日志。
-- **数据库迁移**：`server/migrations/` 权威建表脚本 + `npm run migrate` 幂等 runner。
+- **覆盖域**：认证（登录 / 注册 / 找回密码 / 邮箱验证码）、课程、选课（事务校验）、成绩、通知、消息中心、请假、反馈、评教、实践、成绩申诉、考试、对象存储、推送，**教师端**（工作台 / 我的课程 / 录入成绩 / 评教含按题目细分 / 课程通知含撤回 / 成绩申诉 / 资料含头像），以及管理端的学生管理、成绩审核、审批、通知发布、角色权限、评教模板、审计日志、报表导出。
+- **数据库迁移**：`server/migrations/`（001~021 权威建表脚本 + 班级名册 / 课表 / 成绩两段式 / 系统配置 / 消息 / 上传 / 推送 / 教师资料与头像等）+ `npm run migrate` 幂等 runner。
+- **可观测性与运维**：`/api/health` 返回 `db / now / uptime / version / nodeEnv / time`；全局请求完成日志（method / path / status / 耗时 / ip，结构化）；数据库备份 / 恢复脚本 `server/scripts/backup-db.sh`、`restore-db.sh`，运维手册见 [`docs/OPS.md`](docs/OPS.md)（健康检查 / Uptime 监控 / 备份 cron / 恢复 / pm2 日志轮转）。
 
 详见 [`server/README.md`](server/README.md)（端点与部署）与 [`server/deploy/nginx-https-setup.md`](server/deploy/nginx-https-setup.md)（HTTPS 反代配置）。
 
@@ -656,13 +671,13 @@ entry/src/main/ets/
 
 后端 API 配套 **Jest + supertest** 自动化测试套件（`server/test/`）：
 
-- **271 个用例 / 26 个套件**，覆盖登录与鉴权中间件、越权（IDOR）防护、管理端细粒度权限、限流、选课事务（轮次 / 容量 / 学分上限 / 时间冲突 + `FOR UPDATE` 行锁 + 失败回滚）、选课轮次状态机、成绩打分闭环、实践报名、注册与找回密码闭环、数据库管理防注入、验证码监控、各读写端点与全域错误分支（4xx 校验矩阵 / 事务回滚 / catch-500），以及选课规则纯函数。
+- **460 个用例 / 41 个套件**，覆盖登录与鉴权中间件、越权（IDOR）防护、管理端细粒度权限、限流、选课事务（轮次 / 容量 / 学分上限 / 时间冲突 + `FOR UPDATE` 行锁 + 失败回滚）、选课轮次状态机、成绩打分闭环、实践报名、注册与找回密码闭环、数据库管理防注入、验证码监控、**教师端**（工作台 / 名单归属鉴权 / 录入成绩 / 评教均值与按题目细分 / 课程通知与撤回 / 成绩申诉 / 头像）、**可观测性**（健康检查丰富字段 / 结构化日志），以及各读写端点与全域错误分支（4xx 校验矩阵 / 事务回滚 / catch-500）与选课规则纯函数。
 - **并发压力测试**：有状态 mock 忠实复刻 `FOR UPDATE` 行锁对临界区的序列化，跑真正的 `Promise.all` 并发——20 人同抢 1/5 个名额恰好 1/5 人成功、落库数不超容量；另设「去锁对照」证明该断言非恒真（锁缺失即超卖）。
-- **行覆盖率 99.0%**（语句 98.3% / 函数 94.0% / 分支 89.1%），覆盖率门禁锁定行/语句/函数/分支均约 80 线；数据库连接池与 SMTP 等基础设施按约定排除统计。
+- **覆盖率**：语句 87.2% / 函数 84.2% / 行 88.2% / 分支 75.9%（数据库连接池与 SMTP 等基础设施按约定排除）。覆盖率门禁锁定约 80 线；其中分支门禁目前略低于阈值，为待补的历史项（`npm test` 全绿，`npm run test:coverage` 会在分支项报门禁）。
 - 持久层经 mock 注入，无需真实数据库即可运行：`cd server && npm test`（或 `npm run test:coverage`）。
-- **CI**：[`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml) 在 push / PR 时于 Node 18 / 20 跑 `npm ci` → JS 语法检查 → 带**覆盖率门禁**（行 ≥ 80%）的测试（仓库托管 Gitee，镜像到 GitHub 即自动运行）。
+- **CI**：[`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml) 在 push / PR 时于 Node 18 / 20 跑 `npm ci` → JS 语法检查 → 带覆盖率统计的测试；前端另有 [`.github/workflows/frontend-checks.yml`](.github/workflows/frontend-checks.yml)（托管 runner 跑 `scripts/ci/check-frontend.js` 静态门禁，拦截 ArkTS 破坏性写法如对象 spread / 非法枚举）与 [`.github/workflows/frontend-build.yml`](.github/workflows/frontend-build.yml)（自托管 runner 手动触发真实 HAP 构建，因 GitHub 托管 runner 无 DevEco SDK）。仓库托管 Gitee，镜像到 GitHub 即自动运行。
 
-> **客户端测试**：ArkTS 端用 `@ohos/hypium`，分两层——本地单测 `entry/src/test/`（16 例：仓储 / 解析器 / 文件安全 / 会话 / 管理端 CRUD 与状态机，无需设备）+ 设备测试 `entry/src/ohosTest/`（Ability 冒烟，需模拟器 / 真机）。HarmonyOS 暂无简洁无头 CLI，故未接无头 CI；运行方式、用例清单、常见失败与「运行登记」见 [`docs/CLIENT_TESTING.md`](docs/CLIENT_TESTING.md)，充当人工测试门禁。
+> **客户端测试**：ArkTS 端用 `@ohos/hypium`，分两层——本地单测 `entry/src/test/`（`LocalUnit.test.ets` 仓储 / 解析器 / 文件安全 / 会话 / 管理端 CRUD 与状态机，强制 `local` 模式；`TeacherUnit.test.ets` 教师端仓储 mock 形态，强制 `mock` 模式；无需设备，`hvigorw test` 全绿）+ 设备测试 `entry/src/ohosTest/`（Ability 冒烟，需模拟器 / 真机）。完整 HAP 构建与本地单测需 DevEco SDK，故托管 CI 只跑静态门禁、完整构建交自托管 runner；运行方式、用例清单、常见失败与「运行登记」见 [`docs/CLIENT_TESTING.md`](docs/CLIENT_TESTING.md) 与 [`docs/CI.md`](docs/CI.md)。
 
 ## UI 实机运行截图
 
@@ -827,7 +842,7 @@ entry/src/main/ets/
 
 ## 完整页面清单
 
-> 共 **60 个页面**（含 Navigation 迁移后新增的 `Index` 根容器与各详情 / 二级页），位于 `entry/src/main/ets/pages/`。「ArkTS 文件」列为实际工程文件名。
+> 共 **67 个页面**（含 Navigation 迁移后新增的 `Index` 根容器、各详情 / 二级页与本期新增的 7 个教师端页面），位于 `entry/src/main/ets/pages/`。「ArkTS 文件」列为实际工程文件名。
 
 | 序号 | 页面 | 角色 | ArkTS 文件 |
 | --- | --- | --- | --- |
@@ -891,6 +906,13 @@ entry/src/main/ets/
 | 58 | 导入结果 | 管理员 | ImportResultPage.ets |
 | 59 | 审计日志详情 | 管理员 | AuditLogDetailPage.ets |
 | 60 | 轮次选课课程管理 | 管理员 | AdminRoundCoursesPage.ets |
+| 61 | 教师工作台 | 教师 | TeacherHomePage.ets |
+| 62 | 教师·课程详情/录入成绩/班级排名 | 教师 | TeacherCourseDetailPage.ets |
+| 63 | 教师·评教反馈（总览/按题目细分） | 教师 | TeacherEvalPage.ets |
+| 64 | 教师·课程通知（紧急度/撤回） | 教师 | TeacherNoticePage.ets |
+| 65 | 教师·成绩申诉处理 | 教师 | TeacherAppealPage.ets |
+| 66 | 教师·我的课表（今日高亮/下一节课） | 教师 | TeacherSchedulePage.ets |
+| 67 | 教师·个人中心（头像/改密/退出） | 教师 | TeacherProfilePage.ets |
 
 ## 安装与运行
 
@@ -920,6 +942,7 @@ $env:DEVECO_SDK_HOME = 'D:\DevEco Studio\sdk'
 | --- | --- | --- | --- |
 | 学生端 | `2023307020941` | `Elysia@2024` | 李仕炜 |
 | 管理端 | `A20251001` | `Admin@2024` | 爱莉希雅 · 教务管理员（远程模式返回后端真实 profile 与权限矩阵） |
+| 教师端 | `T001`~`T019` | `Teacher@2024` | 各授课教师本人（远程模式下登录返回 `teacher_profiles` 真实姓名 / 学院 / 职称） |
 
 - 管理端登录需额外输入**任意 4 位**图形验证码（如 `1234`）。
 - **注册 / 找回密码的邮箱验证码为真实发送**：由后端经 QQ 邮箱 SMTP 发送到所填邮箱（5 分钟有效、60 秒重发节流），不再有固定万能码；找回密码要求账号已存在且邮箱与账号绑定邮箱一致（不再自动建号）。
