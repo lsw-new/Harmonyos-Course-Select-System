@@ -149,54 +149,138 @@ curl -s -X POST https://<你的域名>/api/auth/login \
 - **常见故障**：`/health` 报 db 错误 → 大概率是 Postgres 容器重启后 bridge IP 变化，按第 1 步重查 IP、更新 `.env` 的 `PGHOST`、`pm2 restart` 即恢复。
 - **回归测试**：本地 `cd server && npm run test:coverage`（271 例 + 覆盖率门禁），改动后端后务必跑过再部署。
 
-## 后端 Docker 部署（替代方案）
+## 后端 Docker 部署（最简，推荐新手）
 
-不想手动装 Node/pm2 的话，后端已 Docker 化，镜像发布在 Docker Hub：[`lsw3435255848/dtest2-harmony-api`](https://hub.docker.com/r/lsw3435255848/dtest2-harmony-api)（`latest` 与版本号双标签，多阶段构建、非 root 运行、内置 `/health` HEALTHCHECK）。
+后端已打包成 Docker 镜像发布在 Docker Hub，**不用装 Node、不用 pm2、不用上传代码**，一台装了 Docker 的机器就能跑起整套后端（API + 数据库）。镜像地址：[`lsw3435255848/dtest2-harmony-api`](https://hub.docker.com/r/lsw3435255848/dtest2-harmony-api)。
 
-### 方式一：`docker run` 直接拉起（已有 Postgres）
+> 镜像特性：多阶段构建（体积小）、以非 root 用户运行、内置 `/health` 健康检查；不含任何密钥，所有配置在运行时通过环境变量注入。
+
+### 第 1 步 · 安装 Docker（只做一次）
+
+- **Windows / macOS**：去 [docker.com](https://www.docker.com/products/docker-desktop/) 下载 Docker Desktop，安装后打开，等右下角图标变绿。
+- **Linux（Ubuntu/Debian）**：
+  ```bash
+  curl -fsSL https://get.docker.com | sudo sh
+  sudo usermod -aG docker $USER   # 把当前用户加入 docker 组，免 sudo（需重新登录生效）
+  ```
+
+装好后验证（任意系统通用）：
 
 ```bash
-docker run -d --name dtest2-api \
-  -p 8090:8090 \
-  -e PGHOST=<库地址> -e PGPORT=5432 \
-  -e PGDATABASE=dtest2_harmony -e PGUSER=dtest2_app -e PGPASSWORD=<密码> \
-  -e JWT_SECRET=<≥16位随机串，建议 openssl rand -hex 32> \
-  -e SMTP_HOST=smtp.qq.com -e SMTP_PORT=465 -e SMTP_SECURE=true \
-  -e SMTP_SENDER_EMAIL=<发件邮箱> -e SMTP_SENDER_PASSWORD=<QQ授权码> \
-  -v dtest2_uploads:/app/uploads \
-  --restart unless-stopped \
-  lsw3435255848/dtest2-harmony-api:latest
+docker version          # 能打印版本号即成功
+docker compose version  # 需要 Compose v2（Docker Desktop 自带；Linux 上随上面脚本一起装好）
+```
 
-# 首次需建库迁移（容器内执行）
-docker exec dtest2-api npm run migrate
-docker exec dtest2-api npm run seed
+### 第 2 步 · 准备一个工作目录和配置文件
 
-# 验证
+新建一个空文件夹（名字随意，比如 `dtest2`），在里面建两个文件。
+
+**① `docker-compose.yml`**（直接复制下面全部内容，**一个字都不用改**，它会自动从 Docker Hub 拉我的镜像）：
+
+```yaml
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dtest2-postgres
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-dtest2_harmony}
+      POSTGRES_USER: ${PGUSER:-dtest2_app}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?请在 .env 里设置 PGPASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-dtest2_app} -d ${PGDATABASE:-dtest2_harmony}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    image: lsw3435255848/dtest2-harmony-api:latest   # 直接用 Docker Hub 上的镜像
+    container_name: dtest2-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: "8090"
+      PGHOST: db                 # 容器间用服务名 db 互连，无需改
+      PGPORT: "5432"
+      PGDATABASE: ${PGDATABASE:-dtest2_harmony}
+      PGUSER: ${PGUSER:-dtest2_app}
+      PGPASSWORD: ${PGPASSWORD:?请在 .env 里设置 PGPASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 里设置 JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_SENDER_EMAIL: ${SMTP_SENDER_EMAIL:-}
+      SMTP_SENDER_PASSWORD: ${SMTP_SENDER_PASSWORD:-}
+    ports:
+      - "8090:8090"              # 把容器 8090 端口映射到本机 8090
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
+```
+
+**② `.env`**（和上面文件放同一目录，填你自己的值；至少改 `PGPASSWORD` 和 `JWT_SECRET` 两项）：
+
+```bash
+# 数据库密码（自己定一个，记住即可）
+PGPASSWORD=改成你的强密码
+
+# JWT 签名密钥：必须 ≥16 字符的随机串，缺失或太短后端会拒绝启动
+# 生成方法：Linux/macOS 跑 `openssl rand -hex 32`；没有就随便敲一长串字母数字
+JWT_SECRET=改成一长串随机字符至少16位建议64位
+
+# 下面是邮件发送（注册验证码用），不需要邮件功能可以全部留空
+SMTP_HOST=smtp.qq.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_SENDER_EMAIL=你的发件QQ邮箱
+SMTP_SENDER_PASSWORD=QQ邮箱授权码（不是登录密码，在QQ邮箱设置里开SMTP获取）
+```
+
+### 第 3 步 · 一条命令启动
+
+在放着这两个文件的目录里执行：
+
+```bash
+docker compose up -d
+```
+
+第一次会自动从 Docker Hub 下载镜像（API + Postgres），下完即自动启动。`-d` 表示后台运行。
+
+### 第 4 步 · 首次建库（只做一次）
+
+容器起来后，数据库还是空的，执行下面两条把表建好、灌入演示数据：
+
+```bash
+docker compose exec api npm run migrate   # 建表（幂等，可重复跑）
+docker compose exec api npm run seed      # 演示账号 / 选课轮次 / 评教模板
+```
+
+### 第 5 步 · 验证是否成功
+
+```bash
 curl http://127.0.0.1:8090/health
 ```
 
-### 方式二：`docker compose` 一键起 api + postgres
+返回 `{"success":true,...,"db":"ok"}` 就说明后端和数据库都正常了。也可以打开浏览器访问 `http://<服务器IP>:8090/admin/` 进 Web 管理控制台。
 
-仓库 `server/docker-compose.yml` 已编排好后端与 Postgres，本地或服务器上一条命令拉起整套：
-
-```bash
-cd server
-# 先把 .env 准备好（compose 会读取，至少配置 PGPASSWORD 与 JWT_SECRET）
-cp .env.example .env && vim .env
-docker compose up -d --build
-docker compose exec api npm run migrate   # 首次建库
-docker compose exec api npm run seed
-```
-
-### 自己重新构建并推送镜像
+### 常用运维命令
 
 ```bash
-cd server
-docker build -t lsw3435255848/dtest2-harmony-api:latest .
-docker push lsw3435255848/dtest2-harmony-api:latest
+docker compose ps             # 查看运行状态
+docker compose logs -f api    # 实时看后端日志
+docker compose pull           # 拉取我发布的最新镜像
+docker compose up -d          # 重新应用（拉新镜像后用它更新）
+docker compose down           # 停止并删除容器（数据卷保留，不丢数据）
 ```
 
-> 镜像不内置 `.env`、`node_modules`、测试与本地数据（见 `.dockerignore`），所有密钥一律运行时经环境变量注入；生产仍建议在 Docker 前置 nginx 做 TLS 终止（参考第 6 步），公网只放行 80/443。
+> **生产环境提醒**：上面把 `8090` 直接暴露到本机是为了方便。正式上线建议在前面加一层 nginx 做 HTTPS（参考上文「第 6 步 · nginx 反代 + HTTPS」），云服务器安全组只放行 80/443，不要把 8090 直接对公网开放。
 
 ## 项目介绍
 
