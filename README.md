@@ -149,6 +149,55 @@ curl -s -X POST https://<你的域名>/api/auth/login \
 - **常见故障**：`/health` 报 db 错误 → 大概率是 Postgres 容器重启后 bridge IP 变化，按第 1 步重查 IP、更新 `.env` 的 `PGHOST`、`pm2 restart` 即恢复。
 - **回归测试**：本地 `cd server && npm run test:coverage`（271 例 + 覆盖率门禁），改动后端后务必跑过再部署。
 
+## 后端 Docker 部署（替代方案）
+
+不想手动装 Node/pm2 的话，后端已 Docker 化，镜像发布在 Docker Hub：[`lsw3435255848/dtest2-harmony-api`](https://hub.docker.com/r/lsw3435255848/dtest2-harmony-api)（`latest` 与版本号双标签，多阶段构建、非 root 运行、内置 `/health` HEALTHCHECK）。
+
+### 方式一：`docker run` 直接拉起（已有 Postgres）
+
+```bash
+docker run -d --name dtest2-api \
+  -p 8090:8090 \
+  -e PGHOST=<库地址> -e PGPORT=5432 \
+  -e PGDATABASE=dtest2_harmony -e PGUSER=dtest2_app -e PGPASSWORD=<密码> \
+  -e JWT_SECRET=<≥16位随机串，建议 openssl rand -hex 32> \
+  -e SMTP_HOST=smtp.qq.com -e SMTP_PORT=465 -e SMTP_SECURE=true \
+  -e SMTP_SENDER_EMAIL=<发件邮箱> -e SMTP_SENDER_PASSWORD=<QQ授权码> \
+  -v dtest2_uploads:/app/uploads \
+  --restart unless-stopped \
+  lsw3435255848/dtest2-harmony-api:latest
+
+# 首次需建库迁移（容器内执行）
+docker exec dtest2-api npm run migrate
+docker exec dtest2-api npm run seed
+
+# 验证
+curl http://127.0.0.1:8090/health
+```
+
+### 方式二：`docker compose` 一键起 api + postgres
+
+仓库 `server/docker-compose.yml` 已编排好后端与 Postgres，本地或服务器上一条命令拉起整套：
+
+```bash
+cd server
+# 先把 .env 准备好（compose 会读取，至少配置 PGPASSWORD 与 JWT_SECRET）
+cp .env.example .env && vim .env
+docker compose up -d --build
+docker compose exec api npm run migrate   # 首次建库
+docker compose exec api npm run seed
+```
+
+### 自己重新构建并推送镜像
+
+```bash
+cd server
+docker build -t lsw3435255848/dtest2-harmony-api:latest .
+docker push lsw3435255848/dtest2-harmony-api:latest
+```
+
+> 镜像不内置 `.env`、`node_modules`、测试与本地数据（见 `.dockerignore`），所有密钥一律运行时经环境变量注入；生产仍建议在 Docker 前置 nginx 做 TLS 终止（参考第 6 步），公网只放行 80/443。
+
 ## 项目介绍
 
 本项目是“绷住了小组”的软件工程课程作业，目标是实现一个面向 HarmonyOS NEXT 的教学管理系统 App。
