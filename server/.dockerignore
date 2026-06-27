@@ -1,0 +1,21 @@
+# 构建上下文排除：缩小镜像、加速构建、避免泄密。
+node_modules/
+npm-debug.log*
+*.log
+
+# 绝不把真实密钥打进镜像（.env.example 模板保留，方便容器内对照）。
+.env
+
+# 测试 / 覆盖率 / 脚本产物
+coverage/
+test/
+scripts/smoke-live.js
+
+# 本地数据库副本与上传产物（运行期用挂载卷，不进镜像）
+ruvector.db
+uploads/
+
+# 文档与构建缓存
+README.md
+.hvigor/
+deploy/

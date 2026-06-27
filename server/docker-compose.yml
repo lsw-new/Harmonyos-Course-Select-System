@@ -1,0 +1,50 @@
+# 本地/单机一键起栈：api + postgres。
+# 生产可只用 api 服务，把 PG* 指向外部托管库（删掉 db 服务与 depends_on）。
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dtest2-postgres
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-dtest2_harmony}
+      POSTGRES_USER: ${PGUSER:-dtest2_app}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?需在 .env 设置数据库密码}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-dtest2_app} -d ${PGDATABASE:-dtest2_harmony}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    image: lsw3435255848/dtest2-harmony-api:latest
+    build: .
+    container_name: dtest2-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: "8090"
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ${PGDATABASE:-dtest2_harmony}
+      PGUSER: ${PGUSER:-dtest2_app}
+      PGPASSWORD: ${PGPASSWORD:?需在 .env 设置数据库密码}
+      JWT_SECRET: ${JWT_SECRET:?需在 .env 设置 ≥16 字符随机密钥}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_SENDER_EMAIL: ${SMTP_SENDER_EMAIL:-}
+      SMTP_SENDER_PASSWORD: ${SMTP_SENDER_PASSWORD:-}
+      APP_NAME: ${APP_NAME:-景德镇艺术职业大学教学管理系统}
+    ports:
+      - "8090:8090"
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
