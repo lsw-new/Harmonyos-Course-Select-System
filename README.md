@@ -139,7 +139,7 @@ curl -s -X POST https://<你的域名>/api/auth/login \
 ```
 
 - 浏览器打开 `https://<你的域名>/admin/`，用管理员账号登录 Web 管理控制台（概览 / 学生 / 选课 / 成绩 / 审批 / 通知 / 验证码监控 / 审计 / 数据库管理）。
-- App 侧把 `entry/src/main/ets/common/AppConfig.ets` 的 `baseUrl` 改为 `https://<你的域名>/api` 后重新构建即可联机。
+- App 侧把 `entry/src/main/ets/app/AppConfig.ets` 的 `baseUrl` 改为 `https://<你的域名>/api` 后重新构建即可联机（详见下文 Docker 部署的「第 6 步 · 让 App 接入你的后端」）。
 
 ### 第 8 步 · 日常更新与运维
 
@@ -292,6 +292,28 @@ docker compose down           # 停止并删除容器（数据卷保留，不丢
 ```
 
 > **生产环境提醒**：上面把 `8090` 直接暴露到本机是为了方便。正式上线建议在前面加一层 nginx 做 HTTPS（参考上文「第 6 步 · nginx 反代 + HTTPS」），云服务器安全组只放行 80/443，不要把 8090 直接对公网开放。
+
+### 第 6 步 · 让 App 接入你的后端
+
+后端跑起来后，App 默认连的还是我的线上地址（`https://lsw666.dns.army/api`）。要让 App 连**你自己**部署的后端，改一个配置文件再重新构建即可。
+
+打开 `entry/src/main/ets/app/AppConfig.ets`，改两处：
+
+```ts
+export class AppConfig {
+  // ① 运行模式保持 remote（联机走后端；mock 是离线演示，local 是纯单机）
+  static runtimeMode: RuntimeMode = 'remote';
+
+  // ② 改成你自己的后端地址（注意结尾带 /api）
+  static baseUrl: string = 'https://<你的域名>/api';
+}
+```
+
+改完在 DevEco Studio 里重新构建并运行，App 就连上你的后端了。用上面第 5 步的演示账号（管理员 `A20251001` / `Admin@2024`，学生 `2023307020941` / `Elysia@2024`）即可登录验证。
+
+> ⚠️ **必须用 HTTPS**：HarmonyOS 默认禁止明文 HTTP 流量，`baseUrl` 必须是 `https://` 开头的域名（即走完上文「第 6 步 · nginx 反代 + HTTPS」拿到证书）。直接填 `http://<IP>:8090` 这种明文地址，App 联网会被系统拦截、请求失败。本机临时联调可在 `module.json5` 放行明文域名，但生产一律用 HTTPS。
+>
+> 域名要和证书一致：`baseUrl` 里的域名必须就是你 `certbot` 申请证书时用的那个域名，否则 TLS 握手会失败。
 
 ## 项目介绍
 
