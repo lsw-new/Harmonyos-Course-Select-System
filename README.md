@@ -41,8 +41,8 @@ sudo docker run -d --name dtest2-postgres \
 ### 第 2 步 · 上传代码并安装依赖
 
 ```bash
-# 本地：把仓库 server/ 目录上传到服务器
-scp -r server/* <user>@<服务器IP>:~/dtest2-api/
+# 本地：把仓库 server/ 目录上传到服务器（用 server/. 而非 server/*，否则 .env.example、.gitignore 等隐藏文件会被通配符漏掉）
+scp -r server/. <user>@<服务器IP>:~/dtest2-api/
 
 # 服务器：
 cd ~/dtest2-api
