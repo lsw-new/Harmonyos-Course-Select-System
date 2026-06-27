@@ -119,6 +119,7 @@
   const loaders = {
     overview: loadOverview,
     students: () => loadStudents(''),
+    teachers: loadTeachers,
     selection: loadSelection,
     grades: loadGrades,
     approvals: loadApprovals,
@@ -194,6 +195,108 @@
   $('#student-search').addEventListener('click', () => loadStudents($('#student-q').value.trim()));
   $('#student-q').addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') { loadStudents($('#student-q').value.trim()); }
+  });
+
+  // ---------- 教师管理 ----------
+
+  async function loadTeachers() {
+    const wrap = $('#teachers-table');
+    wrap.innerHTML = '<div class="empty">加载中…</div>';
+    try {
+      const list = await api('/admin/teachers');
+      if (list.length === 0) {
+        wrap.innerHTML = '<div class="empty">暂无教师（点击上方「新增教师」添加）</div>';
+        return;
+      }
+      const rows = list.map((t) => `
+        <tr>
+          <td>${esc(t.teacherId)}</td>
+          <td><input class="t-edit" data-t-field="name" data-t-id="${esc(t.teacherId)}" value="${esc(t.name)}"></td>
+          <td><input class="t-edit" data-t-field="college" data-t-id="${esc(t.teacherId)}" value="${esc(t.college)}" placeholder="—"></td>
+          <td><input class="t-edit" data-t-field="title" data-t-id="${esc(t.teacherId)}" value="${esc(t.title)}" placeholder="—"></td>
+          <td><input class="t-edit" data-t-field="email" data-t-id="${esc(t.teacherId)}" value="${esc(t.email)}" placeholder="—"></td>
+          <td>${t.courseCount}</td>
+          <td class="t-actions">
+            <button class="btn sm" data-t-save="${esc(t.teacherId)}">保存</button>
+            <button class="btn sm ghost" data-t-reset="${esc(t.teacherId)}">重置密码</button>
+            <button class="btn sm bad" data-t-del="${esc(t.teacherId)}" data-t-name="${esc(t.name)}">删除</button>
+          </td>
+        </tr>`).join('');
+      wrap.innerHTML = `<table>
+        <thead><tr><th>工号</th><th>姓名</th><th>学院</th><th>职称</th><th>邮箱</th><th>授课</th><th>操作</th></tr></thead>
+        <tbody>${rows}</tbody></table>`;
+    } catch (e) {
+      wrap.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+  }
+
+  $('#t-create').addEventListener('click', async () => {
+    const name = $('#t-name').value.trim();
+    if (!name) { return toast('请填写教师姓名'); }
+    const body = {
+      name,
+      college: $('#t-college').value.trim(),
+      title: $('#t-title').value.trim(),
+      email: $('#t-email').value.trim()
+    };
+    const btn = $('#t-create');
+    btn.disabled = true;
+    try {
+      const data = await api('/admin/teachers', { method: 'POST', body });
+      toast(`已新增 ${data.teacherId}（默认密码 Teacher@2024）`);
+      $('#t-name').value = ''; $('#t-college').value = ''; $('#t-title').value = ''; $('#t-email').value = '';
+      loadTeachers();
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('#teachers-table').addEventListener('click', async (ev) => {
+    const saveBtn = ev.target.closest('button[data-t-save]');
+    const resetBtn = ev.target.closest('button[data-t-reset]');
+    const delBtn = ev.target.closest('button[data-t-del]');
+    if (saveBtn) {
+      const id = saveBtn.dataset.tSave;
+      const body = {};
+      document.querySelectorAll(`input.t-edit[data-t-id="${CSS.escape(id)}"]`).forEach((el) => {
+        body[el.dataset.tField] = el.value.trim();
+      });
+      saveBtn.disabled = true;
+      try {
+        await api('/admin/teachers/' + encodeURIComponent(id), { method: 'PUT', body });
+        toast('已保存');
+        loadTeachers();
+      } catch (e) {
+        toast(e.message);
+        saveBtn.disabled = false;
+      }
+      return;
+    }
+    if (resetBtn) {
+      const id = resetBtn.dataset.tReset;
+      if (!confirm(`将 ${id} 的密码重置为默认 Teacher@2024？`)) { return; }
+      try {
+        await api('/admin/teachers/' + encodeURIComponent(id) + '/reset-password', { method: 'POST', body: {} });
+        toast(`${id} 密码已重置为 Teacher@2024`);
+      } catch (e) {
+        toast(e.message);
+      }
+      return;
+    }
+    if (delBtn) {
+      const id = delBtn.dataset.tDel;
+      const name = delBtn.dataset.tName || id;
+      if (!confirm(`确认删除教师「${name}」（${id}）？账号与资料将一并移除，不可恢复。`)) { return; }
+      try {
+        await api('/admin/teachers/' + encodeURIComponent(id), { method: 'DELETE' });
+        toast('已删除');
+        loadTeachers();
+      } catch (e) {
+        toast(e.message);
+      }
+    }
   });
 
   // ---------- 选课管理 ----------

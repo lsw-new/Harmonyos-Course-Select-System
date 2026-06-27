@@ -157,6 +157,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--rose-500); }
 .toolbar { display: flex; gap: 10px; margin-bottom: 14px; }
 .toolbar input, .toolbar select { max-width: 320px; }
 
+/* 教师管理：行内编辑 + 小按钮 */
+.btn.sm { padding: 5px 11px; font-size: 13px; }
+.btn.ghost { background: var(--rose-soft); color: var(--rose-500); }
+.btn.bad { background: #FFF0F0; color: var(--danger); }
+.t-actions { white-space: nowrap; }
+.t-actions .btn { margin-right: 6px; }
+.t-actions .btn:last-child { margin-right: 0; }
+.t-edit { width: 100%; min-width: 84px; box-sizing: border-box; padding: 5px 8px; border: 1px solid #ececec; border-radius: 8px; font-size: 13px; background: #fff; }
+.t-edit:focus { outline: none; border-color: var(--rose-500); }
+
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-top: 6px; }
 .stat-card {
   background: var(--surface);
